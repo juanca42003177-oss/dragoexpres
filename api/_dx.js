@@ -7,7 +7,7 @@ const H = () => ({ Authorization: 'Bearer ' + TOKEN(), Accept: 'application/vnd.
 let branchReady = false;
 async function ensureBranch() {
   if (branchReady) return;
-  const chk = await fetch(`https://api.github.com/repos/${REPO}/git/ref/refs%2Fheads%2F${BRANCH}`, { headers: H() });
+  const chk = await fetch(`https://api.github.com/repos/${REPO}/git/ref/heads/${BRANCH}`, { headers: H() });
   if (chk.ok) { branchReady = true; return; }
   const chkMe = await fetch('https://api.github.com/user', { headers: H() });
   if (!chkMe.ok) throw new Error('GITHUB_TOKEN invalido o ausente (HTTP ' + chkMe.status + ')');
@@ -16,7 +16,7 @@ async function ensureBranch() {
   if (!rb.ok) throw new Error('repo de datos no accesible (HTTP ' + rb.status + ', usando: ' + REPO + ')');
   const rj = await rb.json();
   const base = rj.default_branch || 'main';
-  const mb = await fetch(`https://api.github.com/repos/${REPO}/git/ref/refs%2Fheads%2F${base}`, { headers: H() });
+  const mb = await fetch(`https://api.github.com/repos/${REPO}/git/ref/heads/${base}`, { headers: H() });
   if (!mb.ok) throw new Error('rama base ' + base + ' no encontrada (HTTP ' + mb.status + ')');
   const mj = await mb.json();
   const cr = await fetch(`https://api.github.com/repos/${REPO}/git/refs`, {
