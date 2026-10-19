@@ -55,7 +55,9 @@ async function estado() {
   const peds = (fpd ? fpd.data : []).filter(o => o.estado === 'entregado' && (o.tsEntregado || o.ts) >= L);
   const comisiones = dinero(peds.reduce((s, o) => s + (o.comision || 0), 0));
   const pz = await ghGet('pozo.json');
-  const pozo = pz ? pz.data : { acumulado: 0, historial: [] };
+  const pozo = pz ? pz.data : {};
+  pozo.acumulado = pozo.acumulado || 0;
+  pozo.historial = pozo.historial || [];
   const porPiloto = {};
   peds.forEach(o => {
     if (!o.piloto) return;
