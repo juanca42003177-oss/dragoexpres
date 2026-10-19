@@ -181,6 +181,7 @@ module.exports = wrap(async (req, res) => {
       if (o.estado === 'aceptado') o.estado = 'en_camino';
       else if (o.estado === 'en_camino') {
         o.estado = 'entregado'; o.tsEntregado = now;
+        await ghPut('pedidos.json', fpd.sha, peds, 'entregado ' + id); // guardar el estado ANTES de pagar al piloto
         const fp = await ghGet('pilots.json'); const arr = fp ? fp.data : [];
         let st = arr.find(x => x.tel === tel);
         if (!st) { st = { tel }; arr.push(st); }
