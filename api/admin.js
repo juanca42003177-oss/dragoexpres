@@ -1,5 +1,6 @@
 // Panel de administracion DragoExpres (solo Juan). Requiere ADMIN_PASS en Vercel.
 const wrap = require('./_cors');
+const { ensureBranch } = require('./_dx');
 const REPO = process.env.GITHUB_DATA_REPO || 'juanca42003177-oss/dragon-labs-data';
 const BRANCH = 'dragoexpres-data';
 const TOKEN = () => process.env.GITHUB_TOKEN || '';
@@ -27,9 +28,12 @@ module.exports = wrap(async (req, res) => {
   const action = d.action || (req.query && req.query.action) || '';
   if (!okPass(d.pass)) return res.status(200).json({ ok: false, error: 'Acceso denegado' });
   if (action === 'check') return res.status(200).json({ ok: true });
+  await ensureBranch();
   const f = await ghGet();
   const data = f ? f.data : [];
   if (action === 'list') {
+    try { await ensureBranch(); } catch (e) {}
+
     return res.status(200).json({ ok: true, registros: data });
   }
   if (action === 'aprobar' || action === 'rechazar') {

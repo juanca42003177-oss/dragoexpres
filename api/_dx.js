@@ -1,0 +1,42 @@
+// Ayudantes compartidos de DragoExpres (los archivos _* no se despliegan como funciones).
+const REPO = process.env.GITHUB_DATA_REPO || 'juanca42003177-oss/dragon-labs-data';
+const BRANCH = 'dragoexpres-data';
+const TOKEN = () => process.env.GITHUB_TOKEN || '';
+const H = () => ({ Authorization: 'Bearer ' + TOKEN(), Accept: 'application/vnd.github+json' });
+
+let branchReady = false;
+async function ensureBranch() {
+  if (branchReady) return;
+  const chk = await fetch(`https://api.github.com/repos/${REPO}/git/ref/refs%2Fheads%2F${BRANCH}`, { headers: H() });
+  if (chk.ok) { branchReady = true; return; }
+  const mb = await fetch(`https://api.github.com/repos/${REPO}/git/ref/refs%2Fheads%2Fmain`, { headers: H() });
+  if (!mb.ok) throw new Error('repo de datos no encontrado');
+  const mj = await mb.json();
+  const cr = await fetch(`https://api.github.com/repos/${REPO}/git/refs`, {
+    method: 'POST',
+    headers: { ...H(), 'Content-Type': 'application/json' },
+    body: JSON.stringify({ ref: `refs/heads/${BRANCH}`, sha: mj.object.sha }),
+  });
+  if (cr.ok || cr.status === 422) { branchReady = true; return; }
+  throw new Error('crear rama HTTP ' + cr.status);
+}
+
+// Acepta el formato del cliente ({tipo, datos:{nombre,tel,zona}}) y el plano
+// ({tipo,nombre,whatsapp,zona}) indistintamente.
+function normalizar(body) {
+  const src = (body && body.datos && !body.nombre) ? body.datos : (body || {});
+  return {
+    tipo: (body && body.tipo) || src.tipo || '',
+    nombre: String(src.nombre || '').slice(0, 80),
+    tel: String(src.whatsapp || src.tel || '').slice(0, 25),
+    zona: String(src.zona || '').slice(0, 80),
+    vehiculo: src.vehiculo || undefined,
+    rubro: src.rubro || (body && body.tipo === 'local' ? src.tipo : undefined),
+    marca: src.marca || undefined,
+    color: src.color || undefined,
+    placa: src.placa || undefined,
+    equipo: src.equipo || undefined,
+    h24: src.h24 || undefined,
+  };
+}
+module.exports = { REPO, BRANCH, TOKEN, H, ensureBranch, normalizar };

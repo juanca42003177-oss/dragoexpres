@@ -1,6 +1,7 @@
 // Subida de documentos de pilotos (DPI, licencia, foto) al repo PRIVADO de datos.
 // El cliente comprime la imagen a ~200KB antes de enviarla (canvas + jpeg 0.7).
 const wrap = require('./_cors');
+const { ensureBranch } = require('./_dx');
 const REPO = process.env.GITHUB_DATA_REPO || 'juanca42003177-oss/dragon-labs-data';
 const BRANCH = 'dragoexpres-data';
 module.exports = wrap(async (req, res) => {
@@ -11,6 +12,7 @@ module.exports = wrap(async (req, res) => {
   const b64 = String(d.b64 || '').replace(/^data:image\/\w+;base64,/, '');
   if (!tipo || !b64) return res.status(200).json({ ok: false, error: 'Faltan datos del documento.' });
   if (b64.length > 900000) return res.status(200).json({ ok: false, error: 'Imagen demasiado grande.' });
+  await ensureBranch();
   const path = `docs/${tipo}/${tel}-${nombre}-${Date.now()}.jpg`;
   const r = await fetch(`https://api.github.com/repos/${REPO}/contents/dragoexpres/${path}`, {
     method: 'PUT',
