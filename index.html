@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DragoExpres — Tu zona, a velocidad de dragón</title>
+<link rel="icon" href="img/icono.png">
+<style>
+:root{--oro:#f0b90b;--oro2:#ffe08a;--rojo:#e63946;--bg:#0a0a0f;--card:#15161d;--borde:#2a3145;--txt:#eef1f7;--mut:#98a2b3}
+*{margin:0;padding:0;box-sizing:border-box;font-family:system-ui,-apple-system,'Segoe UI',Roboto,sans-serif}
+body{background:var(--bg);color:var(--txt);min-height:100vh}
+.wrap{max-width:480px;margin:0 auto;padding:18px 14px 60px}
+.logo{text-align:center;margin:6px 0 2px}
+.logo img{width:150px;border-radius:18px;box-shadow:0 8px 40px rgba(230,57,70,.4)}
+h1{font-size:30px;font-weight:900;text-align:center;letter-spacing:.5px}
+h1 span{color:var(--oro)}
+.tag{text-align:center;color:var(--mut);font-size:13.5px;margin-top:4px}
+.mision{background:linear-gradient(135deg,#1a1408,#14161d);border:1px solid #3d3208;border-radius:14px;padding:14px;margin-top:16px}
+.mision .t{font-weight:800;font-size:14px;color:var(--oro2)}
+.mision .d{color:var(--mut);font-size:12.5px;margin-top:4px;line-height:1.5}
+.contador{display:flex;gap:8px;margin-top:10px}
+.caja{flex:1;background:#0e0f14;border:1px solid var(--borde);border-radius:10px;padding:8px 4px;text-align:center}
+.caja .n{font-size:22px;font-weight:900;color:var(--oro)}
+.caja .l{font-size:9.5px;color:var(--mut);text-transform:uppercase;letter-spacing:.5px}
+.puertas{display:flex;gap:8px;margin-top:14px}
+.puerta{flex:1;background:var(--card);border:1px solid var(--borde);border-radius:14px;padding:14px 6px;text-align:center;cursor:pointer;transition:transform .15s,border-color .15s}
+.puerta:active{transform:scale(.97)}
+.puerta.on{border-color:var(--oro);box-shadow:0 0 18px rgba(240,185,11,.25)}
+.puerta .i{font-size:26px}
+.puerta .n{font-size:11.5px;font-weight:800;margin-top:6px;line-height:1.25}
+.puerta .s{font-size:9.5px;color:var(--mut);margin-top:2px}
+form{background:var(--card);border:1px solid var(--borde);border-radius:14px;padding:16px;margin-top:14px;display:none}
+form.on{display:block}
+.fT{font-weight:900;font-size:15px}
+.fS{color:var(--mut);font-size:12px;margin:2px 0 12px;line-height:1.4}
+label{font-size:11px;color:var(--mut);display:block;margin:10px 0 4px;font-weight:700;text-transform:uppercase;letter-spacing:.4px}
+input,select{width:100%;background:#0e0f14;border:1px solid var(--borde);border-radius:10px;padding:11px 12px;color:var(--txt);font-size:14px;outline:none}
+input:focus,select:focus{border-color:var(--oro)}
+.btn{width:100%;margin-top:16px;background:linear-gradient(135deg,#ffd44d,#f0a90b);color:#141005;border:0;border-radius:12px;padding:14px;font-size:15px;font-weight:900;cursor:pointer}
+.btn:active{transform:scale(.98)}
+.ok{display:none;background:#0d2015;border:1px solid #1d5a35;color:#7ee2a8;border-radius:12px;padding:12px;margin-top:12px;font-size:13px;line-height:1.5}
+.fundador{margin-top:14px;background:var(--card);border:1px solid var(--borde);border-radius:14px;padding:14px}
+.fundador .t{font-weight:800;font-size:13.5px;color:var(--oro2)}
+.fundador ul{margin:8px 0 0 18px;font-size:12.5px;color:var(--mut);line-height:1.7}
+.doc{margin-top:14px;font-size:11.5px;color:var(--mut);text-align:center;line-height:1.6}
+.footer{margin-top:26px;text-align:center;color:#5a6270;font-size:11px;line-height:1.7}
+.footer b{color:var(--oro)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="logo"><img src="img/logo.png" alt="DragoExpres"></div>
+  <h1>DRAGO<span>EXPRES</span></h1>
+  <div class="tag">Comida · Viajes · Repuestos a domicilio</div>
+
+  <div class="mision">
+    <div class="t">🎯 Guatemala se activa área por área</div>
+    <div class="d">Cuando tu área llegue a <b>25 pilotos verificados + 25 locales</b>, el servicio arranca ahí automáticamente. Invitá y activá tu zona antes.</div>
+    <div class="contador">
+      <div class="caja"><div class="n" id="cPilotos">—</div><div class="l">Pilotos</div></div>
+      <div class="caja"><div class="n" id="cLocales">—</div><div class="l">Locales</div></div>
+      <div class="caja"><div class="n" id="cFlota">—</div><div class="l">Vehículos</div></div>
+    </div>
+  </div>
+
+  <div class="puertas">
+    <div class="puerta on" id="pP" onclick="abrir('piloto')"><div class="i">🏍️</div><div class="n">Quiero ser piloto</div><div class="s">Pagos semanales</div></div>
+    <div class="puerta" id="pL" onclick="abrir('local')"><div class="i">🔥</div><div class="n">Poné tu local</div><div class="s">3 meses sin comisión</div></div>
+    <div class="puerta" id="pF" onclick="abrir('flota')"><div class="i">🚗</div><div class="n">Poné tu vehículo</div><div class="s">Ganá sin manejar</div></div>
+  </div>
+
+  <form id="fPiloto" class="on" onsubmit="return enviar('piloto')">
+    <div class="fT">🏍️ Registrarme como piloto</div>
+    <div class="fS">Bicicleta, moto, carro o pickup. Pagos semanales + bono dominical. Fundadores: 100% de sus ganancias el primer mes.</div>
+    <label>Tu nombre</label><input id="piN" required placeholder="Nombre y apellido">
+    <label>WhatsApp</label><input id="piW" required placeholder="+502 ...">
+    <label>Tu vehículo</label>
+    <select id="piV"><option value="bici">Bicicleta</option><option value="moto">Moto</option><option value="carro">Carro</option><option value="pickup">Pickup (fletes)</option></select>
+    <label>Tu área / municipio</label><input id="piZ" required placeholder="Ej: Zona 12, Mixco, Villa Nueva...">
+    <button class="btn">Registrarme — Piloto Fundador 🐉</button>
+  </form>
+
+  <form id="fLocal" onsubmit="return enviar('local')">
+    <div class="fT">🔥 Registrar mi local</div>
+    <div class="fS">Comida, repuestos, tienda o taller. Vos ponés tus precios y tus promos. 3 meses sin comisión y tu vitrina visible desde YA.</div>
+    <label>Nombre del local</label><input id="loN" required placeholder="Ej: Tienda Don Mario">
+    <label>Qué vendés</label>
+    <select id="loT"><option value="comida">Comida</option><option value="repuestos">Repuestos de moto/carro</option><option value="tienda">Tienda</option><option value="taller">Taller</option></select>
+    <label>WhatsApp</label><input id="loW" required placeholder="+502 ...">
+    <label>Área / municipio</label><input id="loZ" required placeholder="Ej: Zona 1, Quetzaltenango...">
+    <button class="btn">Registrar mi local — Gratis 🐉</button>
+  </form>
+
+  <form id="fFlota" onsubmit="return enviar('flota')">
+    <div class="fT">🚗 Poner mi vehículo a trabajar</div>
+    <div class="fS">Vos no manejás: registrás tu unidad, el sistema le asigna un conductor verificado, y recibís el 75% de lo que produzca.</div>
+    <label>Tu nombre</label><input id="flN" required placeholder="Nombre y apellido">
+    <label>Vehículo</label>
+    <select id="flV"><option value="moto">Moto</option><option value="carro">Carro</option><option value="pickup">Pickup</option></select>
+    <label>WhatsApp</label><input id="flW" required placeholder="+502 ...">
+    <label>Área del vehículo</label><input id="flZ" required placeholder="Ej: Zona 10, Guatemala...">
+    <button class="btn">Registrar mi vehículo 🐉</button>
+  </form>
+
+  <div id="msgOk" class="ok">✅ ¡Registro recibido! Te contactaremos por WhatsApp para completar tu verificación (DPI, licencia y antecedentes) y activar tu área.</div>
+
+  <div class="fundador">
+    <div class="t">👑 Beneficios Fundador (solo los primeros de cada área)</div>
+    <ul>
+      <li><b>Pilotos:</b> 100% de ganancias tu primer mes + prioridad de pedidos</li>
+      <li><b>Locales:</b> 3 meses sin comisión + vitrina "Próximamente" con seguidores desde hoy</li>
+      <li><b>Usuarios:</b> envío gratis en tu primer pedido + puntos dobles el primer año</li>
+    </ul>
+  </div>
+
+  <div class="doc">🔒 Pilotos verificados con DPI, licencia y antecedentes. Locales con NIT.<br>Tu área se activa sola al llegar a 25 pilotos + 25 locales verificados.</div>
+
+  <div class="footer"><b>DRAGON TRADE LABS</b> presenta<br>DragoExpres · Pagos en efectivo y tarjeta · Guatemala</div>
+</div>
+<script>
+function abrir(p){
+  document.querySelectorAll('.puerta').forEach(function(x){x.classList.remove('on')});
+  ['Piloto','Local','Flota'].forEach(function(x){document.getElementById('f'+x).classList.remove('on')});
+  if(p==='piloto'){document.getElementById('pP').classList.add('on');document.getElementById('fPiloto').classList.add('on');}
+  if(p==='local'){document.getElementById('pL').classList.add('on');document.getElementById('fLocal').classList.add('on');}
+  if(p==='flota'){document.getElementById('pF').classList.add('on');document.getElementById('fFlota').classList.add('on');}
+}
+function enviar(t){
+  var d={tipo:t};
+  if(t==='piloto'){d.nombre=piN.value;d.whatsapp=piW.value;d.vehiculo=piV.value;d.zona=piZ.value;}
+  if(t==='local'){d.nombre=loN.value;d.whatsapp=loW.value;d.rubro=loT.value;d.zona=loZ.value;}
+  if(t==='flota'){d.nombre=flN.value;d.whatsapp=flW.value;d.vehiculo=flV.value;d.zona=flZ.value;}
+  fetch('/api/register',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(d)})
+    .then(function(r){return r.json()})
+    .then(function(j){
+      if(j&&j.ok){document.getElementById('msgOk').style.display='block';document.querySelectorAll('form').forEach(function(f){f.classList.remove('on')});cargarStats();}
+      else{alert((j&&j.error)||'No se pudo registrar. Intentá de nuevo.');}
+    })
+    .catch(function(){alert('Registro temporalmente fuera de línea. Volvé a intentar en unos minutos.');});
+  return false;
+}
+function cargarStats(){
+  fetch('/api/register?stats=1').then(function(r){return r.json()}).then(function(j){
+    if(!j||!j.ok)return;
+    document.getElementById('cPilotos').textContent=j.pilotos||0;
+    document.getElementById('cLocales').textContent=j.locales||0;
+    document.getElementById('cFlota').textContent=j.flota||0;
+  }).catch(function(){});
+}
+cargarStats();
+setInterval(cargarStats,60000);
+</script>
+</body>
+</html>
