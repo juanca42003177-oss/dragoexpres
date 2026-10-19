@@ -52,6 +52,22 @@ module.exports = wrap(async (req, res) => {
     pedidos.forEach(o => porEstado[o.estado] = (porEstado[o.estado] || 0) + 1);
     return res.status(200).json({ ok: true, pedidos: pedidos.slice(-60).reverse(), total: pedidos.length, comisiones, porEstado });
   }
+  if (action === 'liquidaciones') {
+    const fp = await ghGet('pilots.json');
+    const arr = fp ? fp.data : [];
+    return res.status(200).json({ ok: true, pendientes: arr.filter(x => x.pendiente).map(x => ({ tel: x.tel, nombre: x.nombre || x.tel, monto: x.pendiente.monto, desde: x.pendiente.desde, susp: !!x.susp })) });
+  }
+  if (action === 'liqOk') {
+    const tel = String(b.tel || '').trim();
+    const fp = await ghGet('pilots.json');
+    const arr = fp ? fp.data : [];
+    const st = arr.find(x => x.tel === tel);
+    if (!st) return res.status(200).json({ ok: false, error: 'Piloto no encontrado.' });
+    delete st.pendiente;
+    delete st.susp;
+    await ghPut('pilots.json', fp ? fp.sha : null, arr, 'liquidado ' + tel);
+    return res.status(200).json({ ok: true });
+  }
   if (action === 'pozo') {
     const TZ = 6 * 3600 * 1000;
     const g = new Date(Date.now() - TZ);

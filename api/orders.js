@@ -70,6 +70,7 @@ module.exports = wrap(async (req, res) => {
     const p = reg.find(r => r.tipo === 'piloto' && r.estado === 'aprobado' && String(r.datos.tel).trim() === tel);
     if (!p) return res.status(200).json({ ok: false, error: 'No encontramos un piloto aprobado con ese WhatsApp.' });
     if (p.datos.placa && String(p.datos.placa).trim().toUpperCase() !== placa) return res.status(200).json({ ok: false, error: 'La placa no coincide.' });
+    if (st.susp) return res.status(200).json({ ok: false, suspendido: true, error: 'Suspendido por liquidación pendiente: Q' + (st.pendiente ? st.pendiente.monto : '?') + '. Pagá tus comisiones a la cuenta del banco y avisános por WhatsApp para reactivarte.' });
     const fp = await ghGet('pilots.json');
     const st = (fp ? fp.data : []).find(x => x.tel === tel) || { tel, disponible: false };
     const fpd = await ghGet('pedidos.json');
@@ -78,7 +79,7 @@ module.exports = wrap(async (req, res) => {
     const zona = peds.filter(o => o.estado === 'buscando' && o.zona === p.datos.zona);
     const califs = peds.filter(o => o.piloto && o.piloto.tel === tel && o.califCliente > 0);
     const calif = califs.length ? Math.round(califs.reduce((x, o) => x + o.califCliente, 0) / califs.length * 10) / 10 : null;
-    return res.status(200).json({ ok: true, piloto: { nombre: p.datos.nombre, zona: p.datos.zona, vehiculo: p.datos.vehiculo, disponible: st.disponible, ganadoHoy: st.ganadoHoy || 0, ganadoSemana: st.ganadoSemana || 0, pedidosHoy: st.pedidosHoy || 0, calif: calif }, activo: mio[0] || null, zonaBuscando: zona });
+    return res.status(200).json({ ok: true, piloto: { nombre: p.datos.nombre, zona: p.datos.zona, vehiculo: p.datos.vehiculo, disponible: st.disponible, ganadoHoy: st.ganadoHoy || 0, ganadoSemana: st.ganadoSemana || 0, pedidosHoy: st.pedidosHoy || 0, calif: calif, pendiente: st.pendiente || null }, activo: mio[0] || null, zonaBuscando: zona });
   }
 
   // ---- PILOTO: ponerse disponible / no disponible ----
@@ -122,7 +123,7 @@ module.exports = wrap(async (req, res) => {
     const aprobados = new Set(reg.filter(r => r.tipo === 'piloto' && r.estado === 'aprobado').map(r => String(r.datos.tel).trim()));
     const fpd = await ghGet('pedidos.json'); const peds = fpd ? fpd.data : [];
     const ocupados = new Set(peds.filter(o => o.piloto && ['asignado', 'aceptado', 'en_camino'].includes(o.estado)).map(o => o.piloto.tel));
-    const cand = pilots.filter(x => x.disponible && aprobados.has(x.tel) && !ocupados.has(x.tel))
+    const cand = pilots.filter(x => x.disponible && !x.susp && aprobados.has(x.tel) && !ocupados.has(x.tel))
       .filter(x => { const r = reg.find(y => y.tipo === 'piloto' && String(y.datos.tel).trim() === x.tel); return r && r.datos.zona === zona; })
       .sort((a, b2) => (a.desde || 0) - (b2.desde || 0));
     if (cand.length) {

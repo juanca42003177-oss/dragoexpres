@@ -89,22 +89,40 @@ module.exports = wrap(async (req, res) => {
     if (!action && g.getUTCDay() !== 0) return res.status(200).json({ ok: true, skip: 'hoy no es domingo' });
     const s = await estado();
     const pz = await ghGet('pozo.json');
-    const pozo = pz ? pz.data : { acumulado: 0, historial: [] };
+    const pozo = pz ? pz.data : {};
+    pozo.acumulado = pozo.acumulado || 0;
+    pozo.historial = pozo.historial || [];
+    const totalEntregas = s.califican.reduce((s2, p) => s2 + p.entregas, 0);
+    const reparto = s.califican.map(p => ({ tel: p.tel, nombre: p.nombre, entregas: p.entregas, monto: dinero(s.total * p.entregas / totalEntregas) }));
+    const gana = {};
+    reparto.forEach(p => gana[p.tel] = p.monto);
+    // pendientes de la semana pasada sin pagar → SUSPENSION automatica
+    const fp = await ghGet('pilots.json');
+    const parr = fp ? fp.data : [];
+    const sancionados = [];
+    parr.forEach(x => { if (x.pendiente && !x.pendiente.pagado) { x.susp = true; sancionados.push(x.nombre || x.tel); } });
+    // nuevos pendientes de esta semana (comisiones − pozo ganado)
+    s.pilotos.forEach(p => {
+      let st = parr.find(x => x.tel === p.tel);
+      if (!st) { st = { tel: p.tel }; parr.push(st); }
+      const neto = dinero(p.comisiones - (gana[p.tel] || 0));
+      if (neto > 0) st.pendiente = { monto: dinero((st.pendiente && !st.pendiente.pagado ? st.pendiente.monto : 0) + neto), desde: g.toISOString().slice(0, 10) };
+    });
+    await ghPut('pilots.json', fp ? fp.sha : null, parr, 'liquidacion semanal pendientes');
+    const SANC = sancionados.length ? `\n\n⛔ SUSPENDIDOS por no liquidar (no reciben pedidos hasta pagar): ${sancionados.join(', ')}` : '';
     if (!s.califican.length) {
       pozo.acumulado = dinero((pozo.acumulado || 0) + s.pozoSemana);
       pozo.historial.push({ domingo: g.toISOString().slice(0, 10), monto: s.pozoSemana, reparto: [], nota: 'sin pilotos con meta, se acumula' });
       await ghPut('pozo.json', pz ? pz.sha : null, pozo, 'pozo: sin ganadores, acumula');
-      await aviso(`🏆 DRAGOEXPRES — RESUMEN SEMANAL\nNadie cumplió la meta de ${META} entregas 😢 el pozo de Q${s.pozoSemana} se ACUMULA.\n\n💰 LIQUIDACIÓN (cada piloto te transfiere su neto a tu Industrial 7171286805):\n${lineas(s, []) || 'Sin entregas esta semana'}`);
-      return res.status(200).json({ ok: true, acumulado: pozo.acumulado, liquidacion: lineas(s, []) });
+      await aviso(`🏆 DRAGOEXPRES — RESUMEN SEMANAL\nNadie cumplió la meta de ${META} entregas 😢 el pozo de Q${s.pozoSemana} se ACUMULA.\n\n💰 LIQUIDACIÓN (cada piloto te transfiere su neto a tu Industrial 7171286805):\n${lineas(s, []) || 'Sin entregas esta semana'}${SANC}`);
+      return res.status(200).json({ ok: true, acumulado: pozo.acumulado, liquidacion: lineas(s, []), sancionados });
     }
-    const totalEntregas = s.califican.reduce((s2, p) => s2 + p.entregas, 0);
-    const reparto = s.califican.map(p => ({ tel: p.tel, nombre: p.nombre, entregas: p.entregas, monto: dinero(s.total * p.entregas / totalEntregas) }));
     pozo.historial.push({ domingo: g.toISOString().slice(0, 10), monto: s.total, reparto });
     pozo.acumulado = 0;
     await ghPut('pozo.json', pz ? pz.sha : null, pozo, 'pozo repartido');
     const LINEAS = lineas(s, reparto);
-    await aviso(`🏆 DRAGOEXPRES — RESUMEN SEMANAL 🐉\nPozo de la semana: Q${s.total} (25% de comisiones + acumulado)\n\n💰 LIQUIDACIÓN (cada piloto te transfiere su neto a tu Industrial 7171286805):\n${LINEAS}\n\nSi el pozo ganado supera las comisiones de un piloto, ese poquito sí lo pagás vos. El resto llega solo.`);
-    return res.status(200).json({ ok: true, total: s.total, reparto, liquidacion: LINEAS });
+    await aviso(`🏆 DRAGOEXPRES — RESUMEN SEMANAL 🐉\nPozo de la semana: Q${s.total} (25% de comisiones + acumulado)\n\n💰 LIQUIDACIÓN (cada piloto te transfiere su neto a tu Industrial 7171286805):\n${LINEAS}${SANC}\n\nSi el pozo ganado supera las comisiones de un piloto, ese poquito sí lo pagás vos. El resto llega solo.\nEl piloto que no liquida queda SUSPENDIDO el próximo domingo: no recibe pedidos hasta pagar.`);
+    return res.status(200).json({ ok: true, total: s.total, reparto, liquidacion: LINEAS, sancionados });
   }
 
   return res.status(200).json({ ok: false, error: 'Acción desconocida' });
