@@ -107,7 +107,7 @@ module.exports = wrap(async (req, res) => {
     if (!b.detalle) return res.status(200).json({ ok: false, error: 'Contanos qué querés pedir.' });
     const envio = dinero(tipo === 'comida' ? (b.envio || 15) : tipo === 'repuesto' ? (b.envio || 20) : (b.envio || 25));
     const pago = b.pago === 'transferencia' ? 'transferencia' : 'efectivo';
-    const referencia = pago === 'transferencia' ? String(b.referencia || '').trim().slice(0, 40) : '';
+    const referencia = pago === 'transferencia' ? String(b.refbanco || '').trim().slice(0, 40) : '';
     const id = 'DX' + String(now).slice(-6) + String(Math.floor(Math.random() * 90) + 10);
     const pedido = {
       id, tipo, zona,

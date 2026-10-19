@@ -100,7 +100,6 @@ async function enviar(){
   var v=function(id){var e=document.getElementById(id);return e?e.value.trim():''};
   var d={action:'crear',tipo:TIPO,nombre:v('f-nombre'),tel:v('f-tel'),zona:v('f-zona'),direccion:v('f-dir'),referencia:v('f-ref'),detalle:v('f-det'),compra:v('f-compra')||0,envio:v('f-envio')||0,pago:PAGO,refbanco:v('f-refbanco')};
   if(!d.nombre||!d.tel||!d.zona||!d.direccion||!d.detalle){alert('Completá tu nombre, WhatsApp, zona, dirección y qué pedís.');return}
-d.referencia=d.referencia||d.refbanco;if(PAGO==='transferencia'&&!d.refbanco){d.referencia='';}
   var b=document.querySelector('.btn');b.disabled=true;b.textContent='Enviando...';
   var r=await fetch(api('orders'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(d)});
   var j=await r.json();b.disabled=false;b.textContent='ENVIAR PEDIDO 🐉';
