@@ -5,6 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>DragoExpres — Comida · Viajes · Repuestos</title>
 <link rel="icon" href="img/icono.png">
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#0a0a0f">
 <style>
 :root{--oro:#f0b90b;--oro2:#ffe08a;--bg:#0a0a0f;--card:#14151c;--borde:#2a2b38;--txt:#f2f4f8;--mut:#9aa3b5;--rosa:#ff2d8d}
 *{margin:0;padding:0;box-sizing:border-box;font-family:system-ui,-apple-system,sans-serif}
@@ -25,6 +27,11 @@ header img{width:58px;height:58px;border-radius:14px;border:2px solid var(--oro)
 .puerta.on{border-color:var(--oro);box-shadow:0 0 14px rgba(240,185,11,.25)}
 .puerta .i{font-size:30px}
 .puerta .n{font-weight:800;font-size:13.5px;margin-top:8px;line-height:1.3}
+.sec{background:#12121a;border:1px solid #1e1e26;border-radius:14px;padding:16px;margin:14px 0}
+.sec h2{font-size:17px;margin:0 0 10px}
+.paso{display:flex;gap:12px;align-items:flex-start;margin:10px 0}
+.pn{min-width:26px;height:26px;border-radius:50%;background:#f5c518;color:#111;font-weight:900;text-align:center;line-height:26px;font-size:13px}
+.mini{flex:1;text-align:center;font-size:11px;background:#17171f;border:1px solid #262626;border-radius:10px;padding:8px 4px;color:#cfc7b8}
 .puerta .s{color:var(--mut);font-size:11px;margin-top:4px}
 .form{background:var(--card);border:1px solid var(--borde);border-radius:16px;padding:18px;display:none}
 .form.on{display:block}
@@ -56,6 +63,10 @@ footer b{color:var(--oro)}
   <div class="hero">
     <h1>Tu zona, a <b>velocidad de dragón</b></h1>
     <p>Llegamos a toda Guatemala, área por área. Registrate hoy y te avisamos apenas abrimos en tu zona.</p>
+  <img src="img/banner.png" alt="DragoExpres" style="width:100%;border-radius:14px;margin-top:12px;border:1px solid #26210f">
+  <div style="display:flex;gap:8px;margin-top:10px">
+    <div class="mini">🍜 Comida de tus locales favoritos</div><div class="mini">🛵 Viajes con precio justo</div><div class="mini">🔧 Repuestos a tu puerta</div>
+  </div>
   </div>
   <div class="puertas">
     <div class="puerta on" id="tUsuario" onclick="abrir('usuario')"><div class="i">🍜</div><div class="n">Quiero pedir</div><div class="s">Comida, viajes y repuestos</div></div>
@@ -133,7 +144,25 @@ footer b{color:var(--oro)}
   <footer>
     <b>🐉 DRAGOEXPRES</b> · by Dragon Trade Labs<br>
     Tus datos solo se usan para DragoExpres. Nunca se comparten con nadie.
-  </footer>
+  
+<div class="sec" id="COMO_FUNCIONA">
+  <h2>¿Cómo funciona?</h2>
+  <div class="paso"><div class="pn">1</div><div><b>Elegí qué necesitás</b><br><span class="small">Comida de tu zona, un viaje o el repuesto de tu moto o carro.</span></div></div>
+  <div class="paso"><div class="pn">2</div><div><b>El dragón elige a tu piloto</b><br><span class="small">Solo pilotos verificados con DPI y antecedentes: vos los ves con su insignia ✅, su moto, su placa y cuánto tarda.</span></div></div>
+  <div class="paso"><div class="pn">3</div><div><b>Pagás en la puerta</b><br><span class="small">Efectivo o tarjeta, directo. Números claros: sin sorpresas ni cobros raros.</span></div></div>
+  <div class="paso"><div class="pn">4</div><div><b>Tu piloto gana cada domingo</b><br><span class="small">Cumple su meta semanal y le cae su bono del pozo. Piloto contento, entrega más rápida.</span></div></div>
+</div>
+<div class="sec">
+  <h2>Repuestos: nadie más hace esto 🔧</h2>
+  <img src="img/repuestos.png" alt="Repuestos DragoExpres" style="width:100%;border-radius:14px;border:1px solid #26210f">
+  <p class="small" style="margin-top:10px;line-height:1.6">Buscás por <b>tu modelo</b>, no por nombre raro: "pastillas para Honda CG125", "bomba de agua para Nissan Tiida". Las tiendas de tu zona compiten por tu pedido y el piloto te la lleva. Y si querés, te la deja <b>instalada</b> con un taller asociado.</p>
+</div>
+<div class="sec" style="text-align:center;border:1px solid #b8860b">
+  <h2 style="color:#f5c518">📲 Instalá DragoExpres gratis</h2>
+  <p class="small">Toqué el menú de su navegador y elija <b>"Agregar a pantalla de inicio"</b>: le queda como app en su celular, gratis, sin Play Store.</p>
+</div>
+
+</footer>
 <script>
 var toqueN=0,toqueT=0;
 document.querySelector("header img").addEventListener("click",function(){
