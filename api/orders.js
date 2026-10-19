@@ -114,7 +114,8 @@ module.exports = wrap(async (req, res) => {
     const compra = dinero(b.compra || 0);
     let comisionLocal = 0;
     if (tipo === 'comida' && compra > 0) {
-      const prev = peds.filter(x => x.zona === zona && x.ts);
+      const fprev = await ghGet('pedidos.json');
+      const prev = (fprev ? fprev.data : []).filter(x => x.zona === zona && x.ts);
       const primera = prev.length ? Math.min(...prev.map(x => x.ts)) : now;
       if (now - primera >= GRACIA_LOCAL_MS) comisionLocal = dinero(compra * PCT_LOCAL);
     }
