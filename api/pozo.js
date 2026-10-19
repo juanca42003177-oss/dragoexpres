@@ -53,7 +53,7 @@ async function estado() {
   const L = lunesGT();
   const fpd = await ghGet('pedidos.json');
   const peds = (fpd ? fpd.data : []).filter(o => o.estado === 'entregado' && (o.tsEntregado || o.ts) >= L);
-  const comisiones = dinero(peds.reduce((s, o) => s + (o.comision || 0), 0));
+  const comisiones = dinero(peds.reduce((s, o) => s + (o.comision || 0) + (o.comisionLocal || 0), 0));
   const pz = await ghGet('pozo.json');
   const pozo = pz ? pz.data : {};
   pozo.acumulado = pozo.acumulado || 0;
@@ -64,7 +64,7 @@ async function estado() {
     const k = o.piloto.tel;
     if (!porPiloto[k]) porPiloto[k] = { tel: k, nombre: o.piloto.nombre, entregas: 0, comisiones: 0 };
     porPiloto[k].entregas++;
-    porPiloto[k].comisiones = dinero(porPiloto[k].comisiones + (o.comision || 0));
+    porPiloto[k].comisiones = dinero(porPiloto[k].comisiones + (o.comision || 0) + (o.comisionLocal || 0));
   });
   const pilotos = Object.values(porPiloto).sort((a, b) => b.entregas - a.entregas);
   const califican = pilotos.filter(p => p.entregas >= META);

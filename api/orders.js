@@ -36,6 +36,7 @@ async function aviso(texto) {
     await fetch(`https://api.telegram.org/bot${tok}/sendMessage`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ chat_id: chat, text: texto }) });
   } catch (e) { }
 }
+const PCT_LOCAL = 0.05, GRACIA_LOCAL_MS = 90 * 864e5; // 5% al local tras 3 meses de operar la zona
 function comisionDe(tipo, envio) {
   const e = dinero(envio);
   if (tipo === 'comida') return dinero(e * 0.10);
@@ -110,11 +111,18 @@ module.exports = wrap(async (req, res) => {
     const pago = b.pago === 'transferencia' ? 'transferencia' : 'efectivo';
     const referencia = pago === 'transferencia' ? String(b.refbanco || '').trim().slice(0, 40) : '';
     const id = 'DX' + String(now).slice(-6) + String(Math.floor(Math.random() * 90) + 10);
+    const compra = dinero(b.compra || 0);
+    let comisionLocal = 0;
+    if (tipo === 'comida' && compra > 0) {
+      const prev = peds.filter(x => x.zona === zona && x.ts);
+      const primera = prev.length ? Math.min(...prev.map(x => x.ts)) : now;
+      if (now - primera >= GRACIA_LOCAL_MS) comisionLocal = dinero(compra * PCT_LOCAL);
+    }
     const pedido = {
       id, tipo, zona,
       cliente: { nombre, tel, direccion: String(b.direccion).slice(0, 160), referencia: String(b.referencia || '').slice(0, 160) },
       detalle: String(b.detalle).slice(0, 400),
-      compra: dinero(b.compra || 0), envio, comision: comisionDe(tipo, envio),
+      compra: dinero(b.compra || 0), envio, comision: comisionDe(tipo, envio), comisionLocal,
       estado: 'buscando', piloto: null, ts: now, pago, referencia
     };
     // dispatch: primer piloto disponible de la zona
@@ -136,7 +144,7 @@ module.exports = wrap(async (req, res) => {
     peds.push(pedido);
     await ghPut('pedidos.json', fpd ? fpd.sha : null, peds, 'pedido nuevo ' + id);
     const ic = { comida: '🍔', viaje: '🛺', repuesto: '🔧' }[tipo];
-    await aviso(`🚀 DRAGOEXPRES — PEDIDO NUEVO ${ic}\n${id} · ${tipo.toUpperCase()} · ${zona}\nCliente: ${nombre} (${tel})\nDetalle: ${String(b.detalle).slice(0, 120)}\nEnvío: Q${envio} · Comisión DragoExpres: Q${pedido.comision}\n${pago === 'transferencia' ? '💳 Pago: TRANSFERENCIA al Banco Industrial' + (referencia ? ' · Ref: ' + referencia : ' · (sin referencia, verificar)') : '💵 Pago: EFECTIVO al piloto'}\n${pedido.piloto ? '→ Asignado AUTOMÁTICAMENTE a: ' + pedido.piloto.nombre + ' (' + pedido.piloto.tel + ')' : '→ SIN piloto disponible ahora, queda BUSCANDO'}`);
+    await aviso(`🚀 DRAGOEXPRES — PEDIDO NUEVO ${ic}\n${id} · ${tipo.toUpperCase()} · ${zona}\nCliente: ${nombre} (${tel})\nDetalle: ${String(b.detalle).slice(0, 120)}\nEnvío: Q${envio} · Comisión DragoExpres: Q${pedido.comision}${pedido.comisionLocal ? ' · 🍽️ 5% al local (zona operativa >3 meses): Q' + pedido.comisionLocal : ''}\n${pago === 'transferencia' ? '💳 Pago: TRANSFERENCIA al Banco Industrial' + (referencia ? ' · Ref: ' + referencia : ' · (sin referencia, verificar)') : '💵 Pago: EFECTIVO al piloto'}\n${pedido.piloto ? '→ Asignado AUTOMÁTICAMENTE a: ' + pedido.piloto.nombre + ' (' + pedido.piloto.tel + ')' : '→ SIN piloto disponible ahora, queda BUSCANDO'}`);
     return res.status(200).json({ ok: true, pedido });
   }
 
@@ -216,7 +224,7 @@ module.exports = wrap(async (req, res) => {
         st.pedidosHoy = (st.pedidosHoy || 0) + 1;
         st.disponible = true; st.desde = now;
         await ghPut('pilots.json', fp ? fp.sha : null, arr, 'entregado ' + id);
-        await aviso(`🚀 DRAGOEXPRES — Pedido ${id} ENTREGADO ✅\n${o.piloto.nombre} completó ${o.tipo}\nEnvío Q${o.envio} → piloto gana Q${gananciaPiloto} · Comisión DragoExpres: Q${o.comision}${flotaTxt}\nCliente: ${o.cliente.nombre}`);
+        await aviso(`🚀 DRAGOEXPRES — Pedido ${id} ENTREGADO ✅\n${o.piloto.nombre} completó ${o.tipo}\nEnvío Q${o.envio} → piloto gana Q${gananciaPiloto} · Comisión DragoExpres: Q${dinero(o.comision + (o.comisionLocal || 0))}${o.comisionLocal ? ' (envío Q' + o.comision + ' + local Q' + o.comisionLocal + ')' : ''}${flotaTxt}\nCliente: ${o.cliente.nombre}`);
         return res.status(200).json({ ok: true, pedido: o, ganadoHoy: st.ganadoHoy, ganadoSemana: st.ganadoSemana });
       } else return res.status(200).json({ ok: false, error: 'Estado inválido.' });
       await ghPut('pedidos.json', fpd.sha, peds, o.estado + ' ' + id);

@@ -47,7 +47,7 @@ module.exports = wrap(async (req, res) => {
     // pedidos.json vive en la misma rama; se lee aparte para no romper si aún no existe
     const rp = await fetch(`https://api.github.com/repos/${REPO}/contents/pedidos.json?ref=${BRANCH}`, { headers: H() });
     const pedidos = rp.ok ? JSON.parse(Buffer.from((await rp.json()).content, 'base64').toString('utf8') || '[]') : [];
-    const comisiones = pedidos.reduce((s, o) => s + (o.estado === 'entregado' ? (o.comision || 0) : 0), 0);
+    const comisiones = pedidos.reduce((s, o) => s + (o.estado === 'entregado' ? (o.comision || 0) + (o.comisionLocal || 0) : 0), 0);
     const porEstado = {};
     pedidos.forEach(o => porEstado[o.estado] = (porEstado[o.estado] || 0) + 1);
     return res.status(200).json({ ok: true, pedidos: pedidos.slice(-60).reverse(), total: pedidos.length, comisiones, porEstado });
@@ -73,7 +73,7 @@ module.exports = wrap(async (req, res) => {
     const g = new Date(Date.now() - TZ);
     const lunes = Date.UTC(g.getUTCFullYear(), g.getUTCMonth(), g.getUTCDate() - (g.getUTCDay() + 6) % 7) + TZ;
     const entregados = pedidos.filter(o => o.estado === 'entregado' && (o.tsEntregado || o.ts) >= lunes);
-    const comisiones = entregados.reduce((s, o) => s + (o.comision || 0), 0);
+    const comisiones = entregados.reduce((s, o) => s + (o.comision || 0) + (o.comisionLocal || 0), 0);
     const por = {};
     entregados.forEach(o => { if (o.piloto) { const k = o.piloto.nombre; por[k] = (por[k] || 0) + 1; } });
     return res.status(200).json({ ok: true, meta: 20, comisiones, pozo: Math.round(comisiones * 25) / 100, pilotos: Object.entries(por).map(([nombre, entregas]) => ({ nombre, entregas })).sort((x, y) => y.entregas - x.entregas) });

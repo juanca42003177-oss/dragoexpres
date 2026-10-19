@@ -117,7 +117,7 @@ function pedidoHTML(o){
   '<div class="dato">👤 '+o.cliente.nombre+' · '+o.zona+'</div>'+
   '<div class="dato">📍 '+o.cliente.direccion+(o.cliente.referencia?'<br><span class="mini">'+o.cliente.referencia+'</span>':'')+'</div>'+
   '<div class="dato">📝 '+o.detalle+'</div>'+
-  (o.compra?'<div class="dato">💵 Compra: <b>Q'+o.compra+'</b> (se la pagás al local)</div>':'')+
+  (o.compra?'<div class="dato">💵 Compra: <b>Q'+o.compra+'</b> (al local le pagás <b>Q'+(o.compra-(o.comisionLocal||0))+'</b>'+(o.comisionLocal?' · 5% promo de zona':'')+')</div>':'')+
   '<div class="dato">🐉 Tu envío: <b style="color:#f0b90b">Q'+o.envio+'</b> (menos Q'+o.comision+' de comisión = <b>Q'+(o.envio-o.comision)+'</b> para vos)</div>'+
   '<a class="wa" href="'+wa+'" target="_blank">💬 Escribille al cliente</a>'+botones+'</div>';
 }
