@@ -43,5 +43,14 @@ module.exports = wrap(async (req, res) => {
     await ghPut(f ? f.sha : null, data);
     return res.status(200).json({ ok: true, estado: data[i].estado });
   }
+  if (action === 'pedidos') {
+    // pedidos.json vive en la misma rama; se lee aparte para no romper si aún no existe
+    const rp = await fetch(`https://api.github.com/repos/${REPO}/contents/pedidos.json?ref=${BRANCH}`, { headers: H() });
+    const pedidos = rp.ok ? JSON.parse(Buffer.from((await rp.json()).content, 'base64').toString('utf8') || '[]') : [];
+    const comisiones = pedidos.reduce((s, o) => s + (o.estado === 'entregado' ? (o.comision || 0) : 0), 0);
+    const porEstado = {};
+    pedidos.forEach(o => porEstado[o.estado] = (porEstado[o.estado] || 0) + 1);
+    return res.status(200).json({ ok: true, pedidos: pedidos.slice(-60).reverse(), total: pedidos.length, comisiones, porEstado });
+  }
   return res.status(200).json({ ok: false, error: 'Acción desconocida' });
 });

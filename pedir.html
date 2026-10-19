@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#0a0a0f">
+<title>DragoExpres — Pedí ya</title>
+<link rel="icon" href="img/icono.png">
+<style>
+body{background:#0a0a0f;color:#f2f4f8;font-family:system-ui,sans-serif;margin:0;padding:0 0 80px}
+.w{max-width:560px;margin:0 auto;padding:14px}
+h1{font-size:20px;margin:10px 0 2px}h1 span{color:#f0b90b}
+input,select,textarea{width:100%;box-sizing:border-box;background:#14151c;border:1px solid #2a2b38;border-radius:10px;color:#fff;padding:11px;font-size:15px;margin:5px 0}
+textarea{min-height:64px}
+label{font-size:12px;color:#9aa3b5;display:block;margin-top:9px}
+.btn{border:0;border-radius:10px;padding:13px;font-weight:900;font-size:14px;cursor:pointer;width:100%;margin-top:14px}
+.bA{background:linear-gradient(90deg,#f0b90b,#ffd44d);color:#111}
+.tabs{display:flex;gap:6px;margin:12px 0}
+.tab{flex:1;background:#14151c;border:1px solid #2a2b38;border-radius:10px;color:#9aa3b5;padding:10px 0;text-align:center;font-size:13px;font-weight:800;cursor:pointer}
+.tab.on{border-color:#f0b90b;color:#f0b90b;background:#241a05}
+.card{background:#14151c;border:1px solid #2a2b38;border-radius:14px;padding:14px;margin:10px 0}
+.st{font-size:12px;font-weight:900;padding:6px 12px;border-radius:8px;display:inline-block}
+.sBus{background:#241a05;color:#ffe08a}.sAsig{background:#0d2030;color:#7ec8ff}.sCam{background:#0d2015;color:#7ee2a8}.sEnt{background:#12340f;color:#a5ff8f}
+.mini{font-size:12px;color:#9aa3b5;line-height:1.6}
+.big{font-size:26px;font-weight:900;color:#f0b90b;text-align:center}
+.wa{background:#0d2015;border:1px solid #2f5c46;color:#7ee2a8;text-align:center;text-decoration:none;display:block;padding:11px;border-radius:10px;font-weight:800;margin-top:10px}
+</style>
+</head>
+<body>
+<div class="w">
+  <h1>🐉 Drago<span>Expres</span> — Pedí ya</h1>
+  <p class="mini">Pagás en efectivo directo al piloto. Tu pedido se asigna solo al piloto disponible de tu zona.</p>
+  <div class="tabs">
+    <div class="tab on" id="t-comida" onclick="tt('comida')">🍔 Comida</div>
+    <div class="tab" id="t-viaje" onclick="tt('viaje')">🛺 Viaje</div>
+    <div class="tab" id="t-repuesto" onclick="tt('repuesto')">🔧 Repuesto</div>
+  </div>
+
+  <div id="form">
+    <label>Tu nombre</label><input id="f-nombre" placeholder="Ej: María López">
+    <label>Tu WhatsApp</label><input id="f-tel" type="tel" placeholder="Ej: 55501234">
+    <label>Zona</label><select id="f-zona"><option value="">Cargando zonas activas...</option></select>
+    <div id="extra"></div>
+    <button class="btn bA" onclick="enviar()">ENVIAR PEDIDO 🐉</button>
+    <p class="mini" style="margin-top:8px">Si tu zona no aparece, todavía no está activa. Registrite como usuario y te avisamos cuando el dragón llegue a tu área.</p>
+  </div>
+
+  <div id="siguiendo" style="display:none">
+    <div class="card">
+      <p class="mini" style="margin:0 0 6px">TU PEDIDO</p>
+      <div class="big" id="oid"></div>
+      <div style="text-align:center;margin:10px 0"><span class="st sBus" id="oestado">Buscando piloto...</span></div>
+      <p class="mini" id="oinfo" style="text-align:center"></p>
+      <a class="wa" id="owa" style="display:none" href="#" target="_blank">💬 Escribille al piloto</a>
+    </div>
+    <button class="btn bA" onclick="volver()">Hacer otro pedido</button>
+  </div>
+</div>
+<script>
+var TIPO='comida';
+function tt(t){TIPO=t;['comida','viaje','repuesto'].forEach(function(x){document.getElementById('t-'+x).className='tab'+(x===t?' on':'')});extra()}
+function extra(){
+  var h='';
+  if(TIPO==='comida')h='<label>Dirección de entrega</label><input id="f-dir" placeholder="Calle, número, colonia"><label>Referencia (opcional)</label><input id="f-ref" placeholder="Casa azul, portón negro..."><label>¿Qué querés y de dónde?</label><textarea id="f-det" placeholder="Ej: 2 pizzas grandes de la pizzería El Horno, Mixco Centro"></textarea><label>Precio estimado de tu orden (Q) — se lo pagás al local</label><input id="f-compra" type="number" inputmode="decimal" placeholder="Ej: 120"><label>Envío que ofrecés (Q)</label><input id="f-envio" type="number" inputmode="decimal" value="15">';
+  if(TIPO==='viaje')h='<label>Dirección de recogida</label><input id="f-dir" placeholder="¿De dónde te recogemos?"><label>Referencia (opcional)</label><input id="f-ref" placeholder="Frente al parque..."><label>¿A dónde vas?</label><textarea id="f-det" placeholder="Ej: De Mixco Centro a Oakland Mall"></textarea><label>Precio que ofrecés por el viaje (Q)</label><input id="f-envio" type="number" inputmode="decimal" value="25">';
+  if(TIPO==='repuesto')h='<label>Dirección de entrega</label><input id="f-dir" placeholder="Calle, número, colonia"><label>Referencia (opcional)</label><input id="f-ref" placeholder="Taller La Bendición..."><label>¿Qué repuesto necesitás y para qué vehículo?</label><textarea id="f-det" placeholder="Ej: Pastillas de freno para Honda Wave 110"></textarea><label>Precio estimado del repuesto (Q) — se lo pagás al local</label><input id="f-compra" type="number" inputmode="decimal" placeholder="Ej: 180"><label>Envío que ofrecés (Q)</label><input id="f-envio" type="number" inputmode="decimal" value="20">';
+  document.getElementById('extra').innerHTML=h;
+}
+function api(fn){return (location.hostname.includes('vercel.app')?'/api':'https://dragoexpres.vercel.app/api')+'/'+fn}
+async function cargarZonas(){
+  try{var r=await fetch(api('orders?action=zonas'));var j=await r.json();
+  var z=document.getElementById('f-zona');z.innerHTML='';
+  if(!j.zonas||!j.zonas.length){z.innerHTML='<option value="">Tu zona se activa pronto — registrite abajo</option>';return}
+  z.innerHTML=j.zonas.map(function(x){return '<option>'+x+'</option>'}).join('');
+  }catch(e){document.getElementById('f-zona').innerHTML='<option value="">Error cargando zonas, revisá internet</option>'}
+}
+async function enviar(){
+  var v=function(id){var e=document.getElementById(id);return e?e.value.trim():''};
+  var d={action:'crear',tipo:TIPO,nombre:v('f-nombre'),tel:v('f-tel'),zona:v('f-zona'),direccion:v('f-dir'),referencia:v('f-ref'),detalle:v('f-det'),compra:v('f-compra')||0,envio:v('f-envio')||0};
+  if(!d.nombre||!d.tel||!d.zona||!d.direccion||!d.detalle){alert('Completá tu nombre, WhatsApp, zona, dirección y qué pedís.');return}
+  var b=document.querySelector('.btn');b.disabled=true;b.textContent='Enviando...';
+  var r=await fetch(api('orders'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(d)});
+  var j=await r.json();b.disabled=false;b.textContent='ENVIAR PEDIDO 🐉';
+  if(!j.ok){alert(j.error||'No se pudo crear el pedido.');return}
+  document.getElementById('form').style.display='none';
+  document.getElementById('siguiendo').style.display='block';
+  document.getElementById('oid').textContent=j.pedido.id;
+  seguir(j.pedido.id);
+}
+var PID=null;
+function seguir(id){PID=id;actualizar();setInterval(actualizar,12000)}
+async function actualizar(){
+  if(!PID)return;
+  try{var r=await fetch(api('orders'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'estado',id:PID})});
+  var j=await r.json();if(!j.ok)return;var o=j.pedido;
+  var e=document.getElementById('oestado'),i=document.getElementById('oinfo');
+  if(o.estado==='buscando'){e.className='st sBus';e.textContent='Buscando piloto...';i.textContent='Encontrando al piloto disponible de tu zona'}
+  if(o.estado==='asignado'){e.className='st sAsig';e.textContent='Piloto asignado';i.textContent=o.piloto.nombre+' va a aceptar tu pedido'}
+  if(o.estado==='aceptado'){e.className='st sAsig';e.textContent='Aceptado ✅';i.textContent=o.piloto.nombre+' aceptó tu pedido'}
+  if(o.estado==='en_camino'){e.className='st sCam';e.textContent='En camino 🛺';i.textContent=o.piloto.nombre+' va en camino. Tenés el efectivo listo: Q'+o.compra+' (compra) + Q'+o.envio+' (envío)'}
+  if(o.estado==='entregado'){e.className='st sEnt';e.textContent='Entregado ✅';i.textContent='¡Listo! El dragón entregó tu pedido'}
+  var wa=document.getElementById('owa');
+  if(o.piloto){wa.style.display='block';wa.href='https://wa.me/502'+String(o.piloto.tel).replace(/\D/g,'').replace(/^502/,'')+'?text='+encodeURIComponent('Hola '+o.piloto.nombre+', soy '+o.cliente.nombre+', del pedido '+o.id+' de DragoExpres.')}
+  }catch(e){}
+}
+function volver(){location.reload()}
+cargarZonas();extra();
+</script>
+</body>
+</html>

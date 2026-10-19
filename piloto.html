@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#0a0a0f">
+<title>DragoExpres — Pantalla del Piloto</title>
+<link rel="icon" href="img/icono.png">
+<style>
+body{background:#0a0a0f;color:#f2f4f8;font-family:system-ui,sans-serif;margin:0;padding:0 0 80px}
+.w{max-width:560px;margin:0 auto;padding:14px}
+h1{font-size:20px;margin:10px 0 2px}h1 span{color:#f0b90b}
+input{width:100%;box-sizing:border-box;background:#14151c;border:1px solid #2a2b38;border-radius:10px;color:#fff;padding:12px;font-size:16px;margin:5px 0}
+label{font-size:12px;color:#9aa3b5;display:block;margin-top:10px}
+.btn{border:0;border-radius:10px;padding:13px;font-weight:900;font-size:14px;cursor:pointer;width:100%;margin-top:12px}
+.bA{background:linear-gradient(90deg,#f0b90b,#ffd44d);color:#111}
+.bV{background:#0d2015;border:1px solid #2f5c46;color:#7ee2a8}
+.bR{background:#2a0d0d;border:1px solid #5c2f2f;color:#ff8f8f}
+.card{background:#14151c;border:1px solid #2a2b38;border-radius:14px;padding:14px;margin:10px 0}
+.pedido{background:#14151c;border:2px solid #f0b90b;border-radius:14px;padding:16px;margin:12px 0}
+.pedido h3{margin:0 0 4px;color:#f0b90b;font-size:16px}
+.mini{font-size:12px;color:#9aa3b5;line-height:1.6}
+.dato{font-size:14px;margin:7px 0;padding-bottom:7px;border-bottom:1px solid #2a2b38}
+.stats{display:flex;gap:8px;margin:12px 0}
+.stat{flex:1;background:#14151c;border:1px solid #2a2b38;border-radius:12px;padding:10px;text-align:center}
+.stat .n{font-size:20px;font-weight:900;color:#f0b90b}.stat .l{font-size:10px;color:#9aa3b5}
+.toggle{display:flex;align-items:center;justify-content:space-between;background:#14151c;border:1px solid #2a2b38;border-radius:14px;padding:14px;margin:10px 0}
+.sw{width:56px;height:30px;border-radius:15px;background:#2a2b38;position:relative;cursor:pointer}
+.sw.on{background:#0d2015;border:1px solid #2f5c46}
+.sw b{position:absolute;top:3px;left:3px;width:22px;height:22px;border-radius:50%;background:#9aa3b5;transition:.2s}
+.sw.on b{left:29px;background:#7ee2a8}
+.wa{background:#0d2015;border:1px solid #2f5c46;color:#7ee2a8;text-align:center;text-decoration:none;display:block;padding:10px;border-radius:10px;font-weight:800;margin-top:8px;font-size:13px}
+.flash{animation:fl 1s infinite}@keyframes fl{50%{border-color:#ffd44d}}
+</style>
+</head>
+<body>
+<div class="w">
+  <div id="login">
+    <h1>🏍️ Drago<span>Expres</span> — Piloto</h1>
+    <p class="mini">Entrá con tu WhatsApp y tu placa (los mismos con los que te registraste y te aprobaron).</p>
+    <label>WhatsApp</label><input id="l-tel" type="tel" placeholder="Ej: 55501234" inputmode="tel">
+    <label>Placa de tu vehículo</label><input id="l-placa" placeholder="Ej: C123ABC" style="text-transform:uppercase">
+    <button class="btn bA" onclick="login()">ENTRAR</button>
+    <p id="lerr" style="color:#ff8f8f;font-size:13px"></p>
+    <p class="mini">¿No te han aprobado todavía? Revisá en la app principal. ¿No sos piloto? <a href="index.html" style="color:#f0b90b">Registrate acá</a>.</p>
+  </div>
+
+  <div id="app" style="display:none">
+    <h1>🐉 Hola, <span id="p-nombre"></span></h1>
+    <p class="mini" id="p-zona"></p>
+    <div class="stats">
+      <div class="stat"><div class="n" id="g-hoy">Q0</div><div class="l">GANADO HOY</div></div>
+      <div class="stat"><div class="n" id="g-sem">Q0</div><div class="l">ESTA SEMANA</div></div>
+      <div class="stat"><div class="n" id="g-ped">0</div><div class="l">PEDIDOS HOY</div></div>
+    </div>
+    <div class="toggle">
+      <div><b id="dis-txt">NO DISPONIBLE</b><div class="mini">Prendé esto para que el sistema te asigne pedidos</div></div>
+      <div class="sw" id="sw" onclick="cambiarDis()"><b></b></div>
+    </div>
+
+    <div id="sinPedido" class="card" style="text-align:center">
+      <div style="font-size:34px">🐉</div>
+      <b>Sin pedido activo</b>
+      <p class="mini">Cuando estés DISPONIBLE, los pedidos de tu zona te llegan solos.</p>
+      <div id="zonaBuscando"></div>
+    </div>
+
+    <div id="pedidoActivo" style="display:none"></div>
+    <p class="mini" style="text-align:center;margin-top:16px">El cliente te paga en efectivo: la compra va al local, el envío es tuyo. DragoExpres nunca toca tu dinero.</p>
+  </div>
+</div>
+<script>
+var PILOTO=null,POLL=null,ESTADOS={asignado:'NUEVO PEDIDO — ACEPTALO',aceptado:'PEDIDO ACEPTADO — marcá CUANDO SALGAS',en_camino:'EN CAMINO — marcá ENTREGADO al llegar'};
+function api(fn){return (location.hostname.includes('vercel.app')?'/api':'https://dragoexpres.vercel.app/api')+'/'+fn}
+async function login(){
+  var tel=document.getElementById('l-tel').value.trim(),placa=document.getElementById('l-placa').value.trim().toUpperCase();
+  if(!tel||!placa){document.getElementById('lerr').textContent='Poné tu WhatsApp y tu placa.';return}
+  var r=await fetch(api('orders'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'loginPiloto',tel:tel,placa:placa})});
+  var j=await r.json();
+  if(!j.ok){document.getElementById('lerr').textContent=j.error;return}
+  PILOTO={tel:tel};localStorage.setItem('dxPiloto',JSON.stringify({tel:tel,placa:placa}));
+  pintar(j);
+  document.getElementById('login').style.display='none';document.getElementById('app').style.display='block';
+  if(POLL)clearInterval(POLL);POLL=setInterval(tick,12000);
+}
+function pintar(j){
+  var p=j.piloto;
+  document.getElementById('p-nombre').textContent=p.nombre.split(' ')[0];
+  document.getElementById('p-zona').textContent='Zona: '+p.zona+' · Vehículo: '+(p.vehiculo||'—')+' · Piloto verificado ✅';
+  document.getElementById('g-hoy').textContent='Q'+(p.ganadoHoy||0);
+  document.getElementById('g-sem').textContent='Q'+(p.ganadoSemana||0);
+  document.getElementById('g-ped').textContent=p.pedidosHoy||0;
+  var sw=document.getElementById('sw');sw.className='sw'+(p.disponible?' on':'');
+  document.getElementById('dis-txt').textContent=p.disponible?'DISPONIBLE 🟢':'NO DISPONIBLE';
+  var act=document.getElementById('pedidoActivo'),sin=document.getElementById('sinPedido');
+  if(j.activo){sin.style.display='none';act.style.display='block';act.innerHTML=pedidoHTML(j.activo)}
+  else{act.style.display='none';sin.style.display='block';
+    var zb=j.zonaBuscando||[];
+    document.getElementById('zonaBuscando').innerHTML=zb.length?'<b style="color:#ffe08a">'+zb.length+' pedido(s) esperando piloto en tu zona:</b>'+zb.map(pedidoPequeno).join(''):'';
+  }
+}
+function pedidoHTML(o){
+  var tipo={comida:'🍔 Comida',viaje:'🛺 Viaje',repuesto:'🔧 Repuesto'}[o.tipo];
+  var est=ESTADOS[o.estado]||o.estado;
+  var wa='https://wa.me/502'+String(o.cliente.tel).replace(/\D/g,'').replace(/^502/,'')+'?text='+encodeURIComponent('Hola '+o.cliente.nombre+', soy '+o.piloto.nombre+', tu piloto de DragoExpres (pedido '+o.id+').');
+  var botones='';
+  if(o.estado==='asignado')botones='<button class="btn bA" onclick="hacer(\'aceptar\',\''+o.id+'\')">✅ ACEPTAR PEDIDO</button><button class="btn bR" onclick="hacer(\'rechazar\',\''+o.id+'\')">Rechazar</button>';
+  if(o.estado==='aceptado')botones='<button class="btn bV" onclick="hacer(\'avanzar\',\''+o.id+'\')">🛺 YA VOY EN CAMINO</button><button class="btn bR" onclick="hacer(\'rechazar\',\''+o.id+'\')">No puedo</button>';
+  if(o.estado==='en_camino')botones='<button class="btn bA" onclick="hacer(\'avanzar\',\''+o.id+'\')">📦 ENTREGADO</button>';
+  return '<div class="pedido'+(o.estado==='asignado'?' flash':'')+'"><h3>'+tipo+' · '+o.id+'</h3><div class="mini">'+est+'</div>'+
+  '<div class="dato">👤 '+o.cliente.nombre+' · '+o.zona+'</div>'+
+  '<div class="dato">📍 '+o.cliente.direccion+(o.cliente.referencia?'<br><span class="mini">'+o.cliente.referencia+'</span>':'')+'</div>'+
+  '<div class="dato">📝 '+o.detalle+'</div>'+
+  (o.compra?'<div class="dato">💵 Compra: <b>Q'+o.compra+'</b> (se la pagás al local)</div>':'')+
+  '<div class="dato">🐉 Tu envío: <b style="color:#f0b90b">Q'+o.envio+'</b> (menos Q'+o.comision+' de comisión = <b>Q'+(o.envio-o.comision)+'</b> para vos)</div>'+
+  '<a class="wa" href="'+wa+'" target="_blank">💬 Escribille al cliente</a>'+botones+'</div>';
+}
+function pedidoPequeno(o){
+  return '<div class="card" style="padding:10px;margin:8px 0"><b>'+({comida:'🍔',viaje:'🛺',repuesto:'🔧'}[o.tipo])+' '+o.id+'</b> · '+o.cliente.zona+'<div class="mini">'+String(o.detalle).slice(0,80)+' · Envío Q'+o.envio+'</div><button class="btn bV" style="margin-top:8px;padding:9px" onclick="hacer(\'aceptar\',\''+o.id+'\')">TOMARLO</button></div>';
+}
+async function hacer(accion,id){
+  var r=await fetch(api('orders'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:accion,tel:PILOTO.tel,id:id})});
+  var j=await r.json();
+  if(!j.ok){alert(j.error);return}
+  tick();
+}
+async function cambiarDis(){
+  var val=!document.getElementById('sw').className.includes('on');
+  var r=await fetch(api('orders'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'disponible',tel:PILOTO.tel,val:val})});
+  var j=await r.json();if(!j.ok){alert(j.error);return}
+  tick();
+}
+async function tick(){
+  var g=JSON.parse(localStorage.getItem('dxPiloto')||'{}');
+  var r=await fetch(api('orders'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'loginPiloto',tel:g.tel,placa:g.placa})});
+  var j=await r.json();if(j.ok)pintar(j);
+}
+(function(){
+  var g=JSON.parse(localStorage.getItem('dxPiloto')||'{}');
+  if(g&&g.tel&&g.placa){document.getElementById('l-tel').value=g.tel;document.getElementById('l-placa').value=g.placa;login()}
+})();
+</script>
+</body>
+</html>
