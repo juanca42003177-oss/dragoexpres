@@ -4,6 +4,17 @@
 const wrap = require('./_cors');
 const { REPO, BRANCH, TOKEN, H, ensureBranch, normalizar } = require('./_dx');
 const PATH = 'registros.json';
+
+async function aviso(texto) {
+  try {
+    const tok = process.env.TELEGRAM_BOT_TOKEN, chat = process.env.TELEGRAM_CHAT_ID || '8022768138';
+    if (!tok) return;
+    await fetch(`https://api.telegram.org/bot${tok}/sendMessage`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ chat_id: chat, text: texto })
+    });
+  } catch (e) { }
+}
 let cache = null;
 
 async function ghGet() {
@@ -44,5 +55,7 @@ module.exports = wrap(async (req, res) => {
   const data = f ? f.data : [];
   data.push({ tipo: d.tipo, datos: d, estado: 'pendiente_verificacion', ts: now });
   await ghPut(f ? f.sha : null, data);
+  const icono = { piloto: '🏍️', local: '🏪', flota: '🚚', usuario: '👤' }[d.tipo] || '📋';
+  await aviso(`🚀 DRAGOEXPRES — Registro nuevo\n${icono} ${d.tipo.toUpperCase()}: ${d.nombre}\nWhatsApp: ${d.tel}\nZona: ${d.zona}${d.vehiculo ? '\nVehículo: ' + d.vehiculo + (d.placa ? ' (' + d.placa + ')' : '') : ''}${d.rubro ? '\nRubro: ' + d.rubro : ''}\n→ Revisalo en el panel admin (pendiente de aprobar)`);
   return res.status(200).json({ ok: true, mensaje: 'Registro recibido' });
 });
