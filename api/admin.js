@@ -7,19 +7,19 @@ const TOKEN = () => process.env.GITHUB_TOKEN || '';
 const PATH = 'registros.json';
 const okPass = (p) => process.env.ADMIN_PASS && String(p).trim() === String(process.env.ADMIN_PASS).trim();
 
-async function ghGet() {
-  const r = await fetch(`https://api.github.com/repos/${REPO}/contents/${PATH}?ref=${BRANCH}`, {
+async function ghGet(p = PATH) {
+  const r = await fetch(`https://api.github.com/repos/${REPO}/contents/${p}?ref=${BRANCH}`, {
     headers: { Authorization: 'Bearer ' + TOKEN(), Accept: 'application/vnd.github+json' },
   });
   if (!r.ok) return null;
   const j = await r.json();
   return { sha: j.sha, data: JSON.parse(Buffer.from(j.content, 'base64').toString('utf8') || '[]') };
 }
-async function ghPut(sha, data) {
-  const r = await fetch(`https://api.github.com/repos/${REPO}/contents/${PATH}`, {
+async function ghPut(p, sha, data, msg) {
+  const r = await fetch(`https://api.github.com/repos/${REPO}/contents/${p}`, {
     method: 'PUT',
     headers: { Authorization: 'Bearer ' + TOKEN(), Accept: 'application/vnd.github+json', 'Content-Type': 'application/json' },
-    body: JSON.stringify({ message: 'admin: actualizar registro', branch: BRANCH, content: Buffer.from(JSON.stringify(data, null, 1)).toString('base64'), sha: sha || undefined }),
+    body: JSON.stringify({ message: msg || 'admin: actualizar', branch: BRANCH, content: Buffer.from(JSON.stringify(data, null, 1)).toString('base64'), sha: sha || undefined }),
   });
   if (!r.ok) throw new Error('guardar HTTP ' + r.status);
 }
@@ -40,12 +40,12 @@ module.exports = wrap(async (req, res) => {
     const i = data.findIndex(r => String(r.ts) === String(d.ts));
     if (i < 0) return res.status(200).json({ ok: false, error: 'Registro no encontrado' });
     data[i].estado = action === 'aprobar' ? 'aprobado' : 'rechazado';
-    await ghPut(f ? f.sha : null, data);
+    await ghPut(PATH, f ? f.sha : null, data, 'admin: actualizar registro');
     return res.status(200).json({ ok: true, estado: data[i].estado });
   }
   if (action === 'pedidos') {
     // pedidos.json vive en la misma rama; se lee aparte para no romper si aún no existe
-    const rp = await fetch(`https://api.github.com/repos/${REPO}/contents/pedidos.json?ref=${BRANCH}`, { headers: H() });
+    const rp = await fetch(`https://api.github.com/repos/${REPO}/contents/pedidos.json?ref=${BRANCH}`, { headers: { Authorization: 'Bearer ' + TOKEN(), Accept: 'application/vnd.github+json' } });
     const pedidos = rp.ok ? JSON.parse(Buffer.from((await rp.json()).content, 'base64').toString('utf8') || '[]') : [];
     const comisiones = pedidos.reduce((s, o) => s + (o.estado === 'entregado' ? (o.comision || 0) + (o.comisionLocal || 0) : 0), 0);
     const porEstado = {};
@@ -107,6 +107,8 @@ module.exports = wrap(async (req, res) => {
     return res.status(200).json({ ok: true, img: 'data:image/jpeg;base64,' + j.content });
   }
   if (action === 'pozo') {
+    const rp = await fetch(`https://api.github.com/repos/${REPO}/contents/pedidos.json?ref=${BRANCH}`, { headers: { Authorization: 'Bearer ' + TOKEN(), Accept: 'application/vnd.github+json' } });
+    const pedidos = rp.ok ? JSON.parse(Buffer.from((await rp.json()).content, 'base64').toString('utf8') || '[]') : [];
     const TZ = 6 * 3600 * 1000;
     const g = new Date(Date.now() - TZ);
     const lunes = Date.UTC(g.getUTCFullYear(), g.getUTCMonth(), g.getUTCDate() - (g.getUTCDay() + 6) % 7) + TZ;
