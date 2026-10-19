@@ -214,8 +214,8 @@ function pintar(regs){
       (d.tipo?' · '+d.tipo:'')+
       (d.h24?' · <b style="color:#f0b90b">24hrs</b>':'')+(d.equipo!==undefined?' · '+(d.equipo?'🪖 equipo OK':'<b style="color:#ff8f8f">SIN equipo</b>'):'')+'</div></div>'+
       '<div><a class="btn bW" style="background:#1d5a35;color:#a8f0c6;text-decoration:none" href="https://wa.me/'+waLink(d.tel)+'">💬</a>'+
-      '<button class="btn bW" onclick="verDetalle(''+waLink(d.tel)+'')">📄</button>'+
-      (r.tipo==='piloto'?'<button class="btn bW" style="background:#0d3d63;color:#a8dcf0" onclick="waResumen(''+waLink(d.tel)+'')">📲</button>':'')+
+      '<button class="btn bW" onclick="verDetalle(\''+waLink(d.tel)+'\')">📄</button>'+
+      (r.tipo==='piloto'?'<button class="btn bW" style="background:#0d3d63;color:#a8dcf0" onclick="waResumen(\''+waLink(d.tel)+'\')">📲</button>':'')+
       (r.tipo!=='usuario'?'<button class="btn bA" onclick="estado(\''+r.ts+'\',\'aprobar\')">✓</button><button class="btn bR" onclick="estado(\''+r.ts+'\',\'rechazar\')">✕</button></div>':'')+
       '</div>';
   });
