@@ -109,14 +109,24 @@ function cargarPedidos(){
     .then(r2=>r2.json()).then(function(z){
       if(!z||!z.ok)return;
       var tabla=z.pilotos.map(function(p){return '<div class="s">• '+p.nombre+': '+p.entregas+' entregas'+(p.entregas>=z.meta?' ✅ meta cumplida':'')+'</div>'}).join('')||'<div class="s">Sin entregas esta semana</div>';
-      document.getElementById('pozoCard').innerHTML='<div class="card"><div class="av">🏆</div><div><b>Pozo semanal de pilotos: Q'+z.pozo+'</b><div class="s">Meta '+z.meta+' entregas · Se reparte domingo 20:00 entre los que cumplan · Alimentado con 25% de las comisiones de la semana</div>'+tabla+'</div></div>';
+      document.getElementById('pozoCard').innerHTML='<div class="card"><div class="av">🏆</div><div><b>Pozo semanal de pilotos: Q'+z.pozo+'</b><div class="s">Meta '+z.meta+' entregas · Se reparte domingo 20:00 entre los que cumplan · Alimentado con 25% de comisiones de la semana</div>'+tabla+'</div></div>';
     });
-    html+='<div id="pozoCard"></div>';
+    fetch(apiBase()+'/admin',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({pass:PASS,action:'liquidaciones'})})
+    .then(r2=>r2.json()).then(function(l){
+      if(!l||!l.ok||!l.pendientes.length)return;
+      document.getElementById('liqCard').innerHTML='<div class="card"><div class="av">💰</div><div><b>Liquidaciones pendientes</b><div class="s">Pilotos que te deben comisiones. Cuando confirmes el depósito en tu banco, tocá ✅</div></div></div>'+l.pendientes.map(function(p){return '<div class="card"><div class="av">🏍️</div><div><b>'+p.nombre+' ('+p.tel+')</b><div class="s">Debe Q'+p.monto+(p.susp?' · ⛔ SUSPENDIDO':'')+'</div></div><button style="margin:auto 0 0 8px;background:#1c3a1c;border:1px solid #3f7a3f;color:#8fe28f;border-radius:8px;padding:8px 12px;cursor:pointer;font-weight:700" onclick="liqOk(\''+p.tel+'\')">✅ LIQUIDADO</button></div>'}).join('');
+    });
+    html+='<div id="pozoCard"></div><div id="liqCard"></div>';
     j.pedidos.forEach(function(o){
       html+='<div class="card"><div class="av">'+({comida:'🍔',viaje:'🛺',repuesto:'🔧'}[o.tipo]||'📦')+'</div><div style="flex:1"><b>'+o.id+' · '+({comida:'Comida',viaje:'Viaje',repuesto:'Repuesto'}[o.tipo]||o.tipo)+'</b> <span class="pill '+(E[o.estado]?E[o.estado][1]:'pend')+'">'+(E[o.estado]?E[o.estado][0]:o.estado)+'</span><div class="s">'+o.zona+' · '+o.cliente.nombre+' ('+o.cliente.tel+')<br>'+String(o.detalle).slice(0,100)+'<br>Envío Q'+o.envio+' · Comisión Q'+o.comision+(o.piloto?' · Piloto: '+o.piloto.nombre:'')+(o.califCliente?' · Cliente: ⭐'+o.califCliente:'')+(o.pago==='transferencia'?' · 💳 '+o.referencia:'')+'</div></div></div>';
     });
     document.getElementById('pedidosBox').innerHTML=html;
   });
+}
+async function liqOk(tel){
+  if(!confirm('¿Confirmás que este piloto ya te depositó sus comisiones?'))return;
+  var r=await fetch(apiBase()+'/admin',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({pass:PASS,action:'liqOk',tel:tel})});
+  var j=await r.json();if(j.ok){cargar()}
 }
 function waLink(t){t=String(t||'').replace(/[^0-9]/g,'');if(t.length===8)t='502'+t;return t;}
 function inicial(n){return (n||'?').trim().charAt(0).toUpperCase();}

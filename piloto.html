@@ -47,6 +47,7 @@ label{font-size:12px;color:#9aa3b5;display:block;margin-top:10px}
   <div id="app" style="display:none">
     <h1>🐉 Hola, <span id="p-nombre"></span></h1>
     <p class="mini" id="p-zona"></p>
+    <div id="deuda" style="display:none;background:#2a230f;border:1px solid #6b5a10;color:#ffe08a;font-size:13px;padding:10px 12px;border-radius:10px;margin:10px 0"></div>
     <div class="stats">
       <div class="stat"><div class="n" id="g-hoy">Q0</div><div class="l">GANADO HOY</div></div>
       <div class="stat"><div class="n" id="g-sem">Q0</div><div class="l">ESTA SEMANA</div></div>
@@ -91,6 +92,9 @@ function pintar(j){
   document.getElementById('g-sem').textContent='Q'+(p.ganadoSemana||0);
   document.getElementById('g-ped').textContent=p.pedidosHoy||0;
   document.getElementById('g-cal').textContent=p.calif?p.calif+'★':'—';
+  var av=document.getElementById('deuda');
+  if(p.pendiente){av.style.display='block';av.innerHTML='💰 Debés <b>Q'+p.pendiente.monto+'</b> de comisiones de la semana. Transferí a la cuenta del banco (te la manda el admin por WhatsApp) el domingo y quedás al día.';}
+  else{av.style.display='none'}
   var sw=document.getElementById('sw');sw.className='sw'+(p.disponible?' on':'');
   document.getElementById('dis-txt').textContent=p.disponible?'DISPONIBLE 🟢':'NO DISPONIBLE';
   var act=document.getElementById('pedidoActivo'),sin=document.getElementById('sinPedido');
