@@ -149,6 +149,47 @@ module.exports = wrap(async (req, res) => {
     return res.status(200).json({ ok: true, pedido });
   }
 
+  // ---- CHAT cliente <-> piloto (estilo PedidosYa) ----
+  if (action === 'msg') {
+    const id = String(b.id || '');
+    const de = b.de === 'piloto' ? 'piloto' : 'cliente';
+    const texto = String(b.texto || '').trim().slice(0, 300);
+    const tel = String(b.tel || '').replace(/\D/g, '');
+    if (!id || !texto || !tel) return res.status(200).json({ ok: false, error: 'Faltan datos del mensaje.' });
+    const fpd = await ghGet('pedidos.json');
+    const peds = fpd ? fpd.data : [];
+    const ped = peds.find(x => x.id === id);
+    if (!ped || ['entregado', 'cancelado'].includes(ped.estado)) return res.status(200).json({ ok: false, error: 'Este chat ya cerró.' });
+    if (de === 'cliente' && String(ped.cliente.tel).replace(/\D/g, '') !== tel) return res.status(200).json({ ok: false, error: 'Chat no disponible.' });
+    if (de === 'piloto' && (!ped.piloto || String(ped.piloto.tel).replace(/\D/g, '') !== tel)) return res.status(200).json({ ok: false, error: 'Chat no disponible.' });
+    ped.chat = ped.chat || [];
+    ped.chat.push({ de, texto, ts: now });
+    await ghPut('pedidos.json', fpd.sha, peds, 'chat ' + id);
+    return res.status(200).json({ ok: true, chat: ped.chat });
+  }
+
+  // ---- BILLETERA del piloto: todo su historial ----
+  if (action === 'billetera') {
+    const tel = String(b.tel || '').replace(/\D/g, '');
+    const fpd = await ghGet('pedidos.json');
+    const peds = fpd ? fpd.data : [];
+    const mios = peds.filter(x => x.piloto && String(x.piloto.tel).replace(/\D/g, '') === tel && x.estado === 'entregado');
+    const ganado = dinero(mios.reduce((s, x) => s + (x.envio - x.comision), 0));
+    const comisiones = dinero(mios.reduce((s, x) => s + (x.comision || 0) + (x.comisionLocal || 0), 0));
+    const califs = mios.filter(x => x.califCliente > 0);
+    const calif = califs.length ? Math.round(califs.reduce((s, x) => s + x.califCliente, 0) / califs.length * 10) / 10 : null;
+    const g = new Date(now - 21600000);
+    const lunes = new Date(g);
+    lunes.setUTCDate(g.getUTCDate() - ((g.getUTCDay() + 6) % 7));
+    lunes.setUTCHours(0, 0, 0, 0);
+    const iniSem = lunes.getTime() + 21600000;
+    const semana = mios.filter(x => (x.tsEntregado || x.ts) >= iniSem).length;
+    const fp = await ghGet('pilots.json');
+    const st = (fp ? fp.data : []).find(x => String(x.tel).replace(/\D/g, '') === tel) || {};
+    const historial = mios.slice(-15).reverse().map(x => ({ id: x.id, tipo: x.tipo, ganado: dinero(x.envio - x.comision), envio: x.envio, ts: x.tsEntregado || x.ts }));
+    return res.status(200).json({ ok: true, entregas: mios.length, ganado, comisiones, calif, pendiente: st.pendiente || null, meta: { hechas: semana, faltan: Math.max(0, 20 - semana) }, historial });
+  }
+
   // ---- consultar estado (usuario o pantalla) ----
   if (action === 'estado') {
     const fpd = await ghGet('pedidos.json'); const peds = fpd ? fpd.data : [];

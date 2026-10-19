@@ -128,6 +128,39 @@ async function liqOk(tel){
   var r=await fetch(apiBase()+'/admin',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({pass:PASS,action:'liqOk',tel:tel})});
   var j=await r.json();if(j.ok){cargar()}
 }
+async function verDetalle(tel){
+  var r=await fetch(apiBase()+'/admin',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({pass:PASS,action:'detalle',tel:tel})});
+  var j=await r.json();if(!j||!j.ok){alert('No se pudo cargar el detalle.');return}
+  var d=j.registro||{};
+  var h2='<div id="detalleModal" style="position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:99;overflow:auto;padding:16px" onclick="if(event.target===this)cerrarDetalle()"><div style="max-width:600px;margin:auto;background:#12141c;border:1px solid #2a2b38;border-radius:16px;padding:18px">';
+  h2+='<div style="display:flex;justify-content:space-between;align-items:center"><h2 style="margin:0">'+(d.nombre||'')+'</h2><button class="btn bR" onclick="cerrarDetalle()">✕</button></div>';
+  h2+='<div class="s">📱 '+(d.tel||'')+' · 📍 '+(d.zona||'')+(d.vehiculo?' · '+d.vehiculo+' '+(d.marca||'')+' '+(d.color||''):'')+(d.placa?' · 🔖 '+d.placa:'')+(d.dpi?' · DPI '+d.dpi:'')+'</div>';
+  if(d.h24)h2+='<div class="s" style="color:#f0b90b">⏰ Turno 24hrs</div>';
+  if(j.checks&&j.checks.length){h2+='<h3 style="margin:14px 0 6px">✅ Verificación automática</h3>'+j.checks.map(function(c){return '<div class="s" style="margin:3px 0">'+(c.ok?'✅':'❌')+' <b>'+c.k+'</b> — '+c.txt+'</div>'}).join('');}
+  if(j.stats&&j.stats.entregas!==undefined){h2+='<h3 style="margin:14px 0 6px">📊 Actividad</h3><div class="s">Entregas totales: <b>'+j.stats.entregas+'</b> (esta semana: '+j.stats.semana+')<br>Ganado histórico del piloto: <b>Q'+j.stats.ganado+'</b><br>Tus comisiones acumuladas: <b style="color:#f0b90b">Q'+j.stats.comisiones+'</b>'+(j.stats.pendiente?' · pendiente de liquidar: Q'+j.stats.pendiente:'')+(j.stats.calif?'<br>⭐ '+j.stats.calif+'/5':'')+'</div>';}
+  if(j.docs&&j.docs.length){h2+='<h3 style="margin:14px 0 6px">📷 Papelería ('+j.docs.length+')</h3><div>'+j.docs.map(function(doc){return '<button class="btn bW" onclick="verDoc(\''+doc.archivo+'\')">📷 '+(doc.tipo||'doc').toUpperCase()+'</button>'}).join(' ')+'</div>';}
+  h2+='<div id="docImg" style="margin-top:10px"></div></div></div>';
+  document.body.insertAdjacentHTML('beforeend',h2);
+}
+function cerrarDetalle(){var m=document.getElementById('detalleModal');if(m)m.remove();}
+async function verDoc(archivo){
+  var r=await fetch(apiBase()+'/admin',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({pass:PASS,action:'doc',archivo:archivo})});
+  var j=await r.json();
+  if(j&&j.ok)document.getElementById('docImg').innerHTML='<img src="'+j.img+'" style="width:100%;border-radius:12px;border:1px solid #2a2b38">';
+  else alert((j&&j.error)||'No se pudo abrir el documento.');
+}
+async function waResumen(tel){
+  var r=await fetch(apiBase()+'/admin',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({pass:PASS,action:'detalle',tel:tel})});
+  var j=await r.json();if(!j||!j.ok){alert('No se pudo armar el resumen.');return}
+  var d=j.registro,s=j.stats||{};
+  var txt='Hola '+d.nombre+'! 🐉 Tu resumen DragoExpres:\n'+
+    '📊 Esta semana: '+s.semana+' entregas'+(s.faltan===undefined?'':' — te faltan '+Math.max(0,20-s.semana)+' para el POZO dominical 💰')+'\n'+
+    '💵 Ganado histórico: Q'+s.ganado+' ('+s.entregas+' entregas)\n'+
+    '🤝 Comisiones liquidadas: Q'+s.comisiones+'\n'+
+    (s.pendiente?'💰 A liquidar este domingo: Q'+s.pendiente+'\n':'')+
+    'Seguí picando fuerte, el dragón va con vos 🔥';
+  window.open('https://wa.me/'+tel+'?text='+encodeURIComponent(txt),'_blank');
+}
 function waLink(t){t=String(t||'').replace(/[^0-9]/g,'');if(t.length===8)t='502'+t;return t;}
 function inicial(n){return (n||'?').trim().charAt(0).toUpperCase();}
 function pintar(regs){
@@ -181,6 +214,8 @@ function pintar(regs){
       (d.tipo?' · '+d.tipo:'')+
       (d.h24?' · <b style="color:#f0b90b">24hrs</b>':'')+(d.equipo!==undefined?' · '+(d.equipo?'🪖 equipo OK':'<b style="color:#ff8f8f">SIN equipo</b>'):'')+'</div></div>'+
       '<div><a class="btn bW" style="background:#1d5a35;color:#a8f0c6;text-decoration:none" href="https://wa.me/'+waLink(d.tel)+'">💬</a>'+
+      '<button class="btn bW" onclick="verDetalle(''+waLink(d.tel)+'')">📄</button>'+
+      (r.tipo==='piloto'?'<button class="btn bW" style="background:#0d3d63;color:#a8dcf0" onclick="waResumen(''+waLink(d.tel)+'')">📲</button>':'')+
       (r.tipo!=='usuario'?'<button class="btn bA" onclick="estado(\''+r.ts+'\',\'aprobar\')">✓</button><button class="btn bR" onclick="estado(\''+r.ts+'\',\'rechazar\')">✕</button></div>':'')+
       '</div>';
   });

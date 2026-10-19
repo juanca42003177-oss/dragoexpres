@@ -48,6 +48,8 @@ label{font-size:12px;color:#9aa3b5;display:block;margin-top:10px}
     <h1>🐉 Hola, <span id="p-nombre"></span></h1>
     <p class="mini" id="p-zona"></p>
     <div id="deuda" style="display:none;background:#2a230f;border:1px solid #6b5a10;color:#ffe08a;font-size:13px;padding:10px 12px;border-radius:10px;margin:10px 0"></div>
+    <div class="card" style="display:flex;justify-content:space-between;align-items:center;cursor:pointer" onclick="verBilletera()"><div><b>💰 Mi billetera</b><div class="mini">Tus viajes, pedidos y comisiones — control total</div></div><div id="bArrow">▾</div></div>
+    <div id="billetera" style="display:none"></div>
     <div class="stats">
       <div class="stat"><div class="n" id="g-hoy">Q0</div><div class="l">GANADO HOY</div></div>
       <div class="stat"><div class="n" id="g-sem">Q0</div><div class="l">ESTA SEMANA</div></div>
@@ -72,7 +74,31 @@ label{font-size:12px;color:#9aa3b5;display:block;margin-top:10px}
 </div>
 <script>
 var PILOTO=null,POLL=null,PCALIF=null,ESTADOS={asignado:'NUEVO PEDIDO — ACEPTALO',aceptado:'PEDIDO ACEPTADO — marcá CUANDO SALGAS',en_camino:'EN CAMINO — marcá ENTREGADO al llegar'};
+var AID=null;
 function api(fn){return (location.hostname.includes('vercel.app')?'/api':'https://dragoexpres.vercel.app/api')+'/'+fn}
+function chatHTML(o){return (o.chat||[]).map(function(m){return '<div style="margin:4px 0;font-size:13px"><b>'+(m.de==='piloto'?'Vos':'🧑 '+o.cliente.nombre.split(' ')[0])+':</b> '+m.texto+'</div>'}).join('')||'<div class="mini">Escribile a tu cliente acá (le llega al instante)</div>'}
+async function enviarMsg(){
+  var inp=document.getElementById('chat-in');if(!inp)return;var t=inp.value.trim();if(!t||!AID)return;
+  try{await fetch(api('orders'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'msg',id:AID,de:'piloto',tel:PILOTO.tel,texto:t})});inp.value='';}catch(e){}
+}
+var BW=false;
+async function verBilletera(){
+  BW=!BW;document.getElementById('billetera').style.display=BW?'block':'none';document.getElementById('bArrow').textContent=BW?'▴':'▾';
+  if(!BW)return;
+  document.getElementById('billetera').innerHTML='<div class="card">Cargando...</div>';
+  try{var r=await fetch(api('orders'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'billetera',tel:PILOTO.tel})});var j=await r.json();
+  if(!j.ok){document.getElementById('billetera').innerHTML='<div class="card">No se pudo cargar.</div>';return}
+  var h='<div class="stats">'+
+    '<div class="stat"><div class="n">Q'+j.ganado+'</div><div class="l">GANADO TOTAL</div></div>'+
+    '<div class="stat"><div class="n">'+j.entregas+'</div><div class="l">ENTREGAS</div></div>'+
+    '<div class="stat"><div class="n">Q'+j.comisiones+'</div><div class="l">COMISIONES PAGADAS</div></div>'+
+    '<div class="stat"><div class="n">'+(j.calif?j.calif+'★':'—')+'</div><div class="l">ESTRELLAS</div></div></div>';
+  h+='<div class="card"><div class="mini">🎯 POZO SEMANAL: '+j.meta.hechas+'/20 entregas'+(j.meta.faltan?' · te faltan '+j.meta.faltan+' para el pozo 💰':' · ¡META CUMPLIDA! 🐉')+'</div><div style="background:#2a2b38;border-radius:8px;height:8px;margin-top:6px"><div style="background:#f0b90b;height:8px;border-radius:8px;width:'+Math.min(100,j.meta.hechas*5)+'%"></div></div></div>';
+  if(j.pendiente)h+='<div class="card">💰 Debés <b>Q'+j.pendiente.monto+'</b> de comisiones — se paga el domingo</div>';
+  if(j.historial&&j.historial.length){h+='<div class="card"><div class="mini">ÚLTIMOS VIAJES</div>'+j.historial.map(function(x){var f=new Date(x.ts-21600000).toISOString().slice(0,10);var ic={comida:'🍔',viaje:'🛺',repuesto:'🔧'}[x.tipo]||'📦';return '<div style="display:flex;justify-content:space-between;font-size:13px;margin:6px 0"><span>'+ic+' '+x.id+'</span><b style="color:#f0b90b">+Q'+x.ganado+'</b></div>'}).join('')+'</div>';}
+  document.getElementById('billetera').innerHTML=h;
+  }catch(e){document.getElementById('billetera').innerHTML='<div class="card">Revisá tu internet y volvé a abrir.</div>'}
+}
 async function login(){
   var tel=document.getElementById('l-tel').value.trim(),placa=document.getElementById('l-placa').value.trim().toUpperCase();
   if(!tel||!placa){document.getElementById('lerr').textContent='Poné tu WhatsApp y tu placa.';return}
@@ -98,7 +124,7 @@ function pintar(j){
   var sw=document.getElementById('sw');sw.className='sw'+(p.disponible?' on':'');
   document.getElementById('dis-txt').textContent=p.disponible?'DISPONIBLE 🟢':'NO DISPONIBLE';
   var act=document.getElementById('pedidoActivo'),sin=document.getElementById('sinPedido');
-  if(j.activo){sin.style.display='none';act.style.display='block';act.innerHTML=pedidoHTML(j.activo)}
+  if(j.activo){sin.style.display='none';act.style.display='block';var ci0=document.getElementById('chat-in');var cv0=ci0?ci0.value:'';var foc0=!!ci0&&document.activeElement===ci0;AID=j.activo.id;act.innerHTML=pedidoHTML(j.activo);var ci1=document.getElementById('chat-in');if(ci1){ci1.value=cv0;if(foc0)ci1.focus();}}
   else if(PCALIF){act.style.display='block';sin.style.display='none';act.innerHTML='<div class="pedido"><h3>¿Cómo estuvo el cliente? ⭐</h3><div class="mini">'+PCALIF.cliente+'</div><div id="cest" style="margin:10px 0">'+[1,2,3,4,5].map(function(n){return '<span style="font-size:30px;cursor:pointer;padding:2px" onclick="calificarCliente('+n+')">⭐</span>'}).join('')+'</div></div>';}
   else{act.style.display='none';sin.style.display='block';
     var zb=j.zonaBuscando||[];
@@ -119,7 +145,8 @@ function pedidoHTML(o){
   '<div class="dato">📝 '+o.detalle+'</div>'+
   (o.compra?'<div class="dato">💵 Compra: <b>Q'+o.compra+'</b> (al local le pagás <b>Q'+(o.compra-(o.comisionLocal||0))+'</b>'+(o.comisionLocal?' · 5% promo de zona':'')+')</div>':'')+
   '<div class="dato">🐉 Tu envío: <b style="color:#f0b90b">Q'+o.envio+'</b> (menos Q'+o.comision+' de comisión = <b>Q'+(o.envio-o.comision)+'</b> para vos)</div>'+
-  '<a class="wa" href="'+wa+'" target="_blank">💬 Escribille al cliente</a>'+botones+'</div>';
+  '<a class="wa" href="'+wa+'" target="_blank">💬 Escribille al cliente</a>'+
+  '<div style="margin-top:10px;border-top:1px solid #2a2b38;padding-top:8px"><div class="mini">💬 CHAT CON EL CLIENTE</div><div id="chat-list" style="max-height:140px;overflow-y:auto">'+chatHTML(o)+'</div><div style="display:flex;gap:6px;margin-top:6px"><input id="chat-in" placeholder="Escribí tu mensaje..." style="flex:1"><button class="btn bA" style="padding:9px 12px" onclick="enviarMsg()">➤</button></div></div>'+botones+'</div>';
 }
 function pedidoPequeno(o){
   return '<div class="card" style="padding:10px;margin:8px 0"><b>'+({comida:'🍔',viaje:'🛺',repuesto:'🔧'}[o.tipo])+' '+o.id+'</b> · '+o.cliente.zona+'<div class="mini">'+String(o.detalle).slice(0,80)+' · Envío Q'+o.envio+'</div><button class="btn bV" style="margin-top:8px;padding:9px" onclick="hacer(\'aceptar\',\''+o.id+'\')">TOMARLO</button></div>';

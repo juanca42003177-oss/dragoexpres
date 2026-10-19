@@ -85,6 +85,8 @@ footer b{color:var(--oro)}
     <label>Tu nombre</label><input id="uNombre" placeholder="Ej: María López">
     <label>WhatsApp</label><input id="uTel" type="tel" placeholder="Ej: 5555 1234">
     <label>Tu área</label><input id="uZona" placeholder="Ej: Zona 11, Mixco, Villa Nueva...">
+    <label>Tu selfie de verificación 🤳</label><input type="file" accept="image/*" capture="user" id="uSelfie" style="padding:8px">
+    <p class="desc" style="font-size:11px;margin:0 0 8px">Con tu selfie y tu WhatsApp quedás verificado al instante para pedir comida, viajes y repuestos.</p>
     <button class="btn" onclick="enviar('usuario')">Quiero mi envío gratis</button>
   </div>
 
@@ -102,6 +104,10 @@ footer b{color:var(--oro)}
     <label>Marca del vehículo</label><input id="pMarca" placeholder="Ej: Honda, Toyota, Trek...">
     <label>Color</label><input id="pColor" placeholder="Ej: rojo, negro...">
     <label>Placa (si tiene)</label><input id="pPlaca" placeholder="Ej: C-123ABC (bici: dejalo vacío)">
+    <label>No. de DPI (13 dígitos)</label><input id="pDpi" inputmode="numeric" placeholder="Ej: 1234 56789 0101">
+    <label>Foto de tu DPI 📷</label><input type="file" accept="image/*" id="pDocDpi" style="padding:8px">
+    <label>Tu selfie 🤳</label><input type="file" accept="image/*" capture="user" id="pSelfie" style="padding:8px">
+    <p class="desc" style="font-size:11px;margin:0 0 8px">La verificación es automática: DPI bien escrito + tus 2 fotos = quedás listo para aprobación de 1 toque. Sin papeleo.</p>
     <label>Tu área</label><input id="pZona" placeholder="Ej: Zona 11, Mixco, Villa Nueva...">
     <label style="display:flex;gap:8px;align-items:flex-start;margin-top:14px"><input type="checkbox" id="p24" style="width:auto;margin-top:3px"> <span>Me animo a turnos de <b>24 horas</b> <span style="color:#f0b90b">(pago extra para mí y bono dominical mayor)</span></span></label>
     <button class="btn" onclick="enviar('piloto')">Registrarme de piloto</button>
@@ -304,7 +310,7 @@ function verVeh() {
 function campos(t) {
   var v = function(id){ return (document.getElementById(id).value||'').trim(); };
   if (t==='usuario') return { nombre:v('uNombre'), tel:v('uTel'), zona:v('uZona') };
-  if (t==='piloto') return { nombre:v('pNombre'), tel:v('pTel'), vehiculo:v('pVeh'), marca:v('pMarca'), color:v('pColor'), placa:v('pPlaca'), zona:v('pZona'), equipo: document.getElementById('pEquipo').checked, h24: document.getElementById('p24').checked };
+  if (t==='piloto') return { nombre:v('pNombre'), tel:v('pTel'), vehiculo:v('pVeh'), marca:v('pMarca'), color:v('pColor'), placa:v('pPlaca'), dpi:v('pDpi'), zona:v('pZona'), equipo: document.getElementById('pEquipo').checked, h24: document.getElementById('p24').checked };
   if (t==='local') return { nombre:v('lNombre'), tipo:v('lTipo'), tel:v('lTel'), zona:v('lZona') };
   return { nombre:v('flNombre'), tel:v('flTel'), vehiculo:v('flVeh'), marca:v('flMarca'), color:v('flColor'), placa:v('flPlaca'), zona:v('flZona') };
 }
@@ -313,6 +319,7 @@ function validar(t,d) {
   if (!d.tel) return 'Decinos tu WhatsApp';
   if (!d.zona) return 'Decinos tu área';
   if (t==='piloto' && d.vehiculo==='bicicleta' && !d.equipo) return 'Para bicicleta necesitás confirmar que trabajás con casco y rodilleras';
+  if (t==='piloto' && String(d.dpi||'').replace(/\D/g,'').length!==13) return 'Poné el número de tu DPI completo (13 dígitos, sin espacios)';
   return null;
 }
 // cola local: si la API no responde (aun no esta montada), el registro se guarda
@@ -327,9 +334,48 @@ function guardarCola(reg) {
 function apiBase() {
   return (location.hostname.indexOf('github.io') === -1 && !window.DX_API_URL) ? '/api' : (window.DX_API_URL || 'https://dragoexpres.vercel.app/api');
 }
-function enviar(t) {
+function comprimir(file) {
+  return new Promise(function(res, rej) {
+    var fr = new FileReader();
+    fr.onload = function() {
+      var img = new Image();
+      img.onload = function() {
+        var c = document.createElement('canvas');
+        var k = Math.min(1, 900 / Math.max(img.width, img.height));
+        c.width = Math.round(img.width * k); c.height = Math.round(img.height * k);
+        c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+        res(c.toDataURL('image/jpeg', 0.7));
+      };
+      img.onerror = rej; img.src = fr.result;
+    };
+    fr.onerror = rej; fr.readAsDataURL(file);
+  });
+}
+async function subirDoc(file, tipo, nombre, tel) {
+  var b64 = await comprimir(file);
+  var r = await fetch(apiBase() + '/upload', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ docTipo:tipo, nombre:nombre, tel:tel, b64:b64 }) });
+  var j = await r.json();
+  return (j && j.ok) ? { tipo:tipo, archivo:j.archivo } : null;
+}
+async function enviar(t) {
   var d = campos(t), err = validar(t,d);
   if (err) { alert(err); return; }
+  var docs = [];
+  try {
+    if (t==='usuario') {
+      var s = document.getElementById('uSelfie');
+      if (s && s.files && s.files[0]) { var x = await subirDoc(s.files[0], 'selfie', d.nombre, d.tel); if (x) docs.push(x); }
+    }
+    if (t==='piloto') {
+      var fd = document.getElementById('pDocDpi'), fs = document.getElementById('pSelfie');
+      var btn = document.querySelector('#fPiloto .btn');
+      if (btn) { btn.textContent = 'Enviando tus fotos...'; btn.disabled = true; }
+      if (fd && fd.files && fd.files[0]) { var a = await subirDoc(fd.files[0], 'dpi', d.nombre, d.tel); if (a) docs.push(a); }
+      if (fs && fs.files && fs.files[0]) { var b = await subirDoc(fs.files[0], 'selfie', d.nombre, d.tel); if (b) docs.push(b); }
+      if (btn) { btn.textContent = 'Registrarme de piloto'; btn.disabled = false; }
+    }
+  } catch(e) {}
+  if (docs.length) d.docs = docs;
   var reg = { tipo: t, datos: d, ts: Date.now() };
   guardarCola(reg);
   intentarEnviar();
@@ -350,8 +396,8 @@ function intentarEnviar() {
 }
 function mostrarOk(t) {
   var m = {
-    usuario:'Te avisamos por WhatsApp apenas DragoExpres abra en tu zona. Tu primer envío gratis ya te lo ganaste.',
-    piloto:'Tu registro quedó en la lista de pilotos. Te contactamos por WhatsApp con los pasos de verificación (DPI y licencia).',
+    usuario:'¡Quedaste verificado! 🤳✅ Con tu selfie y tu WhatsApp ya podés pedir comida, viajes y repuestos cuando tu zona se active. Tu primer envío gratis te lo ganaste.',
+    piloto:'Tu registro quedó listo 📋✅ Verificación automática completa (DPI + fotos). Apenas el admin toque el botón de aprobación, podés entrar con tu WhatsApp y placa.',
     local:'Tu local quedó registrado. Te contactamos por WhatsApp para subir tu catálogo y tus promos.',
     flota:'Tu vehículo quedó registrado. Te contactamos por WhatsApp para asignarle un piloto verificado.'
   };

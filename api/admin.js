@@ -68,6 +68,43 @@ module.exports = wrap(async (req, res) => {
     await ghPut('pilots.json', fp ? fp.sha : null, arr, 'liquidado ' + tel);
     return res.status(200).json({ ok: true });
   }
+  if (action === 'detalle') {
+    const tel = String(d.tel || '').replace(/\D/g, '');
+    const reg = f.data.find(r => String((r.datos || {}).tel || '').replace(/\D/g, '') === tel) || null;
+    if (!reg) return res.status(200).json({ ok: false, error: 'No encontrado.' });
+    const H2 = () => ({ Authorization: 'Bearer ' + TOKEN(), Accept: 'application/vnd.github+json' });
+    const r2 = await fetch(`https://api.github.com/repos/${REPO}/contents/pedidos.json?ref=${BRANCH}`, { headers: H2() });
+    const peds = r2.ok ? JSON.parse(Buffer.from((await r2.json()).content, 'base64').toString('utf8') || '[]') : [];
+    const mios = peds.filter(x => x.piloto && String(x.piloto.tel).replace(/\D/g, '') === tel && x.estado === 'entregado');
+    const r3 = await fetch(`https://api.github.com/repos/${REPO}/contents/pilots.json?ref=${BRANCH}`, { headers: H2() });
+    const pilots = r3.ok ? JSON.parse(Buffer.from((await r3.json()).content, 'base64').toString('utf8') || '[]') : [];
+    const st = pilots.find(x => String(x.tel).replace(/\D/g, '') === tel) || {};
+    const califs = mios.filter(x => x.califCliente > 0);
+    const g = new Date(Date.now() - 21600000);
+    const lunes = new Date(g);
+    lunes.setUTCDate(g.getUTCDate() - ((g.getUTCDay() + 6) % 7));
+    lunes.setUTCHours(0, 0, 0, 0);
+    const semana = mios.filter(x => (x.tsEntregado || x.ts) >= lunes.getTime() + 21600000).length;
+    const dinero2 = (q) => Math.round(+q * 100) / 100;
+    return res.status(200).json({ ok: true, registro: reg.datos, estado: reg.estado, checks: reg.checks || [], docs: (reg.datos && reg.datos.docs) || [], stats: {
+      entregas: mios.length,
+      semana,
+      ganado: dinero2(mios.reduce((s, x) => s + (x.envio - x.comision), 0)),
+      comisiones: dinero2(mios.reduce((s, x) => s + (x.comision || 0) + (x.comisionLocal || 0), 0)),
+      calif: califs.length ? Math.round(califs.reduce((s, x) => s + x.califCliente, 0) / califs.length * 10) / 10 : null,
+      pendiente: st.pendiente ? st.pendiente.monto : 0
+    }});
+  }
+  if (action === 'doc') {
+    const archivo = String(d.archivo || '').replace(/[^a-z0-9_/.,-]/gi, '');
+    if (!archivo) return res.status(200).json({ ok: false, error: 'Documento inválido.' });
+    const r = await fetch(`https://api.github.com/repos/${REPO}/contents/dragopres/${archivo}?ref=${BRANCH}`, {
+      headers: { Authorization: 'Bearer ' + TOKEN(), Accept: 'application/vnd.github+json' }
+    });
+    if (!r.ok) return res.status(200).json({ ok: false, error: 'Documento no encontrado (HTTP ' + r.status + ')' });
+    const j = await r.json();
+    return res.status(200).json({ ok: true, img: 'data:image/jpeg;base64,' + j.content });
+  }
   if (action === 'pozo') {
     const TZ = 6 * 3600 * 1000;
     const g = new Date(Date.now() - TZ);

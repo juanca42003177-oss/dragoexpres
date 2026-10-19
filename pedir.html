@@ -55,6 +55,14 @@ label{font-size:12px;color:#9aa3b5;display:block;margin-top:9px}
       <div style="text-align:center;margin:10px 0"><span class="st sBus" id="oestado">Buscando piloto...</span></div>
       <p class="mini" id="oinfo" style="text-align:center"></p>
       <a class="wa" id="owa" style="display:none" href="#" target="_blank">💬 Escribille al piloto</a>
+      <div id="chatBox" style="display:none;text-align:left;margin-top:10px">
+        <p class="mini" style="margin:0 0 6px">💬 CHAT CON TU PILOTO (le llega al instante)</p>
+        <div id="chat-list" style="max-height:180px;overflow-y:auto;background:#14161d;border:1px solid #2a2b38;border-radius:10px;padding:8px"></div>
+        <div style="display:flex;gap:6px;margin-top:8px">
+          <input id="chat-in" placeholder="Escribí tu mensaje..." style="flex:1">
+          <button class="btn bA" style="padding:9px 14px" onclick="enviarMsg()">➤</button>
+        </div>
+      </div>
       <div id="mapa" style="display:none;height:220px;border-radius:12px;margin-top:10px;border:1px solid #2a2b38"></div>
       <div id="calif" style="display:none;text-align:center;margin-top:10px">
         <p class="mini" style="margin:0 0 6px">¿Cómo te fue con tu piloto?</p>
@@ -99,6 +107,10 @@ async function enviar(){
 }
 var PID=null;
 function seguir(id){PID=id;actualizar();setInterval(actualizar,12000)}
+async function enviarMsg(){
+  var inp=document.getElementById('chat-in');if(!inp)return;var t=inp.value.trim();if(!t||!PID)return;
+  try{await fetch(api('orders'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'msg',id:PID,de:'cliente',tel:ULT_TEL,texto:t})});inp.value='';actualizar();}catch(e){}
+}
 async function actualizar(){
   if(!PID)return;
   try{var r=await fetch(api('orders'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'estado',id:PID})});
@@ -126,6 +138,13 @@ async function actualizar(){
   }else{cf.style.display='none'}
   var wa=document.getElementById('owa');
   if(o.piloto){wa.style.display='block';wa.href='https://wa.me/502'+String(o.piloto.tel).replace(/\D/g,'').replace(/^502/,'')+'?text='+encodeURIComponent('Hola '+o.piloto.nombre+', soy '+o.cliente.nombre+', del pedido '+o.id+' de DragoExpres.')}
+  var cb=document.getElementById('chatBox');
+  if(o.piloto&&!['entregado','cancelado'].includes(o.estado)){
+    cb.style.display='block';
+    var ci=document.getElementById('chat-in');var cv=ci?ci.value:'';var foc=!!ci&&document.activeElement===ci;
+    document.getElementById('chat-list').innerHTML=(o.chat||[]).map(function(m){return '<div style="margin:4px 0;font-size:13px"><b>'+(m.de==='piloto'?'🏍️ '+o.piloto.nombre.split(' ')[0]:'🧑 Vos')+':</b> '+m.texto+'</div>'}).join('')||'<div class="mini" style="color:#8a93a6">Escribile acá, ej: "dejalo en el portón"</div>';
+    if(ci){ci.value=cv;if(foc)ci.focus();}
+  }else{cb.style.display='none'}
   }catch(e){}
 }
 async function calificar(n){
