@@ -180,7 +180,7 @@ function gateEntrar(){
   var p=document.getElementById("gatePass").value;
   var demoEl=document.getElementById("demoApp");
   fetch(apiBase()+"/admin",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({pass:p,action:"check"})}).then(function(r){return r.json()}).then(function(j){
-    if(j&&j.ok){sessionStorage.setItem("dx_admin",p);demoEl.style.display="block";document.getElementById("adminGate").style.display="none";}
+    if(j&&j.ok){sessionStorage.setItem("dx_admin",p);demoEl.style.display="block";document.getElementById("adminGate").style.display="none";setTimeout(initMapa,300);}
     else if(p==="dragon2026"){sessionStorage.setItem("dx_demo","1");demoEl.style.display="block";document.getElementById("adminGate").style.display="none";}
     else document.getElementById("gateErr").textContent="Contraseña incorrecta";
   }).catch(function(){
@@ -190,6 +190,7 @@ function gateEntrar(){
 }
 function cerrarDemo(){document.getElementById("demoApp").style.display="none";}
 function verDemo(cual){
+  if(cual==="Usuario")setTimeout(initMapa,200);
   ["Usuario","Piloto","Local"].forEach(function(x){document.getElementById("ds"+x).style.display="none";});
   document.getElementById("ds"+cual).style.display="block";
 }
@@ -229,14 +230,23 @@ function verDemo(cual){
         <b style="font-size:13px">Repuestos El Chino 🔧</b> <span style="float:right;color:#f0b90b;font-weight:800">40 min</span>
         <div style="color:#9aa3b5;font-size:11.5px;margin-top:4px">Bomba de agua Tiida: <b style="color:#f2f4f8">Q235</b> · con instalación Q80</div>
       </div>
-      <div style="background:#0d2015;border:1px solid #1d5a35;border-radius:12px;padding:12px;margin-top:12px;line-height:1.6;font-size:12.5px">
-        🏍️ Tu piloto viene en camino: <b>Carlos M. ✅ Verificado</b><br>
-        Moto Honda roja · Placa C-123ABC · llega en 6 min<br>
-        <span style="color:#9aa3b5">(al usuario solo se le muestra el piloto más cercano disponible)</span>
+      <div style="background:#0d2015;border:1px solid #1d5a35;border-radius:12px;padding:12px;margin-top:12px">
+        <div style="display:flex;gap:10px;align-items:center">
+          <img src="img/piloto.png" style="width:52px;height:52px;border-radius:50%;border:2px solid #4ade80">
+          <div style="font-size:12.5px;line-height:1.6">
+            <b>Carlos M. ✅ Verificado</b><br>
+            Moto Honda roja · Placa C-123ABC · <b style="color:#4ade80">llega en 6 min</b>
+          </div>
+        </div>
+        <div id="mapaDemo" style="height:180px;border-radius:10px;margin-top:10px;border:1px solid #1d5a35"></div>
+        <div style="color:#9aa3b5;font-size:11px;margin-top:8px">Seguí a tu piloto en vivo. <span style="color:#5a6270">(al usuario solo se le muestra el piloto más cercano disponible)</span></div>
       </div>
     </div>
     <div class="ds" id="dsPiloto" style="display:none">
-      <div style="font-weight:900;font-size:19px;margin:12px 0 2px">Vos sos piloto 🏍️</div>
+      <div style="display:flex;gap:10px;align-items:center;margin-top:12px">
+        <img src="img/piloto.png" style="width:52px;height:52px;border-radius:50%;border:2px solid #f0b90b">
+        <div><div style="font-weight:900;font-size:18px">Vos sos piloto 🏍️</div></div>
+      </div>
       <div style="color:#9aa3b5;font-size:12.5px">Carlos M. · Honda roja · C-123ABC · ✅ Verificado</div>
       <div style="background:#14151c;border:1px solid #2a2b38;border-radius:12px;padding:12px;margin-top:12px;display:flex;justify-content:space-between;align-items:center">
         <span style="font-size:13px">Estado</span>
@@ -360,6 +370,23 @@ function mostrarOkLocal(t) {
 }
 // al abrir la pagina, reintentar lo pendiente
 intentarEnviar();
+</script>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+var mapita=null;
+function initMapa(){
+  if(typeof L==="undefined"||mapita)return;
+  mapita=L.map("mapaDemo",{zoomControl:false}).setView([14.6268,-90.5255],14);
+  L.tileLayer("https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png",{attribution:""}).addTo(mapita);
+  var ruta=[[14.6300,-90.5230],[14.6285,-90.5245],[14.6268,-90.5262],[14.6250,-90.5280]];
+  L.marker(ruta[0],{icon:L.divIcon({html:"<div style=font-size:20px>🍗</div>",iconSize:[22,22]})}).addTo(mapita).bindPopup("Polleria El Dragon");
+  L.marker(ruta[3],{icon:L.divIcon({html:"<div style=font-size:20px>🏠</div>",iconSize:[22,22]})}).addTo(mapita).bindPopup("Tu casa");
+  L.polyline(ruta,{color:"#f0b90b",weight:3,dashArray:"6 6"}).addTo(mapita);
+  var p=L.marker(ruta[0],{icon:L.divIcon({html:"<div style=font-size:20px>🏍️</div>",iconSize:[22,22]})}).addTo(mapita);
+  var i=0;
+  setInterval(function(){i=(i+1)%ruta.length;p.setLatLng(ruta[i]);},1500);
+}
 </script>
 </body>
 </html>
