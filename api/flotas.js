@@ -68,7 +68,7 @@ module.exports = wrap(async (req, res) => {
     a.conductor = { tel: cTel, nombre: cNombre };
     a.activa = true;
     await ghPut('flotas.json', ff ? ff.sha : null, arr, 'flota: asignacion ' + placa);
-    await aviso(`🚚 DRAGOEXPRES — Flota\\n${f.datos.nombre} asignó el vehículo ${placa} al conductor ${cNombre} (${cTel})\\nReparto automático: 75% conductor / 25% flotista en cada entrega`);
+    await aviso(`🚚 DRAGOEXPRES — Flota\n${f.datos.nombre} asignó el vehículo ${placa} al conductor ${cNombre} (${cTel})\nReparto automático: 75% conductor / 25% flotista en cada entrega`);
     return res.status(200).json({ ok: true, vehiculo: a });
   }
 

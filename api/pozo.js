@@ -39,6 +39,16 @@ async function aviso(texto) {
   } catch (e) { }
 }
 
+function lineas(s, reparto) {
+  const gana = {};
+  (reparto||[]).forEach(p => gana[p.tel] = p.monto);
+  return s.pilotos.map(p => {
+    const pozoG = gana[p.tel] || 0;
+    const neto = dinero(p.comisiones - pozoG);
+    if (neto >= 0) return `• ${p.nombre} (${p.tel}): ${p.entregas} entregas · comisiones Q${p.comisiones}${pozoG ? ' − pozo Q' + pozoG : ''} → TE TRANSFIERE Q${neto}`;
+    return `• ${p.nombre} (${p.tel}): ${p.entregas} entregas · comisiones Q${p.comisiones} − pozo Q${pozoG} → LE PAGÁS VOS Q${-neto}`;
+  }).join('\n');
+}
 async function estado() {
   const L = lunesGT();
   const fpd = await ghGet('pedidos.json');
@@ -50,8 +60,9 @@ async function estado() {
   peds.forEach(o => {
     if (!o.piloto) return;
     const k = o.piloto.tel;
-    if (!porPiloto[k]) porPiloto[k] = { tel: k, nombre: o.piloto.nombre, entregas: 0 };
+    if (!porPiloto[k]) porPiloto[k] = { tel: k, nombre: o.piloto.nombre, entregas: 0, comisiones: 0 };
     porPiloto[k].entregas++;
+    porPiloto[k].comisiones = dinero(porPiloto[k].comisiones + (o.comision || 0));
   });
   const pilotos = Object.values(porPiloto).sort((a, b) => b.entregas - a.entregas);
   const califican = pilotos.filter(p => p.entregas >= META);
@@ -81,17 +92,17 @@ module.exports = wrap(async (req, res) => {
       pozo.acumulado = dinero((pozo.acumulado || 0) + s.pozoSemana);
       pozo.historial.push({ domingo: g.toISOString().slice(0, 10), monto: s.pozoSemana, reparto: [], nota: 'sin pilotos con meta, se acumula' });
       await ghPut('pozo.json', pz ? pz.sha : null, pozo, 'pozo: sin ganadores, acumula');
-      await aviso(`🏆 DRAGOEXPRES — Pozo de pilotos\\nNadie cumplió la meta de ${META} entregas esta semana 😢\\nEl pozo de Q${s.pozoSemana} se ACUMULA → próxima semana: Q${pozo.acumulado}\\nPilotos: ${s.pilotos.map(p => p.nombre + ' ' + p.entregas).join(' · ') || 'sin entregas'}`);
-      return res.status(200).json({ ok: true, acumulado: pozo.acumulado });
+      await aviso(`🏆 DRAGOEXPRES — RESUMEN SEMANAL\nNadie cumplió la meta de ${META} entregas 😢 el pozo de Q${s.pozoSemana} se ACUMULA.\n\n💰 LIQUIDACIÓN (cada piloto te transfiere su neto a tu Industrial 7171286805):\n${lineas(s, []) || 'Sin entregas esta semana'}`);
+      return res.status(200).json({ ok: true, acumulado: pozo.acumulado, liquidacion: lineas(s, []) });
     }
     const totalEntregas = s.califican.reduce((s2, p) => s2 + p.entregas, 0);
     const reparto = s.califican.map(p => ({ tel: p.tel, nombre: p.nombre, entregas: p.entregas, monto: dinero(s.total * p.entregas / totalEntregas) }));
     pozo.historial.push({ domingo: g.toISOString().slice(0, 10), monto: s.total, reparto });
     pozo.acumulado = 0;
     await ghPut('pozo.json', pz ? pz.sha : null, pozo, 'pozo repartido');
-    const LINEAS = reparto.map(p => `• ${p.nombre} (${p.tel}): ${p.entregas} entregas → Q${p.monto}`).join('\\n');
-    await aviso(`🏆 DRAGOEXPRES — POZO SEMANAL DE PILOTOS 💰\\nPozo: Q${s.total} (${s.comisiones > 0 ? 'Q' + s.comisiones + ' de comisiones × 25%' : ''})\\nGanadores (meta ${META} entregas):\\n${LINEAS}\\n→ Pagás estos bonos a mano 🐉`);
-    return res.status(200).json({ ok: true, total: s.total, reparto });
+    const LINEAS = lineas(s, reparto);
+    await aviso(`🏆 DRAGOEXPRES — RESUMEN SEMANAL 🐉\nPozo de la semana: Q${s.total} (25% de comisiones + acumulado)\n\n💰 LIQUIDACIÓN (cada piloto te transfiere su neto a tu Industrial 7171286805):\n${LINEAS}\n\nSi el pozo ganado supera las comisiones de un piloto, ese poquito sí lo pagás vos. El resto llega solo.`);
+    return res.status(200).json({ ok: true, total: s.total, reparto, liquidacion: LINEAS });
   }
 
   return res.status(200).json({ ok: false, error: 'Acción desconocida' });
