@@ -9,8 +9,10 @@ async function ensureBranch() {
   if (branchReady) return;
   const chk = await fetch(`https://api.github.com/repos/${REPO}/git/ref/refs%2Fheads%2F${BRANCH}`, { headers: H() });
   if (chk.ok) { branchReady = true; return; }
+  const chkMe = await fetch('https://api.github.com/user', { headers: H() });
+  if (!chkMe.ok) throw new Error('GITHUB_TOKEN invalido o ausente (HTTP ' + chkMe.status + ')');
   const mb = await fetch(`https://api.github.com/repos/${REPO}/git/ref/refs%2Fheads%2Fmain`, { headers: H() });
-  if (!mb.ok) throw new Error('repo de datos no encontrado');
+  if (!mb.ok) throw new Error('repo de datos no accesible (HTTP ' + mb.status + ', usando: ' + REPO + ')');
   const mj = await mb.json();
   const cr = await fetch(`https://api.github.com/repos/${REPO}/git/refs`, {
     method: 'POST',
