@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="cache" content="no-store">
-<title>DragoExpres — Panel del Dueño</title>
+<title>DragoExpres — Panel del Dueño v4</title>
 <link rel="icon" href="img/icono.png">
 <style>
 body{background:#0a0a0f;color:#f2f4f8;font-family:system-ui,sans-serif;margin:0;padding:0 0 70px}
@@ -97,24 +97,32 @@ function cargar(){
   fetch(apiBase()+'/admin',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({pass:PASS,action:'list'})})
   .then(r=>r.json()).then(j=>{pintar((j&&j.ok&&j.registros)||[]);});
 }
+function waLink(t){t=String(t||'').replace(/[^0-9]/g,'');if(t.length===8)t='502'+t;return t;}
 function inicial(n){return (n||'?').trim().charAt(0).toUpperCase();}
 function pintar(regs){
   var TABS=[['resumen','📊 Resumen'],['pilotos','🏍️ Pilotos'],['locales','🔥 Locales'],['flota','🚗 Flota'],['usuarios','🍜 Usuarios'],['zonas','📍 Zonas']];
   document.getElementById('tabs').innerHTML=TABS.map(function(t){return '<div class="tab'+(TAB===t[0]?' on':'')+'" onclick="ver(\''+t[0]+'\')">'+t[1]+'</div>';}).join('');
-  var f=regs.filter(function(r){return r.tipo===TAB;});
+  var MAP={pilotos:'piloto',locales:'local',flota:'flota',usuarios:'usuario'};
+  var f=regs.filter(function(r){return r.tipo===MAP[TAB];});
   document.getElementById('resumen').style.display=TAB==='resumen'?'block':'none';
   document.getElementById('lista').style.display=(TAB==='pilotos'||TAB==='locales'||TAB==='flota'||TAB==='usuarios')?'block':'none';
   document.getElementById('zonas').style.display=TAB==='zonas'?'block':'none';
   if(TAB==='resumen'){
     var n={pilotos:0,locales:0,flota:0,usuario:0,pen:0,apro:0};
     regs.forEach(function(r){n[r.tipo]=(n[r.tipo]||0)+1;if(r.estado==='aprobado')n.apro++;if(r.estado==='pendiente')n.pen++;});
+    var zz={};
+    regs.forEach(function(r){var k=(r.datos&&r.datos.zona)||'—';if(!zz[k])zz[k]={p:0,l:0};if(r.tipo==='piloto'&&r.estado==='aprobado')zz[k].p++;if(r.tipo==='local'&&r.estado==='aprobado')zz[k].l++;});
+    var mejor=null,falta=999;
+    Object.keys(zz).forEach(function(k){var f2=(25-zz[k].p)+(25-zz[k].l);if(f2<falta){falta=f2;mejor=k;}});
     document.getElementById('resumen').innerHTML='<div class="stats">'+
       '<div class="stat"><div class="n">'+(n.piloto||0)+'</div><div class="l">PILOTOS</div></div>'+
       '<div class="stat"><div class="n">'+(n.local||0)+'</div><div class="l">LOCALES</div></div>'+
       '<div class="stat"><div class="n">'+(n.flota||0)+'</div><div class="l">VEHÍCULOS</div></div>'+
       '<div class="stat"><div class="n">'+(n.usuario||0)+'</div><div class="l">USUARIOS</div></div></div>'+
       '<div class="card"><div class="av">⏳</div><div><b>'+n.pen+' pendientes de tu aprobación</b><div class="s">Revisá la pestaña de cada rol y aprobá con 1 botón</div></div></div>'+
-      '<div class="card"><div class="av">✅</div><div><b>'+n.apro+' aprobados</b><div class="s">Los aprobados suman para activar su zona</div></div></div>';
+      '<div class="card"><div class="av">✅</div><div><b>'+n.apro+' aprobados</b><div class="s">Los aprobados suman para activar su zona</div></div></div>'+
+      (mejor&&falta>0?'<div class="card"><div class="av">📍</div><div><b>Zona más cercana a activarse: '+mejor+'</b><div class="s">Faltan '+falta+' verificaciones para encender el servicio ahí</div></div></div>':'')+
+      '<div class="card"><div class="av">💰</div><div><b>Tus comisiones activas</b><div class="s">Comida 10% · Repuestos 8% · Viajes Q2–Q5 · 3 meses sin comisión al lanzar cada zona</div></div></div>';
   }
   if(TAB==='zonas'){
     var z={};
@@ -127,6 +135,9 @@ function pintar(regs){
     document.getElementById('zonas').innerHTML=html||'<div class="card">Sin registros aún.</div>';
   }
   var ic={piloto:'🏍️',local:'🔥',flota:'🚗',usuario:'🍜'};
+  var TABLBL={pilotos:'Pilotos',locales:'Locales',flota:'Flota',usuarios:'Usuarios'};
+  if(TABLBL[TAB]){var pend=f.filter(function(r){return r.estado==='pendiente';}).length;
+    html2='<h3>'+TABLBL[TAB]+' — '+f.length+' registrados · '+pend+' pendientes de aprobar</h3>'+html2;}
   var html2='';
   f.slice().reverse().forEach(function(r){
     var d=r.datos||{};
@@ -136,7 +147,8 @@ function pintar(regs){
       (d.vehiculo?' · 🛵 '+d.vehiculo:'')+(d.marca?' · '+d.marca+' '+(d.color||''):'')+(d.placa?' · 🔖 '+d.placa:'')+
       (d.tipo?' · '+d.tipo:'')+
       (d.h24?' · <b style="color:#f0b90b">24hrs</b>':'')+(d.equipo!==undefined?' · '+(d.equipo?'🪖 equipo OK':'<b style="color:#ff8f8f">SIN equipo</b>'):'')+'</div></div>'+
-      (r.tipo!=='usuario'?'<div><button class="btn bA" onclick="estado(\''+r.ts+'\',\'aprobar\')">✓</button><button class="btn bR" onclick="estado(\''+r.ts+'\',\'rechazar\')">✕</button></div>':'')+
+      '<div><a class="btn bW" style="background:#1d5a35;color:#a8f0c6;text-decoration:none" href="https://wa.me/'+waLink(d.tel)+'">💬</a>'+
+      (r.tipo!=='usuario'?'<button class="btn bA" onclick="estado(\''+r.ts+'\',\'aprobar\')">✓</button><button class="btn bR" onclick="estado(\''+r.ts+'\',\'rechazar\')">✕</button></div>':'')+
       '</div>';
   });
   document.getElementById('lista').innerHTML=html2||'<div class="card">Sin registros en esta sección.</div>';
