@@ -143,16 +143,20 @@ document.querySelector("header img").addEventListener("click",function(){
   if(toqueN>=5){toqueN=0;abrirDemo();}
 });
 function abrirDemo(){
-  var p=prompt("Modo administrador DragoExpres\nContraseña:");
-  if(p===null)return;
+  document.getElementById("adminGate").style.display="block";
+  window.scrollTo({top:0,behavior:"smooth"});
+  setTimeout(function(){try{document.getElementById("gatePass").focus();}catch(e){}},350);
+}
+function gateEntrar(){
+  var p=document.getElementById("gatePass").value;
   var demoEl=document.getElementById("demoApp");
   fetch(apiBase()+"/admin",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({pass:p,action:"check"})}).then(function(r){return r.json()}).then(function(j){
-    if(j&&j.ok){sessionStorage.setItem("dx_admin",p);demoEl.style.display="block";}
-    else if(p==="dragon2026"){sessionStorage.setItem("dx_demo","1");demoEl.style.display="block";}
-    else alert("Contraseña incorrecta");
+    if(j&&j.ok){sessionStorage.setItem("dx_admin",p);demoEl.style.display="block";document.getElementById("adminGate").style.display="none";}
+    else if(p==="dragon2026"){sessionStorage.setItem("dx_demo","1");demoEl.style.display="block";document.getElementById("adminGate").style.display="none";}
+    else document.getElementById("gateErr").textContent="Contraseña incorrecta";
   }).catch(function(){
-    if(p==="dragon2026"){sessionStorage.setItem("dx_demo","1");demoEl.style.display="block";}
-    else alert("Contraseña incorrecta (el panel real se activa al montar la API)");
+    if(p==="dragon2026"){sessionStorage.setItem("dx_demo","1");demoEl.style.display="block";document.getElementById("adminGate").style.display="none";}
+    else document.getElementById("gateErr").textContent="Contraseña incorrecta (el panel real se activa al montar la API en Vercel)";
   });
 }
 function cerrarDemo(){document.getElementById("demoApp").style.display="none";}
@@ -161,6 +165,17 @@ function verDemo(cual){
   document.getElementById("ds"+cual).style.display="block";
 }
 </script>
+</div>
+<div id="adminGate" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:99;align-items:center;justify-content:center;padding:20px">
+  <div style="background:#14151c;border:1px solid #f0b90b;border-radius:16px;padding:22px;max-width:340px;width:100%">
+    <div style="text-align:center;font-size:30px">👑</div>
+    <div style="text-align:center;font-weight:900;font-size:16px;margin-bottom:4px">Modo administrador</div>
+    <div style="text-align:center;color:#9aa3b5;font-size:12px;margin-bottom:14px">DragoExpres</div>
+    <input id="gatePass" type="password" placeholder="Contraseña" style="width:100%;background:#0d0e14;border:1px solid #2a2b38;border-radius:10px;color:#f2f4f8;padding:12px;font-size:15px" onkeydown="if(event.key==='Enter')gateEntrar()">
+    <div id="gateErr" style="color:#ff8f8f;font-size:12px;margin-top:6px"></div>
+    <button onclick="gateEntrar()" style="width:100%;margin-top:10px;background:linear-gradient(135deg,#ffe08a,#f0b90b);border:0;border-radius:10px;padding:13px;font-weight:900;font-size:15px">Entrar</button>
+    <div style="text-align:center;margin-top:10px"><span style="cursor:pointer;color:#9aa3b5;font-size:12px" onclick="document.getElementById('adminGate').style.display='none'">Cancelar</span></div>
+  </div>
 </div>
 <div id="demoApp" style="display:none;position:fixed;inset:0;background:#0a0a0f;z-index:100;overflow-y:auto">
   <div style="max-width:480px;margin:0 auto;padding:14px 14px 80px">
