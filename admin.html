@@ -2,116 +2,150 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>DragoExpres — Panel Admin</title>
+<meta name="cache" content="no-store">
+<title>DragoExpres — Panel del Dueño</title>
 <link rel="icon" href="img/icono.png">
 <style>
-body{background:#0a0a0f;color:#f2f4f8;font-family:system-ui,sans-serif;margin:0;padding:16px}
-.w{max-width:520px;margin:0 auto}
-h2{color:#f0b90b;margin:10px 0}
-.reg{background:#14151c;border:1px solid #2a2b38;border-radius:12px;padding:12px;margin:10px 0}
-.reg b{font-size:14px}
-.reg .s{font-size:11.5px;color:#9aa3b5;line-height:1.6;margin-top:4px}
-.pill{font-size:10px;padding:2px 8px;border-radius:6px;font-weight:800}
-.pend{background:#241a05;color:#ffe08a}.apro{background:#0d2015;color:#7ee2a8}.recha{background:#2a0d0d;color:#ff8f8f}
+body{background:#0a0a0f;color:#f2f4f8;font-family:system-ui,sans-serif;margin:0;padding:0 0 70px}
+.w{max-width:560px;margin:0 auto;padding:14px}
+h2{color:#f0b90b;margin:12px 0 4px}
+h3{font-size:14px;margin:16px 0 8px}
+#login{max-width:340px;margin:70px auto;text-align:center;padding:0 16px}
+input{width:100%;background:#0d0e14;border:1px solid #2a2b38;border-radius:10px;color:#fff;padding:12px;font-size:15px}
 .btn{border:0;border-radius:8px;padding:8px 14px;font-weight:800;cursor:pointer;font-size:12px}
 .bA{background:#f0b90b;color:#111}.bR{background:#2a2b38;color:#ff8f8f;margin-left:6px}
-#login{max-width:340px;margin:80px auto;text-align:center}
-input{width:100%;background:#0d0e14;border:1px solid #2a2b38;border-radius:10px;color:#fff;padding:12px;font-size:15px}
-.zona{background:#14151c;border:1px solid #2a2b38;border-radius:12px;padding:10px;margin:8px 0;font-size:12px}
-.zona b{color:#f0b90b}
-.aviso{background:#241a05;border:1px solid #b8860b;color:#ffe08a;border-radius:10px;padding:10px;font-size:12px;margin-bottom:12px}
-h3{font-size:14px}
+.card{background:#14151c;border:1px solid #2a2b38;border-radius:12px;padding:12px;margin:8px 0;display:flex;gap:10px;align-items:center}
+.av{min-width:42px;height:42px;border-radius:50%;background:#241a05;color:#f0b90b;font-weight:900;text-align:center;line-height:42px;font-size:15px;border:1px solid #b8860b}
+.card b{font-size:13.5px}
+.card .s{font-size:11px;color:#9aa3b5;line-height:1.5;margin-top:3px}
+.pill{font-size:9.5px;padding:2px 8px;border-radius:6px;font-weight:800}
+.pend{background:#241a05;color:#ffe08a}.apro{background:#0d2015;color:#7ee2a8}.recha{background:#2a0d0d;color:#ff8f8f}
+.aviso{background:#241a05;border:1px solid #b8860b;color:#ffe08a;border-radius:10px;padding:10px;font-size:12px;margin:10px 0;line-height:1.5}
+.tabs{display:flex;gap:5px;overflow-x:auto;padding-bottom:4px}
+.tab{background:#14151c;border:1px solid #2a2b38;color:#9aa3b5;border-radius:20px;padding:7px 13px;font-size:12px;font-weight:800;white-space:nowrap;cursor:pointer}
+.tab.on{border-color:#f0b90b;color:#f0b90b}
+.stats{display:flex;gap:8px;margin:12px 0}
+.stat{flex:1;background:#14151c;border:1px solid #2a2b38;border-radius:12px;padding:10px;text-align:center}
+.stat .n{font-size:21px;font-weight:900;color:#f0b90b}
+.stat .l{font-size:9.5px;color:#9aa3b5}
+.zbar{height:8px;background:#0d0e14;border-radius:6px;overflow:hidden;margin-top:6px}
+.zbar div{height:100%;background:linear-gradient(90deg,#f0b90b,#ffd44d)}
 </style>
 </head>
 <body>
-<div class="w">
 <div id="login">
   <img src="img/logo.png" style="width:70px;border-radius:12px"><h2>DragoExpres 👑</h2>
-  <p style="color:#9aa3b5;font-size:13px">Panel del administrador</p>
-  <input id="pass" type="password" placeholder="Contraseña admin" onkeydown="if(event.key==='Enter')entrar()">
-  <button class="btn bA" style="margin-top:10px;width:100%;padding:12px" onclick="entrar()">Entrar</button>
+  <p style="color:#9aa3b5;font-size:13px">Panel del dueño · v2</p>
+  <input id="pass" type="password" placeholder="Contraseña de dueño" onkeydown="if(event.key==='Enter')entrar()">
+  <button class="btn bA" style="margin-top:10px;width:100%;padding:12px;font-size:14px" onclick="entrar()">Entrar</button>
   <p id="err" style="color:#ff8f8f;font-size:12px"></p>
 </div>
-<div id="panel" style="display:none"></div>
+<div id="panel" style="display:none">
+  <div class="w">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px">
+      <h2 style="margin:0">👑 Panel del Dueño</h2>
+      <span style="cursor:pointer;color:#9aa3b5;font-size:12px" onclick="salir()">Salir ✕</span>
+    </div>
+    <div class="aviso" id="modoAviso" style="display:none">👁 VISTA PREVIA con datos de EJEMPLO — probá todos los botones. Con la API montada en Vercel (ADMIN_PASS) acá aparecen los registros REALES de tu app.</div>
+    <div class="tabs" id="tabs"></div>
+    <div id="resumen"></div>
+    <div id="lista"></div>
+    <div id="zonas"></div>
+  </div>
 </div>
 <script>
-var PASS='', MODO_DEMO=false;
+var PASS='',MODO_DEMO=false,TAB='resumen';
 var DEMO=[
  {tipo:'piloto',ts:1,estado:'aprobado',datos:{nombre:'Carlos Mendoza',tel:'5555 1111',zona:'Zona 11',vehiculo:'moto',marca:'Honda',color:'rojo',placa:'C-123ABC',h24:true,equipo:true}},
  {tipo:'piloto',ts:2,estado:'pendiente',datos:{nombre:'Luis Tzoc',tel:'5555 2222',zona:'Mixco',vehiculo:'bicicleta',marca:'Trek',color:'negro',equipo:true}},
  {tipo:'piloto',ts:3,estado:'pendiente',datos:{nombre:'Miguel Ruiz',tel:'5555 3333',zona:'Villa Nueva',vehiculo:'carro',marca:'Toyota',color:'blanco',placa:'P-777XYZ'}},
+ {tipo:'piloto',ts:8,estado:'pendiente',datos:{nombre:'Jorge Baten',tel:'5555 8888',zona:'Mixco',vehiculo:'moto',marca:'Suzuki',color:'negro',placa:'C-910JKL',h24:true}},
+ {tipo:'piloto',ts:9,estado:'rechazado',datos:{nombre:'Anónimo Pérez',tel:'5555 9999',zona:'Zona 12',vehiculo:'bicicleta',marca:'—',color:'—',equipo:false}},
+ {tipo:'piloto',ts:10,estado:'pendiente',datos:{nombre:'Byron Xumul',tel:'5555 1010',zona:'Amatitlán',vehiculo:'moto',marca:'Yamaha',color:'azul',placa:'C-345MNO'}},
  {tipo:'local',ts:4,estado:'aprobado',datos:{nombre:'Pollería El Dragón',tipo:'comida',tel:'5555 4444',zona:'Zona 11'}},
  {tipo:'local',ts:5,estado:'pendiente',datos:{nombre:'Repuestos El Chino',tipo:'repuestos',tel:'5555 5555',zona:'Zona 12'}},
+ {tipo:'local',ts:11,estado:'pendiente',datos:{nombre:'Tacos Doña Lupita',tipo:'comida',tel:'5555 1112',zona:'Mixco'}},
+ {tipo:'local',ts:12,estado:'aprobado',datos:{nombre:'MotoRepuestos La Báscula',tipo:'repuestos',tel:'5555 1113',zona:'Mixco'}},
+ {tipo:'local',ts:13,estado:'pendiente',datos:{nombre:'Taller El Turco',tipo:'taller',tel:'5555 1114',zona:'Villa Nueva'}},
  {tipo:'flota',ts:6,estado:'pendiente',datos:{nombre:'Doña Rosa',tel:'5555 6666',zona:'Amatitlán',vehiculo:'moto',marca:'Suzuki',color:'azul',placa:'C-456DEF'}},
- {tipo:'usuario',ts:7,estado:'pendiente',datos:{nombre:'María López',tel:'5555 7777',zona:'Zona 11'}}
+ {tipo:'flota',ts:14,estado:'aprobado',datos:{nombre:'Sr. Paredes',tel:'5555 1115',zona:'Zona 11',vehiculo:'pickup',marca:'Nissan',color:'blanca',placa:'P-222QRS'}},
+ {tipo:'usuario',ts:7,estado:'pendiente',datos:{nombre:'María López',tel:'5555 7777',zona:'Zona 11'}},
+ {tipo:'usuario',ts:15,estado:'pendiente',datos:{nombre:'Juanito Morales',tel:'5555 1116',zona:'Mixco'}},
+ {tipo:'usuario',ts:16,estado:'pendiente',datos:{nombre:'Sofía Ramírez',tel:'5555 1117',zona:'Quetzaltenango'}}
 ];
-function apiBase(){ return (location.hostname.indexOf('github.io')===-1 && !window.DX_API_URL) ? '/api' : (window.DX_API_URL||'https://dragoexpres.vercel.app/api'); }
+function apiBase(){return (location.hostname.indexOf('github.io')===-1&&!window.DX_API_URL)?'/api':(window.DX_API_URL||'https://dragoexpres.vercel.app/api');}
 function entrar(){
   PASS=document.getElementById('pass').value;
   fetch(apiBase()+'/admin',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({pass:PASS,action:'check'})})
   .then(r=>r.json()).then(j=>{
-    if(j&&j.ok){MODO_DEMO=false;abrirPanel();cargar();}
-    else if(PASS==='dragon2026'){entrarDemo();}
-    else{document.getElementById('err').textContent=(j&&j.error)||'Contraseña incorrecta';}
-  }).catch(e=>{
-    if(PASS==='dragon2026'){entrarDemo();}
-    else{document.getElementById('err').textContent='Contraseña incorrecta. (El panel real despierta al importar el repo a Vercel con ADMIN_PASS)';}
+    if(j&&j.ok){MODO_DEMO=false;abrir();}
+    else if(PASS==='dragon2026'){MODO_DEMO=true;abrir();}
+    else{document.getElementById('err').textContent='Contraseña incorrecta';}
+  }).catch(e){
+    if(PASS==='dragon2026'){MODO_DEMO=true;abrir();}
+    else{document.getElementById('err').textContent='Contraseña incorrecta. (La API real despierta al importar el repo a Vercel con ADMIN_PASS)';}
   });
 }
-function abrirPanel(){
+function salir(){location.reload();}
+function abrir(){
   document.getElementById('login').style.display='none';
-  var p=document.getElementById('panel');
-  p.style.display='block';
-  p.innerHTML='<h2>👑 Panel DragoExpres</h2><div id="zonas"></div><h3 style="margin-top:16px">📋 Registros</h3><div id="lista">Cargando...</div>';
-}
-function entrarDemo(){
-  MODO_DEMO=true;
-  abrirPanel();
-  document.getElementById('zonas').insertAdjacentHTML('beforebegin','<div class="aviso">👁 VISTA PREVIA con datos de EJEMPLO. Probá los botones Aprobar/Rechazar. El panel real despierta al montar la API en Vercel con tu contraseña ADMIN_PASS.</div>');
+  document.getElementById('panel').style.display='block';
+  if(MODO_DEMO)document.getElementById('modoAviso').style.display='block';
   pintar(DEMO);
 }
 function cargar(){
   fetch(apiBase()+'/admin',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({pass:PASS,action:'list'})})
-  .then(r=>r.json()).then(j=>{ pintar((j&&j.ok&&j.registros)||[]); });
+  .then(r=>r.json()).then(j=>{pintar((j&&j.ok&&j.registros)||[]);});
 }
+function inicial(n){return (n||'?').trim().charAt(0).toUpperCase();}
 function pintar(regs){
-  var porZona={};
-  regs.forEach(function(r){
-    var z=(r.datos&&r.datos.zona)||'Sin área';
-    if(!porZona[z])porZona[z]={p:0,l:0,t:0};
-    if(r.tipo==='piloto'&&r.estado==='aprobado')porZona[z].p++;
-    if(r.tipo==='local'&&r.estado==='aprobado')porZona[z].l++;
-    if(r.tipo==='piloto')porZona[z].t++;
-  });
-  var zh='';
-  Object.keys(porZona).forEach(function(z){
-    var v=porZona[z];
-    zh+='<div class="zona">📍 <b>'+z+'</b> — pilotos verificados: '+v.p+'/25 · locales: '+v.l+'/25'+(v.p>=25&&v.l>=25?' · <b style="color:#7ee2a8">LISTA PARA ACTIVAR 🚀</b>':'')+'</div>';
-  });
-  document.getElementById('zonas').innerHTML=zh||'<div class="zona">Aún no hay registros.</div>';
-  var html='';
-  regs.slice().reverse().forEach(function(r){
+  var TABS=[['resumen','📊 Resumen'],['pilotos','🏍️ Pilotos'],['locales','🔥 Locales'],['flota','🚗 Flota'],['usuarios','🍜 Usuarios'],['zonas','📍 Zonas']];
+  document.getElementById('tabs').innerHTML=TABS.map(function(t){return '<div class="tab'+(TAB===t[0]?' on':'')+'" onclick="ver(\''+t[0]+'\')">'+t[1]+'</div>';}).join('');
+  var f=regs.filter(function(r){return r.tipo===TAB;});
+  document.getElementById('resumen').style.display=TAB==='resumen'?'block':'none';
+  document.getElementById('lista').style.display=(TAB==='pilotos'||TAB==='locales'||TAB==='flota'||TAB==='usuarios')?'block':'none';
+  document.getElementById('zonas').style.display=TAB==='zonas'?'block':'none';
+  if(TAB==='resumen'){
+    var n={pilotos:0,locales:0,flota:0,usuario:0,pen:0,apro:0};
+    regs.forEach(function(r){n[r.tipo]=(n[r.tipo]||0)+1;if(r.estado==='aprobado')n.apro++;if(r.estado==='pendiente')n.pen++;});
+    document.getElementById('resumen').innerHTML='<div class="stats">'+
+      '<div class="stat"><div class="n">'+(n.piloto||0)+'</div><div class="l">PILOTOS</div></div>'+
+      '<div class="stat"><div class="n">'+(n.local||0)+'</div><div class="l">LOCALES</div></div>'+
+      '<div class="stat"><div class="n">'+(n.flota||0)+'</div><div class="l">VEHÍCULOS</div></div>'+
+      '<div class="stat"><div class="n">'+(n.usuario||0)+'</div><div class="l">USUARIOS</div></div></div>'+
+      '<div class="card"><div class="av">⏳</div><div><b>'+n.pen+' pendientes de tu aprobación</b><div class="s">Revisá la pestaña de cada rol y aprobá con 1 botón</div></div></div>'+
+      '<div class="card"><div class="av">✅</div><div><b>'+n.apro+' aprobados</b><div class="s">Los aprobados suman para activar su zona</div></div></div>';
+  }
+  if(TAB==='zonas'){
+    var z={};
+    regs.forEach(function(r){var k=(r.datos&&r.datos.zona)||'Sin área';if(!z[k])z[k]={p:0,l:0};if(r.tipo==='piloto'&&r.estado==='aprobado')z[k].p++;if(r.tipo==='local'&&r.estado==='aprobado')z[k].l++;});
+    var html='';
+    Object.keys(z).forEach(function(k){var v=z[k];var pr=Math.round(Math.min(v.p,25)/25*100),lr=Math.round(Math.min(v.l,25)/25*100);
+      html+='<div class="card" style="display:block"><b>📍 '+k+'</b>'+(v.p>=25&&v.l>=25?' <span class="pill apro">LISTA PARA ACTIVAR 🚀</span>':'')+
+      '<div class="s">Pilotos verificados: '+v.p+'/25</div><div class="zbar"><div style="width:'+pr+'%"></div></div>'+
+      '<div class="s">Locales verificados: '+v.l+'/25</div><div class="zbar"><div style="width:'+lr+'%"></div></div></div>';});
+    document.getElementById('zonas').innerHTML=html||'<div class="card">Sin registros aún.</div>';
+  }
+  var ic={piloto:'🏍️',local:'🔥',flota:'🚗',usuario:'🍜'};
+  var html2='';
+  f.slice().reverse().forEach(function(r){
     var d=r.datos||{};
     var pill=r.estado==='aprobado'?'<span class="pill apro">APROBADO</span>':(r.estado==='rechazado'?'<span class="pill recha">RECHAZADO</span>':'<span class="pill pend">PENDIENTE</span>');
-    var ic={piloto:'🏍️',local:'🔥',flota:'🚗',usuario:'🍜'}[r.tipo]||'👤';
-    html+='<div class="reg"><b>'+ic+' '+(d.nombre||'')+'</b> '+pill+
+    html2+='<div class="card"><div class="av">'+inicial(d.nombre)+'</div><div style="flex:1"><b>'+(d.nombre||'')+'</b> '+pill+
       '<div class="s">📱 '+(d.tel||'')+' · 📍 '+(d.zona||'')+
       (d.vehiculo?' · 🛵 '+d.vehiculo:'')+(d.marca?' · '+d.marca+' '+(d.color||''):'')+(d.placa?' · 🔖 '+d.placa:'')+
-      (d.h24?' · <b style="color:#f0b90b">24hrs</b>':'')+(d.equipo!==undefined?' · '+(d.equipo?'🪖 equipo OK':'<b style="color:#ff8f8f">SIN equipo</b>'):'')+
-      '</div>'+
-      (r.tipo!=='usuario'?'<button class="btn bA" onclick="estado(\''+r.ts+'\',\'aprobar\')">✓ Aprobar</button><button class="btn bR" onclick="estado(\''+r.ts+'\',\'rechazar\')">✕ Rechazar</button>':'')+
+      (d.tipo?' · '+d.tipo:'')+
+      (d.h24?' · <b style="color:#f0b90b">24hrs</b>':'')+(d.equipo!==undefined?' · '+(d.equipo?'🪖 equipo OK':'<b style="color:#ff8f8f">SIN equipo</b>'):'')+'</div></div>'+
+      (r.tipo!=='usuario'?'<div><button class="btn bA" onclick="estado(\''+r.ts+'\',\'aprobar\')">✓</button><button class="btn bR" onclick="estado(\''+r.ts+'\',\'rechazar\')">✕</button></div>':'')+
       '</div>';
   });
-  document.getElementById('lista').innerHTML=html||'Aún no hay registros.';
+  document.getElementById('lista').innerHTML=html2||'<div class="card">Sin registros en esta sección.</div>';
 }
+function ver(t){TAB=t;pintar(MODO_DEMO?DEMO:window.REGS||DEMO);if(!MODO_DEMO)cargar();}
 function estado(ts,acc){
-  if(MODO_DEMO){
-    var r=DEMO.find(function(x){return String(x.ts)===String(ts);});
-    if(r){r.estado=acc==='aprobar'?'aprobado':'rechazado';pintar(DEMO);}
-    return;
-  }
+  if(MODO_DEMO){var r=DEMO.find(function(x){return String(x.ts)===String(ts);});if(r){r.estado=acc==='aprobar'?'aprobado':'rechazado';pintar(DEMO);}return;}
   fetch(apiBase()+'/admin',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({pass:PASS,action:acc,ts:ts})})
-  .then(r=>r.json()).then(j=>{ if(j&&j.ok)cargar(); else alert('No se pudo actualizar.'); });
+  .then(r=>r.json()).then(j=>{if(j&&j.ok)cargar();else alert('No se pudo actualizar.');});
 }
 </script>
 </body>
