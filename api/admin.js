@@ -5,7 +5,7 @@ const REPO = process.env.GITHUB_DATA_REPO || 'juanca42003177-oss/dragon-labs-dat
 const BRANCH = 'dragoexpres-data';
 const TOKEN = () => process.env.GITHUB_TOKEN || '';
 const PATH = 'registros.json';
-const okPass = (p) => process.env.ADMIN_PASS && p === process.env.ADMIN_PASS;
+const okPass = (p) => process.env.ADMIN_PASS && String(p).trim() === String(process.env.ADMIN_PASS).trim();
 
 async function ghGet() {
   const r = await fetch(`https://api.github.com/repos/${REPO}/contents/${PATH}?ref=${BRANCH}`, {
