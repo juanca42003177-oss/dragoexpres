@@ -43,19 +43,7 @@ label{font-size:12px;color:#9aa3b5;display:block;margin-top:9px}
     <label>Tu WhatsApp</label><input id="f-tel" type="tel" placeholder="Ej: 55501234">
     <label>Zona</label><select id="f-zona"><option value="">Cargando zonas activas...</option></select>
     <div id="extra"></div>
-    <label>¿Cómo vas a pagar?</label>
-    <div style="display:flex;gap:8px">
-      <div class="tab on" id="p-efectivo" style="flex:1" onclick="fp('efectivo')">💵 Efectivo al piloto</div>
-      <div class="tab" id="p-transferencia" style="flex:1" onclick="fp('transferencia')">🏦 Transferencia</div>
-    </div>
-    <div id="bancoBox" class="card" style="display:none">
-      <p class="mini" style="margin:0 0 8px">Transferí el total (compra + envío) a esta cuenta y traé tu comprobante:</p>
-      <div class="cuenta">Banco Industrial</div>
-      <div class="cuenta">Cuenta monetaria</div>
-      <div class="cuenta"><b>7171286805</b></div>
-      <label style="margin-top:10px">Referencia o No. de transferencia (opcional)</label>
-      <input id="f-refbanco" placeholder="Ej: 000123456">
-    </div>
+    <p class="mini" style="margin:10px 0 0">💵 <b>Pagás en efectivo directo al piloto</b> al recibir tu pedido (la compra va al local, el envío al piloto). Tarjeta y transferencia: próximamente.</p>
     <button class="btn bA" onclick="enviar()">ENVIAR PEDIDO 🐉</button>
     <p class="mini" style="margin-top:8px">Si tu zona no aparece, todavía no está activa. Registrite como usuario y te avisamos cuando el dragón llegue a tu área.</p>
   </div>
@@ -77,8 +65,7 @@ label{font-size:12px;color:#9aa3b5;display:block;margin-top:9px}
   </div>
 </div>
 <script>
-var TIPO='comido'.replace('o','a'),PAGO='efectivo';
-function fp(p){PAGO=p;document.getElementById('p-efectivo').className='tab'+(p==='efectivo'?' on':'');document.getElementById('p-transferencia').className='tab'+(p==='transferencia'?' on':'');document.getElementById('bancoBox').style.display=p==='transferencia'?'block':'none'}
+var TIPO='comida';
 function tt(t){TIPO=t;['comida','viaje','repuesto'].forEach(function(x){document.getElementById('t-'+x).className='tab'+(x===t?' on':'')});extra()}
 function extra(){
   var h='';
@@ -98,7 +85,7 @@ async function cargarZonas(){
 var ULT_TEL='';
 async function enviar(){
   var v=function(id){var e=document.getElementById(id);return e?e.value.trim():''};
-  var d={action:'crear',tipo:TIPO,nombre:v('f-nombre'),tel:v('f-tel'),zona:v('f-zona'),direccion:v('f-dir'),referencia:v('f-ref'),detalle:v('f-det'),compra:v('f-compra')||0,envio:v('f-envio')||0,pago:PAGO,refbanco:v('f-refbanco')};
+  var d={action:'crear',tipo:TIPO,nombre:v('f-nombre'),tel:v('f-tel'),zona:v('f-zona'),direccion:v('f-dir'),referencia:v('f-ref'),detalle:v('f-det'),compra:v('f-compra')||0,envio:v('f-envio')||0};
   if(!d.nombre||!d.tel||!d.zona||!d.direccion||!d.detalle){alert('Completá tu nombre, WhatsApp, zona, dirección y qué pedís.');return}
   var b=document.querySelector('.btn');b.disabled=true;b.textContent='Enviando...';
   var r=await fetch(api('orders'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(d)});
