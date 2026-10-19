@@ -106,13 +106,15 @@ module.exports = wrap(async (req, res) => {
     if (!zona || !nombre || !tel || !b.direccion) return res.status(200).json({ ok: false, error: 'Faltan datos: nombre, WhatsApp, zona y dirección.' });
     if (!b.detalle) return res.status(200).json({ ok: false, error: 'Contanos qué querés pedir.' });
     const envio = dinero(tipo === 'comida' ? (b.envio || 15) : tipo === 'repuesto' ? (b.envio || 20) : (b.envio || 25));
+    const pago = b.pago === 'transferencia' ? 'transferencia' : 'efectivo';
+    const referencia = pago === 'transferencia' ? String(b.referencia || '').trim().slice(0, 40) : '';
     const id = 'DX' + String(now).slice(-6) + String(Math.floor(Math.random() * 90) + 10);
     const pedido = {
       id, tipo, zona,
       cliente: { nombre, tel, direccion: String(b.direccion).slice(0, 160), referencia: String(b.referencia || '').slice(0, 160) },
       detalle: String(b.detalle).slice(0, 400),
       compra: dinero(b.compra || 0), envio, comision: comisionDe(tipo, envio),
-      estado: 'buscando', piloto: null, ts: now
+      estado: 'buscando', piloto: null, ts: now, pago, referencia
     };
     // dispatch: primer piloto disponible de la zona
     const fp = await ghGet('pilots.json'); const pilots = fp ? fp.data : [];
@@ -133,7 +135,7 @@ module.exports = wrap(async (req, res) => {
     peds.push(pedido);
     await ghPut('pedidos.json', fpd ? fpd.sha : null, peds, 'pedido nuevo ' + id);
     const ic = { comida: '🍔', viaje: '🛺', repuesto: '🔧' }[tipo];
-    await aviso(`🚀 DRAGOEXPRES — PEDIDO NUEVO ${ic}\n${id} · ${tipo.toUpperCase()} · ${zona}\nCliente: ${nombre} (${tel})\nDetalle: ${String(b.detalle).slice(0, 120)}\nEnvío: Q${envio} · Comisión DragoExpres: Q${pedido.comision}\n${pedido.piloto ? '→ Asignado AUTOMÁTICAMENTE a: ' + pedido.piloto.nombre + ' (' + pedido.piloto.tel + ')' : '→ SIN piloto disponible ahora, queda BUSCANDO'}`);
+    await aviso(`🚀 DRAGOEXPRES — PEDIDO NUEVO ${ic}\n${id} · ${tipo.toUpperCase()} · ${zona}\nCliente: ${nombre} (${tel})\nDetalle: ${String(b.detalle).slice(0, 120)}\nEnvío: Q${envio} · Comisión DragoExpres: Q${pedido.comision}\n${pago === 'transferencia' ? '💳 Pago: TRANSFERENCIA al Banco Industrial' + (referencia ? ' · Ref: ' + referencia : ' · (sin referencia, verificar)') : '💵 Pago: EFECTIVO al piloto'}\n${pedido.piloto ? '→ Asignado AUTOMÁTICAMENTE a: ' + pedido.piloto.nombre + ' (' + pedido.piloto.tel + ')' : '→ SIN piloto disponible ahora, queda BUSCANDO'}`);
     return res.status(200).json({ ok: true, pedido });
   }
 

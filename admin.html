@@ -113,7 +113,7 @@ function cargarPedidos(){
     });
     html+='<div id="pozoCard"></div>';
     j.pedidos.forEach(function(o){
-      html+='<div class="card"><div class="av">'+({comida:'🍔',viaje:'🛺',repuesto:'🔧'}[o.tipo]||'📦')+'</div><div style="flex:1"><b>'+o.id+' · '+({comida:'Comida',viaje:'Viaje',repuesto:'Repuesto'}[o.tipo]||o.tipo)+'</b> <span class="pill '+(E[o.estado]?E[o.estado][1]:'pend')+'">'+(E[o.estado]?E[o.estado][0]:o.estado)+'</span><div class="s">'+o.zona+' · '+o.cliente.nombre+' ('+o.cliente.tel+')<br>'+String(o.detalle).slice(0,100)+'<br>Envío Q'+o.envio+' · Comisión Q'+o.comision+(o.piloto?' · Piloto: '+o.piloto.nombre:'')+(o.califCliente?' · Cliente: ⭐'+o.califCliente:'')+'</div></div></div>';
+      html+='<div class="card"><div class="av">'+({comida:'🍔',viaje:'🛺',repuesto:'🔧'}[o.tipo]||'📦')+'</div><div style="flex:1"><b>'+o.id+' · '+({comida:'Comida',viaje:'Viaje',repuesto:'Repuesto'}[o.tipo]||o.tipo)+'</b> <span class="pill '+(E[o.estado]?E[o.estado][1]:'pend')+'">'+(E[o.estado]?E[o.estado][0]:o.estado)+'</span><div class="s">'+o.zona+' · '+o.cliente.nombre+' ('+o.cliente.tel+')<br>'+String(o.detalle).slice(0,100)+'<br>Envío Q'+o.envio+' · Comisión Q'+o.comision+(o.piloto?' · Piloto: '+o.piloto.nombre:'')+(o.califCliente?' · Cliente: ⭐'+o.califCliente:'')+(o.pago==='transferencia'?' · 💳 '+o.referencia:'')+'</div></div></div>';
     });
     document.getElementById('pedidosBox').innerHTML=html;
   });
