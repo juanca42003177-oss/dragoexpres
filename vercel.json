@@ -1,0 +1,5 @@
+{
+  "crons": [
+    { "path": "/api/pozo", "schedule": "0 2 * * 0" }
+  ]
+}

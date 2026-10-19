@@ -76,7 +76,9 @@ module.exports = wrap(async (req, res) => {
     const peds = fpd ? fpd.data : [];
     const mio = peds.filter(o => o.piloto && o.piloto.tel === tel && !['entregado', 'cancelado'].includes(o.estado));
     const zona = peds.filter(o => o.estado === 'buscando' && o.zona === p.datos.zona);
-    return res.status(200).json({ ok: true, piloto: { nombre: p.datos.nombre, zona: p.datos.zona, vehiculo: p.datos.vehiculo, disponible: st.disponible, ganadoHoy: st.ganadoHoy || 0, ganadoSemana: st.ganadoSemana || 0, pedidosHoy: st.pedidosHoy || 0 }, activo: mio[0] || null, zonaBuscando: zona });
+    const califs = peds.filter(o => o.piloto && o.piloto.tel === tel && o.califCliente > 0);
+    const calif = califs.length ? Math.round(califs.reduce((x, o) => x + o.califCliente, 0) / califs.length * 10) / 10 : null;
+    return res.status(200).json({ ok: true, piloto: { nombre: p.datos.nombre, zona: p.datos.zona, vehiculo: p.datos.vehiculo, disponible: st.disponible, ganadoHoy: st.ganadoHoy || 0, ganadoSemana: st.ganadoSemana || 0, pedidosHoy: st.pedidosHoy || 0, calif: calif }, activo: mio[0] || null, zonaBuscando: zona });
   }
 
   // ---- PILOTO: ponerse disponible / no disponible ----
@@ -131,7 +133,7 @@ module.exports = wrap(async (req, res) => {
     peds.push(pedido);
     await ghPut('pedidos.json', fpd ? fpd.sha : null, peds, 'pedido nuevo ' + id);
     const ic = { comida: '🍔', viaje: '🛺', repuesto: '🔧' }[tipo];
-    await aviso(`🚀 DRAGOEXPRES — PEDIDO NUEVO ${ic}\\n${id} · ${tipo.toUpperCase()} · ${zona}\\nCliente: ${nombre} (${tel})\\nDetalle: ${String(b.detalle).slice(0, 120)}\\nEnvío: Q${envio} · Comisión DragoExpres: Q${pedido.comision}\\n${pedido.piloto ? '→ Asignado AUTOMÁTICAMENTE a: ' + pedido.piloto.nombre + ' (' + pedido.piloto.tel + ')' : '→ SIN piloto disponible ahora, queda BUSCANDO'}`);
+    await aviso(`🚀 DRAGOEXPRES — PEDIDO NUEVO ${ic}\n${id} · ${tipo.toUpperCase()} · ${zona}\nCliente: ${nombre} (${tel})\nDetalle: ${String(b.detalle).slice(0, 120)}\nEnvío: Q${envio} · Comisión DragoExpres: Q${pedido.comision}\n${pedido.piloto ? '→ Asignado AUTOMÁTICAMENTE a: ' + pedido.piloto.nombre + ' (' + pedido.piloto.tel + ')' : '→ SIN piloto disponible ahora, queda BUSCANDO'}`);
     return res.status(200).json({ ok: true, pedido });
   }
 
@@ -141,7 +143,13 @@ module.exports = wrap(async (req, res) => {
     if (b.id) {
       const o = peds.find(x => x.id === String(b.id).trim());
       if (!o) return res.status(200).json({ ok: false, error: 'Pedido no encontrado.' });
-      return res.status(200).json({ ok: true, pedido: o });
+      let gps = null;
+      if (o.piloto) {
+        const fp = await ghGet('pilots.json');
+        const st = (fp ? fp.data : []).find(x => x.tel === o.piloto.tel);
+        if (st && st.lat && st.tsGPS && st.tsGPS > now - 300000) gps = { lat: st.lat, lng: st.lng, ts: st.tsGPS };
+      }
+      return res.status(200).json({ ok: true, pedido: o, gps });
     }
     if (b.tel) {
       const mios = peds.filter(x => x.cliente.tel === String(b.tel).trim()).slice(-5).reverse();
@@ -166,7 +174,7 @@ module.exports = wrap(async (req, res) => {
       if (o.estado === 'buscando' && o.zona !== p.datos.zona) return res.status(200).json({ ok: false, error: 'Pedido de otra zona.' });
       o.estado = 'aceptado'; o.piloto = { tel, nombre: p.datos.nombre }; o.tsAceptado = now;
       await ghPut('pedidos.json', fpd.sha, peds, 'aceptado ' + id);
-      await aviso(`🚀 DRAGOEXPRES — Pedido ${id}\\n✅ ${p.datos.nombre} ACEPTÓ el pedido (${o.tipo})\\nCliente: ${o.cliente.nombre}\\n→ El piloto va en camino. Estado: ACEPTADO`);
+      await aviso(`🚀 DRAGOEXPRES — Pedido ${id}\n✅ ${p.datos.nombre} ACEPTÓ el pedido (${o.tipo})\nCliente: ${o.cliente.nombre}\n→ El piloto va en camino. Estado: ACEPTADO`);
       return res.status(200).json({ ok: true, pedido: o });
     }
     if (!o.piloto || o.piloto.tel !== tel) return res.status(200).json({ ok: false, error: 'Este pedido no es tuyo.' });
@@ -174,7 +182,7 @@ module.exports = wrap(async (req, res) => {
       if (!['asignado', 'aceptado'].includes(o.estado)) return res.status(200).json({ ok: false, error: 'Ya no se puede rechazar.' });
       o.estado = 'buscando'; o.piloto = null; o.rechazos = (o.rechazos || 0) + 1;
       await ghPut('pedidos.json', fpd.sha, peds, 'rechazado ' + id);
-      await aviso(`🚀 DRAGOEXPRES — Pedido ${id}\\n⚠️ ${tel} rechazó el pedido → volvió a BUSCANDO`);
+      await aviso(`🚀 DRAGOEXPRES — Pedido ${id}\n⚠️ ${tel} rechazó el pedido → volvió a BUSCANDO`);
       return res.status(200).json({ ok: true, pedido: o });
     }
     if (action === 'avanzar') {
@@ -187,17 +195,61 @@ module.exports = wrap(async (req, res) => {
         if (!st) { st = { tel }; arr.push(st); }
         if (st.dia !== hoy()) { st.dia = hoy(); st.ganadoHoy = 0; st.pedidosHoy = 0; }
         if (st.semana !== semana()) { st.semana = semana(); st.ganadoSemana = 0; }
-        st.ganadoHoy = dinero((st.ganadoHoy || 0) + o.envio - o.comision);
-        st.ganadoSemana = dinero((st.ganadoSemana || 0) + o.envio - o.comision);
+        const neto = dinero(o.envio - o.comision);
+        let gananciaPiloto = neto, flotaTxt = '';
+        const ff = await ghGet('flotas.json');
+        const flotas = ff ? ff.data : [];
+        const asig = flotas.find(x => x.activa !== false && x.conductor && x.conductor.tel === tel);
+        if (asig) {
+          gananciaPiloto = dinero(neto * 0.75);
+          if (asig.semana !== semana()) { asig.semana = semana(); asig.ganadoSemana = 0; asig.pedidosSemana = 0; }
+          asig.ganadoSemana = dinero((asig.ganadoSemana || 0) + dinero(neto * 0.25));
+          asig.pedidosSemana = (asig.pedidosSemana || 0) + 1;
+          await ghPut('flotas.json', ff ? ff.sha : null, flotas, 'flota ' + id);
+          flotaTxt = `\n🚚 Flota ${asig.placa}: 75% conductor (Q${gananciaPiloto}) / 25% flotista ${asig.flotista.nombre} (Q${dinero(neto * 0.25)})`;
+        }
+        st.ganadoHoy = dinero((st.ganadoHoy || 0) + gananciaPiloto);
+        st.ganadoSemana = dinero((st.ganadoSemana || 0) + gananciaPiloto);
         st.pedidosHoy = (st.pedidosHoy || 0) + 1;
         st.disponible = true; st.desde = now;
         await ghPut('pilots.json', fp ? fp.sha : null, arr, 'entregado ' + id);
-        await aviso(`🚀 DRAGOEXPRES — Pedido ${id} ENTREGADO ✅\\n${o.piloto.nombre} completó ${o.tipo}\\nEnvío Q${o.envio} → piloto gana Q${dinero(o.envio - o.comision)} · Comisión DragoExpres: Q${o.comision}\\nCliente: ${o.cliente.nombre}`);
+        await aviso(`🚀 DRAGOEXPRES — Pedido ${id} ENTREGADO ✅\n${o.piloto.nombre} completó ${o.tipo}\nEnvío Q${o.envio} → piloto gana Q${gananciaPiloto} · Comisión DragoExpres: Q${o.comision}${flotaTxt}\nCliente: ${o.cliente.nombre}`);
         return res.status(200).json({ ok: true, pedido: o, ganadoHoy: st.ganadoHoy, ganadoSemana: st.ganadoSemana });
       } else return res.status(200).json({ ok: false, error: 'Estado inválido.' });
       await ghPut('pedidos.json', fpd.sha, peds, o.estado + ' ' + id);
       return res.status(200).json({ ok: true, pedido: o });
     }
+  }
+
+  // ---- PILOTO: publica su GPS (para el mapa vivo del cliente) ----
+  if (action === 'gps') {
+    const tel = String(b.tel || '').trim();
+    const lat = +b.lat, lng = +b.lng;
+    if (!tel || !isFinite(lat) || !isFinite(lng)) return res.status(200).json({ ok: false, error: 'datos gps invalidos' });
+    const fp = await ghGet('pilots.json'); const arr = fp ? fp.data : [];
+    let st = arr.find(x => x.tel === tel);
+    if (!st) { st = { tel, disponible: false }; arr.push(st); }
+    st.lat = lat; st.lng = lng; st.tsGPS = now;
+    await ghPut('pilots.json', fp ? fp.sha : null, arr, 'gps ' + tel);
+    return res.status(200).json({ ok: true });
+  }
+
+  // ---- CALIFICACIONES: cliente ⇄ piloto, 1 a 5 estrellas ----
+  if (action === 'calificar') {
+    const id = String(b.id || '').trim(), quien = b.quien === 'piloto' ? 'piloto' : 'cliente';
+    const estrellas = Math.min(5, Math.max(1, Math.round(+b.estrellas || 0)));
+    const tel = String(b.tel || '').trim();
+    const fpd = await ghGet('pedidos.json'); const peds = fpd ? fpd.data : [];
+    const o = peds.find(x => x.id === id);
+    if (!o) return res.status(200).json({ ok: false, error: 'Pedido no encontrado.' });
+    if (quien === 'cliente' && o.cliente.tel !== tel) return res.status(200).json({ ok: false, error: 'No es tu pedido.' });
+    if (quien === 'piloto' && (!o.piloto || o.piloto.tel !== tel)) return res.status(200).json({ ok: false, error: 'No es tu pedido.' });
+    if (o.estado !== 'entregado') return res.status(200).json({ ok: false, error: 'Se califica al entregar.' });
+    if (quien === 'cliente' && o.califCliente) return res.status(200).json({ ok: false, error: 'Ya calificaste.' });
+    if (quien === 'piloto' && o.califPiloto) return res.status(200).json({ ok: false, error: 'Ya calificaste.' });
+    if (quien === 'cliente') o.califCliente = estrellas; else o.califPiloto = estrellas;
+    await ghPut('pedidos.json', fpd.sha, peds, 'calificacion ' + id);
+    return res.status(200).json({ ok: true });
   }
 
   return res.status(200).json({ ok: false, error: 'Acción desconocida: ' + action });

@@ -5,6 +5,8 @@
 <meta name="theme-color" content="#0a0a0f">
 <title>DragoExpres — Pedí ya</title>
 <link rel="icon" href="img/icono.png">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <style>
 body{background:#0a0a0f;color:#f2f4f8;font-family:system-ui,sans-serif;margin:0;padding:0 0 80px}
 .w{max-width:560px;margin:0 auto;padding:14px}
@@ -51,6 +53,11 @@ label{font-size:12px;color:#9aa3b5;display:block;margin-top:9px}
       <div style="text-align:center;margin:10px 0"><span class="st sBus" id="oestado">Buscando piloto...</span></div>
       <p class="mini" id="oinfo" style="text-align:center"></p>
       <a class="wa" id="owa" style="display:none" href="#" target="_blank">💬 Escribille al piloto</a>
+      <div id="mapa" style="display:none;height:220px;border-radius:12px;margin-top:10px;border:1px solid #2a2b38"></div>
+      <div id="calif" style="display:none;text-align:center;margin-top:10px">
+        <p class="mini" style="margin:0 0 6px">¿Cómo te fue con tu piloto?</p>
+        <div id="estrellas"></div>
+      </div>
     </div>
     <button class="btn bA" onclick="volver()">Hacer otro pedido</button>
   </div>
@@ -73,6 +80,7 @@ async function cargarZonas(){
   z.innerHTML=j.zonas.map(function(x){return '<option>'+x+'</option>'}).join('');
   }catch(e){document.getElementById('f-zona').innerHTML='<option value="">Error cargando zonas, revisá internet</option>'}
 }
+var ULT_TEL='';
 async function enviar(){
   var v=function(id){var e=document.getElementById(id);return e?e.value.trim():''};
   var d={action:'crear',tipo:TIPO,nombre:v('f-nombre'),tel:v('f-tel'),zona:v('f-zona'),direccion:v('f-dir'),referencia:v('f-ref'),detalle:v('f-det'),compra:v('f-compra')||0,envio:v('f-envio')||0};
@@ -84,6 +92,7 @@ async function enviar(){
   document.getElementById('form').style.display='none';
   document.getElementById('siguiendo').style.display='block';
   document.getElementById('oid').textContent=j.pedido.id;
+  ULT_TEL=d.tel;
   seguir(j.pedido.id);
 }
 var PID=null;
@@ -98,9 +107,28 @@ async function actualizar(){
   if(o.estado==='aceptado'){e.className='st sAsig';e.textContent='Aceptado ✅';i.textContent=o.piloto.nombre+' aceptó tu pedido'}
   if(o.estado==='en_camino'){e.className='st sCam';e.textContent='En camino 🛺';i.textContent=o.piloto.nombre+' va en camino. Tenés el efectivo listo: Q'+o.compra+' (compra) + Q'+o.envio+' (envío)'}
   if(o.estado==='entregado'){e.className='st sEnt';e.textContent='Entregado ✅';i.textContent='¡Listo! El dragón entregó tu pedido'}
+  // mapa vivo del piloto
+  var mapa=document.getElementById('mapa');
+  if(j.gps&&j.gps.lat){
+    mapa.style.display='block';
+    if(!window.LMAP){window.LMAP=L.map('mapa').setView([j.gps.lat,j.gps.lng],15);L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'© OpenStreetMap'}).addTo(window.LMAP);window.LMK=L.circleMarker([j.gps.lat,j.gps.lng],{radius:10,color:'#f0b90b',fillColor:'#f0b90b',fillOpacity:.9}).addTo(window.LMAP).bindPopup('🐉 Tu piloto');}
+    else{window.LMK.setLatLng([j.gps.lat,j.gps.lng]);window.LMAP.setView([j.gps.lat,j.gps.lng]);}
+  }else{mapa.style.display='none'}
+  // calificar al piloto al entregar
+  var cf=document.getElementById('calif');
+  if(o.estado==='entregado'&&!o.califCliente){
+    cf.style.display='block';
+    if(!document.getElementById('estrellas').innerHTML){
+      document.getElementById('estrellas').innerHTML=[1,2,3,4,5].map(function(n){return '<span style="font-size:30px;cursor:pointer;padding:2px" onclick="calificar('+n+')">⭐</span>'}).join('');
+    }
+  }else{cf.style.display='none'}
   var wa=document.getElementById('owa');
   if(o.piloto){wa.style.display='block';wa.href='https://wa.me/502'+String(o.piloto.tel).replace(/\D/g,'').replace(/^502/,'')+'?text='+encodeURIComponent('Hola '+o.piloto.nombre+', soy '+o.cliente.nombre+', del pedido '+o.id+' de DragoExpres.')}
   }catch(e){}
+}
+async function calificar(n){
+  try{await fetch(api('orders'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'calificar',id:PID,quien:'cliente',tel:ULT_TEL,estrellas:n})});}catch(e){}
+  document.getElementById('calif').innerHTML='<p class="mini" style="margin:0">¡Gracias por calificar! 🐉</p>';
 }
 function volver(){location.reload()}
 cargarZonas();extra();

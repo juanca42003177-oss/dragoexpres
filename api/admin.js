@@ -52,5 +52,15 @@ module.exports = wrap(async (req, res) => {
     pedidos.forEach(o => porEstado[o.estado] = (porEstado[o.estado] || 0) + 1);
     return res.status(200).json({ ok: true, pedidos: pedidos.slice(-60).reverse(), total: pedidos.length, comisiones, porEstado });
   }
+  if (action === 'pozo') {
+    const TZ = 6 * 3600 * 1000;
+    const g = new Date(Date.now() - TZ);
+    const lunes = Date.UTC(g.getUTCFullYear(), g.getUTCMonth(), g.getUTCDate() - (g.getUTCDay() + 6) % 7) + TZ;
+    const entregados = pedidos.filter(o => o.estado === 'entregado' && (o.tsEntregado || o.ts) >= lunes);
+    const comisiones = entregados.reduce((s, o) => s + (o.comision || 0), 0);
+    const por = {};
+    entregados.forEach(o => { if (o.piloto) { const k = o.piloto.nombre; por[k] = (por[k] || 0) + 1; } });
+    return res.status(200).json({ ok: true, meta: 20, comisiones, pozo: Math.round(comisiones * 25) / 100, pilotos: Object.entries(por).map(([nombre, entregas]) => ({ nombre, entregas })).sort((x, y) => y.entregas - x.entregas) });
+  }
   return res.status(200).json({ ok: false, error: 'Acción desconocida' });
 });

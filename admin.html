@@ -105,8 +105,15 @@ function cargarPedidos(){
     var E={buscando:['Buscando piloto','pend'],asignado:['Asignado','pend'],aceptado:['Aceptado','apro'],en_camino:['En camino','apro'],entregado:['Entregado','apro'],cancelado:['Cancelado','recha']};
     var html='<div class="stats"><div class="stat"><div class="n">'+j.total+'</div><div class="l">PEDIDOS</div></div><div class="stat"><div class="n">Q'+j.comisiones.toFixed(2)+'</div><div class="l">COMISIONES ENTREGADAS</div></div></div>';
     if(!j.pedidos.length)html+='<div class="card"><div class="av">📦</div><div><b>Sin pedidos todavía</b><div class="s">Los pedidos de usuarios aparecen acá en vivo</div></div></div>';
+    fetch(apiBase()+'/admin',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({pass:PASS,action:'pozo'})})
+    .then(r2=>r2.json()).then(function(z){
+      if(!z||!z.ok)return;
+      var tabla=z.pilotos.map(function(p){return '<div class="s">• '+p.nombre+': '+p.entregas+' entregas'+(p.entregas>=z.meta?' ✅ meta cumplida':'')+'</div>'}).join('')||'<div class="s">Sin entregas esta semana</div>';
+      document.getElementById('pozoCard').innerHTML='<div class="card"><div class="av">🏆</div><div><b>Pozo semanal de pilotos: Q'+z.pozo+'</b><div class="s">Meta '+z.meta+' entregas · Se reparte domingo 20:00 entre los que cumplan · Alimentado con 25% de las comisiones de la semana</div>'+tabla+'</div></div>';
+    });
+    html+='<div id="pozoCard"></div>';
     j.pedidos.forEach(function(o){
-      html+='<div class="card"><div class="av">'+({comida:'🍔',viaje:'🛺',repuesto:'🔧'}[o.tipo]||'📦')+'</div><div style="flex:1"><b>'+o.id+' · '+({comida:'Comida',viaje:'Viaje',repuesto:'Repuesto'}[o.tipo]||o.tipo)+'</b> <span class="pill '+(E[o.estado]?E[o.estado][1]:'pend')+'">'+(E[o.estado]?E[o.estado][0]:o.estado)+'</span><div class="s">'+o.zona+' · '+o.cliente.nombre+' ('+o.cliente.tel+')<br>'+String(o.detalle).slice(0,100)+'<br>Envío Q'+o.envio+' · Comisión Q'+o.comision+(o.piloto?' · Piloto: '+o.piloto.nombre:'')+'</div></div></div>';
+      html+='<div class="card"><div class="av">'+({comida:'🍔',viaje:'🛺',repuesto:'🔧'}[o.tipo]||'📦')+'</div><div style="flex:1"><b>'+o.id+' · '+({comida:'Comida',viaje:'Viaje',repuesto:'Repuesto'}[o.tipo]||o.tipo)+'</b> <span class="pill '+(E[o.estado]?E[o.estado][1]:'pend')+'">'+(E[o.estado]?E[o.estado][0]:o.estado)+'</span><div class="s">'+o.zona+' · '+o.cliente.nombre+' ('+o.cliente.tel+')<br>'+String(o.detalle).slice(0,100)+'<br>Envío Q'+o.envio+' · Comisión Q'+o.comision+(o.piloto?' · Piloto: '+o.piloto.nombre:'')+(o.califCliente?' · Cliente: ⭐'+o.califCliente:'')+'</div></div></div>';
     });
     document.getElementById('pedidosBox').innerHTML=html;
   });

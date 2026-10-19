@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#0a0a0f">
+<title>DragoExpres — Flotista</title>
+<link rel="icon" href="img/icono.png">
+<style>
+body{background:#0a0a0f;color:#f2f4f8;font-family:system-ui,sans-serif;margin:0;padding:0 0 80px}
+.w{max-width:560px;margin:0 auto;padding:14px}
+h1{font-size:20px;margin:10px 0 2px}h1 span{color:#f0b90b}
+input{width:100%;box-sizing:border-box;background:#14151c;border:1px solid #2a2b38;border-radius:10px;color:#fff;padding:12px;font-size:16px;margin:5px 0}
+label{font-size:12px;color:#9aa3b5;display:block;margin-top:10px}
+.btn{border:0;border-radius:10px;padding:13px;font-weight:900;font-size:14px;cursor:pointer;width:100%;margin-top:12px}
+.bA{background:linear-gradient(90deg,#f0b90b,#ffd44d);color:#111}
+.bR{background:#2a0d0d;border:1px solid #5c2f2f;color:#ff8f8f}
+.card{background:#14151c;border:1px solid #2a2b38;border-radius:14px;padding:14px;margin:10px 0}
+.mini{font-size:12px;color:#9aa3b5;line-height:1.6}
+.big{font-size:26px;font-weight:900;color:#f0b90b;text-align:center}
+h2{font-size:15px;margin:18px 0 4px;color:#f0b90b}
+</style>
+</head>
+<body>
+<div class="w">
+  <div id="login">
+    <h1>🚗 Drago<span>Expres</span> — Flotista</h1>
+    <p class="mini">Poné tu vehículo a trabajar sin manejar: asignás un conductor aprobado y ganás el 25% de cada entrega. El conductor se queda el 75%.</p>
+    <label>Tu WhatsApp (el que registraste)</label><input id="l-tel" type="tel" placeholder="Ej: 55501234" inputmode="tel">
+    <label>Placa de tu vehículo (verificación)</label><input id="l-placa" placeholder="Ej: C123ABC" style="text-transform:uppercase">
+    <button class="btn bA" onclick="login()">ENTRAR</button>
+    <p id="lerr" style="color:#ff8f8f;font-size:13px"></p>
+    <p class="mini">¿No sos flotista? <a href="index.html" style="color:#f0b90b">Registrate acá</a>.</p>
+  </div>
+
+  <div id="app" style="display:none">
+    <h1>🐉 Hola, <span id="f-nombre"></span></h1>
+    <div class="card">
+      <p class="mini" style="margin:0 0 4px">TU PARTE ESTA SEMANA (25%)</p>
+      <div class="big" id="f-total">Q0</div>
+    </div>
+    <h2>Tus vehículos</h2>
+    <div id="vehiculos"></div>
+    <h2>Asignar vehículo a un conductor</h2>
+    <div class="card">
+      <label>Placa del vehículo</label><input id="a-placa" placeholder="Ej: C123ABC" style="text-transform:uppercase">
+      <label>WhatsApp del conductor (piloto aprobado)</label><input id="a-tel" type="tel" placeholder="Ej: 55505678" inputmode="tel">
+      <label>Nombre del conductor</label><input id="a-nombre" placeholder="Ej: Carlos Pérez">
+      <button class="btn bA" onclick="agregar()">ASIGNAR VEHÍCULO</button>
+      <p class="mini" style="margin-top:8px">El conductor debe estar registrado y aprobado como piloto. El split 75/25 se aplica solo en cada entrega que haga con tu vehículo.</p>
+    </div>
+  </div>
+</div>
+<script>
+var FTEL=null;
+function api(fn){return (location.hostname.includes('vercel.app')?'/api':'https://dragoexpres.vercel.app/api')+'/'+fn}
+async function login(){
+  var tel=document.getElementById('l-tel').value.trim(),placa=document.getElementById('l-placa').value.trim().toUpperCase();
+  if(!tel||!placa){document.getElementById('lerr').textContent='Poné tu WhatsApp y la placa.';return}
+  var r=await fetch(api('flotas'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'login',tel:tel,placa:placa})});
+  var j=await r.json();
+  if(!j.ok){document.getElementById('lerr').textContent=j.error;return}
+  FTEL=tel;localStorage.setItem('dxFlota',JSON.stringify({tel:tel,placa:placa}));
+  pintar(j);document.getElementById('login').style.display='none';document.getElementById('app').style.display='block';
+}
+function pintar(j){
+  document.getElementById('f-nombre').textContent=j.flotista.nombre.split(' ')[0];
+  document.getElementById('f-total').textContent='Q'+(j.totalSemana||0);
+  var v=document.getElementById('vehiculos');
+  if(!j.vehiculos.length){v.innerHTML='<div class="card"><b>Sin vehículos asignados</b><div class="mini">Asigná tu primer vehículo abajo</div></div>';return}
+  v.innerHTML=j.vehiculos.map(function(x){
+    return '<div class="card"><b>'+x.placa+'</b> → '+x.conductor.nombre+' ('+x.conductor.tel+')<div class="mini">Esta semana: '+x.pedidosSemana+' entregas · tu parte Q'+x.ganadoSemana+'</div><button class="btn bR" style="padding:9px;margin-top:8px" onclick="quitar(\''+x.placa+'\')">Desactivar</button></div>';
+  }).join('');
+}
+async function agregar(){
+  var placa=document.getElementById('a-placa').value.trim().toUpperCase(),cTel=document.getElementById('a-tel').value.trim(),cNom=document.getElementById('a-nombre').value.trim();
+  if(!placa||!cTel||!cNom){alert('Completá placa, WhatsApp y nombre del conductor.');return}
+  var r=await fetch(api('flotas'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'agregar',tel:FTEL,placa:placa,conductorTel:cTel,conductorNombre:cNom})});
+  var j=await r.json();
+  if(!j.ok){alert(j.error);return}
+  recargar();
+}
+async function quitar(placa){
+  var r=await fetch(api('flotas'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'quitar',tel:FTEL,placa:placa})});
+  var j=await r.json();if(j.ok)recargar();
+}
+async function recargar(){
+  var g=JSON.parse(localStorage.getItem('dxFlota')||'{}');
+  var r=await fetch(api('flotas'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'login',tel:g.tel,placa:g.placa})});
+  var j=await r.json();if(j.ok)pintar(j);
+}
+(function(){var g=JSON.parse(localStorage.getItem('dxFlota')||'{}');if(g&&g.tel&&g.placa){document.getElementById('l-tel').value=g.tel;document.getElementById('l-placa').value=g.placa;login()}})();
+</script>
+</body>
+</html>

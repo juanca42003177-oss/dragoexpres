@@ -51,6 +51,7 @@ label{font-size:12px;color:#9aa3b5;display:block;margin-top:10px}
       <div class="stat"><div class="n" id="g-hoy">Q0</div><div class="l">GANADO HOY</div></div>
       <div class="stat"><div class="n" id="g-sem">Q0</div><div class="l">ESTA SEMANA</div></div>
       <div class="stat"><div class="n" id="g-ped">0</div><div class="l">PEDIDOS HOY</div></div>
+      <div class="stat"><div class="n" id="g-cal">—</div><div class="l">TU ESTRELLAS</div></div>
     </div>
     <div class="toggle">
       <div><b id="dis-txt">NO DISPONIBLE</b><div class="mini">Prendé esto para que el sistema te asigne pedidos</div></div>
@@ -69,7 +70,7 @@ label{font-size:12px;color:#9aa3b5;display:block;margin-top:10px}
   </div>
 </div>
 <script>
-var PILOTO=null,POLL=null,ESTADOS={asignado:'NUEVO PEDIDO — ACEPTALO',aceptado:'PEDIDO ACEPTADO — marcá CUANDO SALGAS',en_camino:'EN CAMINO — marcá ENTREGADO al llegar'};
+var PILOTO=null,POLL=null,PCALIF=null,ESTADOS={asignado:'NUEVO PEDIDO — ACEPTALO',aceptado:'PEDIDO ACEPTADO — marcá CUANDO SALGAS',en_camino:'EN CAMINO — marcá ENTREGADO al llegar'};
 function api(fn){return (location.hostname.includes('vercel.app')?'/api':'https://dragoexpres.vercel.app/api')+'/'+fn}
 async function login(){
   var tel=document.getElementById('l-tel').value.trim(),placa=document.getElementById('l-placa').value.trim().toUpperCase();
@@ -89,10 +90,12 @@ function pintar(j){
   document.getElementById('g-hoy').textContent='Q'+(p.ganadoHoy||0);
   document.getElementById('g-sem').textContent='Q'+(p.ganadoSemana||0);
   document.getElementById('g-ped').textContent=p.pedidosHoy||0;
+  document.getElementById('g-cal').textContent=p.calif?p.calif+'★':'—';
   var sw=document.getElementById('sw');sw.className='sw'+(p.disponible?' on':'');
   document.getElementById('dis-txt').textContent=p.disponible?'DISPONIBLE 🟢':'NO DISPONIBLE';
   var act=document.getElementById('pedidoActivo'),sin=document.getElementById('sinPedido');
   if(j.activo){sin.style.display='none';act.style.display='block';act.innerHTML=pedidoHTML(j.activo)}
+  else if(PCALIF){act.style.display='block';sin.style.display='none';act.innerHTML='<div class="pedido"><h3>¿Cómo estuvo el cliente? ⭐</h3><div class="mini">'+PCALIF.cliente+'</div><div id="cest" style="margin:10px 0">'+[1,2,3,4,5].map(function(n){return '<span style="font-size:30px;cursor:pointer;padding:2px" onclick="calificarCliente('+n+')">⭐</span>'}).join('')+'</div></div>';}
   else{act.style.display='none';sin.style.display='block';
     var zb=j.zonaBuscando||[];
     document.getElementById('zonaBuscando').innerHTML=zb.length?'<b style="color:#ffe08a">'+zb.length+' pedido(s) esperando piloto en tu zona:</b>'+zb.map(pedidoPequeno).join(''):'';
@@ -121,8 +124,25 @@ async function hacer(accion,id){
   var r=await fetch(api('orders'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:accion,tel:PILOTO.tel,id:id})});
   var j=await r.json();
   if(!j.ok){alert(j.error);return}
+  if(j.pedido&&j.pedido.estado==='entregado'){PCALIF={id:id,cliente:j.pedido.cliente.nombre};}
   tick();
 }
+async function calificarCliente(n){
+  var r=await fetch(api('orders'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'calificar',id:PCALIF.id,quien:'piloto',tel:PILOTO.tel,estrellas:n})});
+  var j=await r.json();PCALIF=null;tick();
+}
+// GPS: publicar posicion mientras esta disponible o con pedido activo
+var ULT_GPS=0;
+function gpsLoop(){
+  if(!PILOTO||!navigator.geolocation)return;
+  var dis=document.getElementById('sw').className.includes('on')||document.getElementById('pedidoActivo').style.display!=='none';
+  if(!dis||Date.now()-ULT_GPS<30000)return;
+  navigator.geolocation.getCurrentPosition(function(pos){
+    ULT_GPS=Date.now();
+    fetch(api('orders'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'gps',tel:PILOTO.tel,lat:pos.coords.latitude,lng:pos.coords.longitude})}).catch(function(){});
+  },function(){},{enableHighAccuracy:true,timeout:10000});
+}
+setInterval(gpsLoop,15000);
 async function cambiarDis(){
   var val=!document.getElementById('sw').className.includes('on');
   var r=await fetch(api('orders'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'disponible',tel:PILOTO.tel,val:val})});
