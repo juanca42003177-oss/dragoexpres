@@ -70,9 +70,9 @@ module.exports = wrap(async (req, res) => {
     const p = reg.find(r => r.tipo === 'piloto' && r.estado === 'aprobado' && String(r.datos.tel).trim() === tel);
     if (!p) return res.status(200).json({ ok: false, error: 'No encontramos un piloto aprobado con ese WhatsApp.' });
     if (p.datos.placa && String(p.datos.placa).trim().toUpperCase() !== placa) return res.status(200).json({ ok: false, error: 'La placa no coincide.' });
-    if (st.susp) return res.status(200).json({ ok: false, suspendido: true, error: 'Suspendido por liquidación pendiente: Q' + (st.pendiente ? st.pendiente.monto : '?') + '. Pagá tus comisiones a la cuenta del banco y avisános por WhatsApp para reactivarte.' });
     const fp = await ghGet('pilots.json');
     const st = (fp ? fp.data : []).find(x => x.tel === tel) || { tel, disponible: false };
+    if (st.susp) return res.status(200).json({ ok: false, suspendido: true, error: 'Suspendido por liquidación pendiente: Q' + (st.pendiente ? st.pendiente.monto : '?') + '. Pagá tus comisiones a la cuenta del banco y avisános por WhatsApp para reactivarte.' });
     const fpd = await ghGet('pedidos.json');
     const peds = fpd ? fpd.data : [];
     const mio = peds.filter(o => o.piloto && o.piloto.tel === tel && !['entregado', 'cancelado'].includes(o.estado));
