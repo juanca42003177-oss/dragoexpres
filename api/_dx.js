@@ -11,8 +11,13 @@ async function ensureBranch() {
   if (chk.ok) { branchReady = true; return; }
   const chkMe = await fetch('https://api.github.com/user', { headers: H() });
   if (!chkMe.ok) throw new Error('GITHUB_TOKEN invalido o ausente (HTTP ' + chkMe.status + ')');
-  const mb = await fetch(`https://api.github.com/repos/${REPO}/git/ref/refs%2Fheads%2Fmain`, { headers: H() });
-  if (!mb.ok) throw new Error('repo de datos no accesible (HTTP ' + mb.status + ', usando: ' + REPO + ')');
+  // la rama por defecto de la bodega puede llamarse distinto de 'main'
+  const rb = await fetch(`https://api.github.com/repos/${REPO}`, { headers: H() });
+  if (!rb.ok) throw new Error('repo de datos no accesible (HTTP ' + rb.status + ', usando: ' + REPO + ')');
+  const rj = await rb.json();
+  const base = rj.default_branch || 'main';
+  const mb = await fetch(`https://api.github.com/repos/${REPO}/git/ref/refs%2Fheads%2F${base}`, { headers: H() });
+  if (!mb.ok) throw new Error('rama base ' + base + ' no encontrada (HTTP ' + mb.status + ')');
   const mj = await mb.json();
   const cr = await fetch(`https://api.github.com/repos/${REPO}/git/refs`, {
     method: 'POST',
