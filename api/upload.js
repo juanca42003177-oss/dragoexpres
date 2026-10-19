@@ -7,7 +7,7 @@ const BRANCH = 'dragoexpres-data';
 module.exports = wrap(async (req, res) => {
   const d = req.body || {};
   const tipo = String(d.docTipo || '').replace(/[^a-z]/g, '');
-  const nombre = String(d.nombre || '').replace(/[^a-zA-Z0-9 _-]/g, '').slice(0, 40) || 'piloto';
+  const nombre = String(d.nombre || '').replace(/[^a-zA-Z0-9_-]/g, '').slice(0, 40) || 'piloto';
   const tel = String(d.tel || '').replace(/[^0-9]/g, '').slice(0, 15) || '0';
   const b64 = String(d.b64 || '').replace(/^data:image\/\w+;base64,/, '');
   if (!tipo || !b64) return res.status(200).json({ ok: false, error: 'Faltan datos del documento.' });

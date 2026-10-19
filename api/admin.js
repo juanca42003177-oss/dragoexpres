@@ -98,7 +98,8 @@ module.exports = wrap(async (req, res) => {
   if (action === 'doc') {
     const archivo = String(d.archivo || '').replace(/[^a-z0-9_/.,-]/gi, '');
     if (!archivo) return res.status(200).json({ ok: false, error: 'Documento inválido.' });
-    const r = await fetch(`https://api.github.com/repos/${REPO}/contents/dragopres/${archivo}?ref=${BRANCH}`, {
+    const archivoEnc = archivo.split('/').map(encodeURIComponent).join('/');
+    const r = await fetch(`https://api.github.com/repos/${REPO}/contents/dragopres/${archivoEnc}?ref=${BRANCH}`, {
       headers: { Authorization: 'Bearer ' + TOKEN(), Accept: 'application/vnd.github+json' }
     });
     if (!r.ok) return res.status(200).json({ ok: false, error: 'Documento no encontrado (HTTP ' + r.status + ')' });
