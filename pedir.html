@@ -32,6 +32,7 @@ h2{font-size:17px;margin:2px 0 10px;font-weight:800}
 .bn b{font-size:15.5px;display:block;line-height:1.25;margin-bottom:3px}
 .bn span:not(.em){font-size:12px;opacity:.95;line-height:1.35}
 .bn .em{position:absolute;right:12px;top:50%;transform:translateY(-50%);font-size:46px}
+.bn .dimg{position:absolute;right:10px;top:50%;transform:translateY(-50%);width:76px;height:76px;object-fit:contain;border-radius:12px;filter:drop-shadow(0 4px 10px rgba(0,0,0,.35))}
 .bn1{background:linear-gradient(120deg,#d1121f,#7a0a12)}
 .bn2{background:linear-gradient(120deg,#b8860b,#6b4a00)}
 /* categorias */
@@ -115,7 +116,7 @@ nav div.on{color:var(--rojo)}
     <div class="buscador"><input id="q" placeholder="Locales, platos y productos" oninput="pintarLocales()"><div class="lupa">🔍</div></div>
   </div>
   <div class="banners">
-    <div class="bn bn1"><span class="em">🐉</span><b>Comida, viajes y repuestos a tu puerta</b><span>Pagás en efectivo al recibir.</span></div>
+    <div class="bn bn1"><img class="dimg" src="img/dragon-fuego.webp" alt="Dragón DragoExpres"><b>Comida, viajes y repuestos a tu puerta</b><span>Pagás en efectivo al recibir.</span></div>
     <div class="bn bn2"><span class="em">💰</span><b>El envío lo ponés vos</b><span>Ofrecé lo justo y el dragón vuela.</span></div>
   </div>
   <div class="sec">
@@ -138,7 +139,7 @@ nav div.on{color:var(--rojo)}
       <div class="paso toca" onclick="abrirPedido('viaje')"><span class="n">2</span><b>Vuela el dragón</b>Un piloto de tu zona lo trae<br><span class="va">Tocá acá ›</span></div>
       <div class="paso toca" onclick="abrirPedido('repuesto')"><span class="n">3</span><b>Pagás en efectivo</b>Al recibir: compra al local, envío al piloto<br><span class="va">Tocá acá ›</span></div>
     </div>
-    <button class="btn bA" style="margin:2px 0 8px" onclick="abrirPedido('comida')">🐉 HACER MI PRIMER PEDIDO</button>
+    <button class="btn bA" style="margin:2px 0 8px" onclick="abrirPedido('comida')">HACER MI PRIMER PEDIDO</button>
   </div>
 </div>
 
@@ -146,7 +147,7 @@ nav div.on{color:var(--rojo)}
 <div class="vista" id="v-promos">
   <div class="hdr"><div class="row"><img src="img/icono.png"><b>Promociones</b></div></div>
   <div class="sec">
-    <div class="bn bn1" style="margin-bottom:12px;min-width:100%"><span class="em">🎁</span><b>Tu primer envío, GRATIS</b><span>Registrate como usuario y volá con el dragón desde tu primer pedido.</span></div>
+    <div class="bn bn1" style="margin-bottom:12px;min-width:100%"><span class="em">📦</span><b>Tu primer envío, GRATIS</b><span>Registrate como usuario y volá con el dragón desde tu primer pedido.</span></div>
     <div class="pcard"><b>🏍️ Repartí con DragoExpres</b><p class="mini">Trabajá con tu bici, moto o carro en tu propia zona. Pagos semanales + pozo dominical para los que más entregan.</p><button class="btn bA" onclick="location.href='index.html'">Quiero ser piloto</button></div>
     <div class="pcard"><b>🏪 Poné tu local</b><p class="mini">Tu local visto por toda tu zona. Vos ponés precios y promos. Registro gratis y sin comisión los primeros meses.</p><button class="btn bA" onclick="location.href='index.html'">Registrar mi local</button></div>
     <div class="pcard"><b>💵 Pagás en efectivo, sin vueltas</b><p class="mini">La compra se la pagás al piloto para el local, y el envío al piloto. Sin tarjeta, sin registro de pago.</p></div>
@@ -172,7 +173,7 @@ nav div.on{color:var(--rojo)}
   <div class="hdr"><div class="row"><img src="img/icono.png"><b>Mi perfil</b></div></div>
   <div class="sec">
     <div class="pcard" style="display:flex;gap:14px;align-items:center">
-      <div class="pavatar" id="pavatar">🐉</div>
+      <div class="pavatar" id="pavatar"><img src="img/dragon-fuego.webp" alt="Dragón" style="width:100%;height:100%;object-fit:contain;border-radius:50%;padding:5px"></div>
       <div><b id="p-nombre" style="font-size:17px">¡Hola!</b><p class="mini" id="p-datos" style="margin:3px 0 0">Iniciá tus datos para pedir más rápido</p></div>
     </div>
     <div class="pcard">
@@ -196,7 +197,7 @@ nav div.on{color:var(--rojo)}
       <div class="item" onclick="location.href='local.html'"><div class="ic">📋</div>Soy local: mis pedidos<div class="flecha">›</div></div>
       <div class="item" onclick="cerrarSesion()"><div class="ic">🚪</div>Cerrar sesión<div class="flecha">›</div></div>
     </div>
-    <p class="mini" style="text-align:center;padding:6px 0 18px">🐉 DragoExpres · Dragon Trade Labs · Guatemala</p>
+    <p class="mini" style="text-align:center;padding:6px 0 18px">DragoExpres · Dragon Trade Labs · Guatemala</p>
   </div>
 </div>
 
@@ -204,7 +205,7 @@ nav div.on{color:var(--rojo)}
 <div class="veil" id="veil" onclick="cerrarSheet()"></div>
 <div class="sheet" id="sheet">
   <div class="asa"></div>
-  <h2 style="font-size:18px">Armá tu pedido 🐉</h2>
+  <h2 style="font-size:18px">Armá tu pedido</h2>
   <div class="pills">
     <div class="pill on" id="pill-comida" onclick="setTipo('comida')">🍜 Comida</div>
     <div class="pill" id="pill-viaje" onclick="setTipo('viaje')">🛺 Viaje</div>
@@ -217,7 +218,7 @@ nav div.on{color:var(--rojo)}
   <div id="dirs-guardadas"></div>
   <div id="extra"></div>
   <p class="mini" style="margin-top:12px">💵 <b>Pagás en efectivo al piloto</b>: la compra al local + el envío al piloto. Tarjeta: próximamente.</p>
-  <button class="btn bA" onclick="enviar()">ENVIAR PEDIDO 🐉</button>
+  <button class="btn bA" onclick="enviar()">ENVIAR PEDIDO</button>
 </div>
 
 <!-- ============ MENU DEL LOCAL ============ -->
@@ -236,7 +237,7 @@ nav div.on{color:var(--rojo)}
 
 <!-- ============ TRACKER ============ -->
 <div class="trk" id="trk">
-  <div class="th"><b>🐉 Siguiendo tu pedido</b><div class="x" onclick="cerrarTrk()">✕</div></div>
+  <div class="th"><b>Siguiendo tu pedido</b><div class="x" onclick="cerrarTrk()">✕</div></div>
   <div class="sec">
     <div class="pcard" style="text-align:center">
       <p class="mini" style="margin:0">TU PEDIDO</p>
@@ -265,7 +266,7 @@ nav div.on{color:var(--rojo)}
 
 <nav>
   <div class="on" id="nv-inicio" onclick="tab('inicio')"><span class="i">🏠</span>Inicio</div>
-  <div id="nv-promos" onclick="tab('promos')"><span class="i">🎁</span>Promos</div>
+  <div id="nv-promos" onclick="tab('promos')"><span class="i">📦</span>Promos</div>
   <div id="nv-pedidos" onclick="tab('pedidos')"><span class="i">📋</span>Pedidos</div>
   <div id="nv-perfil" onclick="tab('perfil')"><span class="i">👤</span>Mi perfil</div>
 </nav>
@@ -313,7 +314,7 @@ function pintarLocales(){
     return true;
   });
   var h='';
-  if(!loc.length){h='<div class="empty">Aún no hay locales mostrándose acá.<br><b>Recomendá tu local favorito</b> para que se registre 🐉<br><br><button class="btn bA" style="width:auto;padding:11px 18px;display:inline-block" onclick="location.href=\'index.html\'">Recomendar un local</button></div>';}
+  if(!loc.length){h='<div class="empty">Aún no hay locales mostrándose acá.<br><b>Recomendá tu local favorito</b> para que se registre<br><br><button class="btn bA" style="width:auto;padding:11px 18px;display:inline-block" onclick="location.href=\'index.html\'">Recomendar un local</button></div>';}
   loc.forEach(function(l,idx){
     var ini=(l.nombre||'?').trim().charAt(0).toUpperCase();
     var wa='https://wa.me/502'+String(l.tel).replace(/\D/g,'').replace(/^502/,'');
@@ -331,7 +332,7 @@ function pintarPerfil(){
   var u=LS();
   document.getElementById('p-nombre').textContent=u.nombre?('¡Hola, '+u.nombre.split(' ')[0]+'!'):'¡Hola!';
   document.getElementById('p-datos').textContent=(u.tel?('WhatsApp: '+u.tel):'Iniciá tus datos para pedir más rápido')+(u.zona?(' · Zona: '+u.zona):'');
-  document.getElementById('pavatar').textContent=u.nombre?u.nombre.trim().charAt(0).toUpperCase():'🐉';
+  if(u.nombre){document.getElementById('pavatar').textContent=u.nombre.trim().charAt(0).toUpperCase();}
   document.getElementById('mi-nombre').value=u.nombre||'';
   document.getElementById('mi-tel').value=u.tel||'';
   pintarDirs();
@@ -345,7 +346,7 @@ function guardarPerfil(){
   document.getElementById('zonaTag').textContent=u.zona||'Elegí tu zona';
   var z=document.getElementById('f-zona');if(u.zona&&ZONAS.includes(u.zona)){z.value=u.zona;}
   pintarPerfil();pintarLocales();
-  alert('¡Guardado! 🐉');
+  alert('¡Guardado!');
 }
 function pintarDirs(){
   var u=LS();u.dires=u.dires||[];
@@ -401,7 +402,7 @@ function verProducto(idxLocal,idProd){
     +'<h2 style="font-size:19px;margin:0 0 4px">'+it.nombre+'</h2>'
     +'<p class="mini" style="margin:0 0 6px">'+(it.desc||'')+'</p>'
     +'<div style="font-size:22px;font-weight:900;color:var(--rojo)">Q'+it.precio+'</div>'
-    +'<button class="btn bA" onclick="pedirProductoId('+idxLocal+',\''+idProd+'\')">🐉 PEDIR ESTE PRODUCTO</button>'
+    +'<button class="btn bA" onclick="pedirProductoId('+idxLocal+',\''+idProd+'\')">PEDIR ESTE PRODUCTO</button>'
     +'<button class="btn" style="background:#333;color:#fff;box-shadow:none" onclick="cerrarProd()">Volver al menú</button>';
   document.getElementById('prodSheet').style.display='block';
   document.getElementById('menuSheet').style.display='none';
@@ -480,7 +481,7 @@ async function enviar(){
   SS(u);
   var b=document.querySelector('#sheet .btn');b.disabled=true;b.textContent='Enviando...';
   var r=await fetch(api('orders'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(d)});
-  var j=await r.json();b.disabled=false;b.textContent='ENVIAR PEDIDO 🐉';
+  var j=await r.json();b.disabled=false;b.textContent='ENVIAR PEDIDO';
   if(!j.ok){alert(j.error||'No se pudo crear el pedido.');return}
   cerrarSheet();
   document.getElementById('trk').style.display='block';
@@ -539,7 +540,7 @@ async function actualizar(){
   var mapa=document.getElementById('mapa');
   if(j.gps&&j.gps.lat){
     mapa.style.display='block';
-    if(!window.LMAP){window.LMAP=L.map('mapa').setView([j.gps.lat,j.gps.lng],15);L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'© OpenStreetMap'}).addTo(window.LMAP);window.LMK=L.circleMarker([j.gps.lat,j.gps.lng],{radius:10,color:'#d1121f',fillColor:'#f0b90b',fillOpacity:.9}).addTo(window.LMAP).bindPopup('🐉 Tu piloto');}
+    if(!window.LMAP){window.LMAP=L.map('mapa').setView([j.gps.lat,j.gps.lng],15);L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'© OpenStreetMap'}).addTo(window.LMAP);window.LMK=L.circleMarker([j.gps.lat,j.gps.lng],{radius:10,color:'#d1121f',fillColor:'#f0b90b',fillOpacity:.9}).addTo(window.LMAP).bindPopup('Tu piloto DragoExpres');}
     else{window.LMK.setLatLng([j.gps.lat,j.gps.lng]);window.LMAP.setView([j.gps.lat,j.gps.lng]);}
   }else{mapa.style.display='none'}
   var cf=document.getElementById('calif');
