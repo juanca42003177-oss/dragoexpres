@@ -140,15 +140,18 @@ module.exports = wrap(async (req, res) => {
       if (chg) await ghPut('pilots.json', fpr2.sha, arr2, 'reset semanal de rachas');
     } catch (e) { }
 
-    // RETARGET GLOBAL estilo cripto: la meta sube si hay mucha demanda, baja si hay poca.
-    // Objetivo: que al menos el 75% de los pilotos activos llegue a la meta. Piso 10, techo 40.
+    // RETARGET GLOBAL estilo cripto: la meta se ajusta al nivel que el 75% de los pilotos
+    // YA ALCANZÓ la semana pasada (percentil 25 de sus entregas). Si nadie llega, baja sola.
+    // Si hay mucha demanda, sube sola. Piso 10, techo 40. Nadie queda explotado ni humillado.
     const activos = s.pilotos.filter(p => p.entregas > 0);
     let ajuste = null;
     if (activos.length) {
       const totalEntregas = s.pilotos.reduce((s2, p) => s2 + p.entregas, 0);
       const demanda = Math.round((totalEntregas / activos.length) * 10) / 10;
+      const orts = activos.map(p => p.entregas).sort((a, b) => a - b);
+      const p25 = orts[Math.floor((orts.length - 1) * (1 - TARGET))];
       const anterior = s.meta;
-      const nueva = Math.max(META_MIN, Math.min(META_MAX, Math.round(demanda * TARGET)));
+      const nueva = Math.max(META_MIN, Math.min(META_MAX, Math.round(p25)));
       pozo.metaGlobal = nueva;
       ajuste = { anterior, nueva, demanda, activos: activos.length };
     }
@@ -160,7 +163,7 @@ module.exports = wrap(async (req, res) => {
     const rachasPerdidas = [];
     try { const fpx = await ghGet('pilots.json'); (fpx ? fpx.data : []).forEach(x => { if (x.rachaRespaldo) rachasPerdidas.push(x.nombre || x.tel); }); } catch (e) { }
 
-    const AJUSTE = ajuste ? `\n\n📈 META AUTO-AJUSTADA (estilo cripto, objetivo 75%):\nDemanda: ${ajuste.demanda} entregas promedio × ${ajuste.activos} pilotos activos → meta global: ${ajuste.anterior} → ${ajuste.nueva}\nLa meta sube si hay mucho pedidos y baja si hay pocos, para que el 75% llegue.` : '\n\n📈 Sin pilotos activos: la meta global no se mueve.';
+    const AJUSTE = ajuste ? `\n\n📈 META AUTO-AJUSTADA (estilo cripto, objetivo 75%):\nDemanda: ${ajuste.demanda} entregas promedio × ${ajuste.activos} pilotos activos · El 75% de tus pilotos ya alcanzó ${ajuste.nueva} → meta global: ${ajuste.anterior} → ${ajuste.nueva}\nLa meta sube si hay muchos pedidos y baja si hay pocos (o si nadie llega), para que mínimo el 75% llegue.` : '\n\n📈 Sin pilotos activos: la meta global no se mueve.';
     const SUBIDAS = subidasMeta.length ? `\n\n🐉 PROGRESIÓN (4 domingos seguidos cumpliendo = +2):\n${subidasMeta.join('\n')}` : '';
     await aviso(`🏆 DRAGOEXPRES — DEVOLUCIÓN SEMANAL 🐉\nCada piloto que cumple su meta recibe el 25% de SUS comisiones de vuelta. Vos no ponés nada.\n\nGANADORES de hoy:\n${GANAN}${ACUM}${AJUSTE}${SUBIDAS}\n\nLos premios ya quedaron acreditados como bono: se descuentan de lo que cada piloto transfiere en su próxima liquidación de 72h.`);
     return res.status(200).json({ ok: true, reparto, acumulan });
