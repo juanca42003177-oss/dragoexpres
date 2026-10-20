@@ -76,7 +76,8 @@ footer b{color:var(--oro)}
     <div class="puerta on" id="tUsuario" onclick="abrir('usuario')"><div class="i">🍜</div><div class="n">Quiero pedir</div><div class="s">Comida, viajes y repuestos</div></div>
     <div class="puerta" id="tPiloto" onclick="abrir('piloto')"><div class="i">🏍️</div><div class="n">Ser piloto</div><div class="s">Pagos semanales</div></div>
     <div class="puerta" id="tLocal" onclick="abrir('local')"><div class="i">🔥</div><div class="n">Poné tu local</div><div class="s">Tu zona te ve</div></div>
-    <div class="puerta" id="tFlota" onclick="abrir('flota')"><div class="i">🚗</div><div class="n">Tu vehículo a trabajar</div><div class="s">Ganá sin manejar</div></div>
+    <div class="puerta" id="tFlota" onclick="abrir('flota')"><div class="i">🚗</div><div class="n">Tu moto o carro a trabajar</div><div class="s">Ganá el 25% sin manejar</div></div>
+    <div class="puerta" id="tDueno" onclick="abrirDueno()" style="grid-column:1/3;display:flex;align-items:center;gap:14px;text-align:left;padding:14px 16px"><div class="i" style="margin:0">🛺</div><div><div class="n" style="margin-top:0">Mi vehículo, lo manejo YO</div><div class="s">Sos el dueño: ganás el 100% de cada entrega, sin split</div></div></div>
   </div>
 
   <div class="form on" id="fUsuario">
@@ -104,6 +105,7 @@ footer b{color:var(--oro)}
     <label>Marca del vehículo</label><input id="pMarca" placeholder="Ej: Honda, Toyota, Trek...">
     <label>Color</label><input id="pColor" placeholder="Ej: rojo, negro...">
     <label>Placa (si tiene)</label><input id="pPlaca" placeholder="Ej: C-123ABC (bici: dejalo vacío)">
+    <label style="display:flex;gap:8px;align-items:flex-start;margin-top:12px"><input type="checkbox" id="pPropio" style="width:auto;margin-top:3px"> <span>El vehículo es <b>MÍO</b>: soy dueño y lo manejo yo <span style="color:#f0b90b">(gano el 100%, sin split de flota)</span></span></label>
     <label>No. de DPI (13 dígitos)</label><input id="pDpi" inputmode="numeric" placeholder="Ej: 1234 56789 0101">
     <label>Foto de tu DPI 📷</label><input type="file" accept="image/*" id="pDocDpi" style="padding:8px">
     <label>Tu selfie 🤳</label><input type="file" accept="image/*" capture="user" id="pSelfie" style="padding:8px">
@@ -128,7 +130,7 @@ footer b{color:var(--oro)}
 
   <div class="form" id="fFlota">
     <h3>Tu vehículo a trabajar 🚗</h3>
-    <p class="desc">¿Tenés moto, carro o pickup y no lo querés manejar vos? Registrala, le asignamos un piloto verificado, y vos recibís vuestro porcentaje sin salir de casa.</p>
+    <p class="desc">¿Tenés una moto, carro o pickup que querés poner a trabajar pero no la querés manejar vos? Registrala acá, le asignás un piloto verificado desde tu pantalla, y recibís el 25% de cada entrega sin salir de casa. Si querés manejarla VOS, usá la puerta de arriba 🛺 y ganás el 100%.</p>
     <label>Tu nombre</label><input id="flNombre" placeholder="Nombre completo">
     <label>WhatsApp</label><input id="flTel" type="tel" placeholder="Tu WhatsApp">
     <label>Vehículo(s)</label>
@@ -301,6 +303,10 @@ function verDemo(cual){
   </div>
 </div>
 <script>
+function abrirDueno() {
+  try { document.getElementById('pPropio').checked = true; } catch(e) {}
+  abrir('piloto');
+}
 function abrir(t) {
   ['Usuario','Piloto','Local','Flota'].forEach(function(x){ document.getElementById('t'+x).classList.remove('on'); });
   ['usuario','piloto','local','flota'].forEach(function(x){ document.getElementById('f'+x.charAt(0).toUpperCase()+x.slice(1)).classList.remove('on'); });
@@ -315,7 +321,7 @@ function verVeh() {
 function campos(t) {
   var v = function(id){ return (document.getElementById(id).value||'').trim(); };
   if (t==='usuario') return { nombre:v('uNombre'), tel:v('uTel'), zona:v('uZona') };
-  if (t==='piloto') return { nombre:v('pNombre'), tel:v('pTel'), vehiculo:v('pVeh'), marca:v('pMarca'), color:v('pColor'), placa:v('pPlaca'), dpi:v('pDpi'), zona:v('pZona'), equipo: document.getElementById('pEquipo').checked, h24: document.getElementById('p24').checked, contrato: document.getElementById('pContrato').checked };
+  if (t==='piloto') return { nombre:v('pNombre'), tel:v('pTel'), vehiculo:v('pVeh'), marca:v('pMarca'), color:v('pColor'), placa:v('pPlaca'), dpi:v('pDpi'), zona:v('pZona'), equipo: document.getElementById('pEquipo').checked, h24: document.getElementById('p24').checked, propio: !!(document.getElementById('pPropio') && document.getElementById('pPropio').checked), contrato: document.getElementById('pContrato').checked };
   if (t==='local') return { nombre:v('lNombre'), tipo:v('lTipo'), tel:v('lTel'), zona:v('lZona'), contrato: document.getElementById('lContrato').checked };
   return { nombre:v('flNombre'), tel:v('flTel'), vehiculo:v('flVeh'), marca:v('flMarca'), color:v('flColor'), placa:v('flPlaca'), zona:v('flZona') };
 }
