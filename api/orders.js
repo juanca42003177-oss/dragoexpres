@@ -53,8 +53,8 @@ const PCT_LOCAL = 0.10, GRACIA_LOCAL_MS = 90 * 864e5; // 10% al local tras 90 di
 const CUENTA_LIQ = 'Banco Industrial, cuenta monetaria No. 7171286805, a nombre de Andrea Ester Perez Acosta';
 function comisionDe(tipo, envio) {
   const e = dinero(envio);
-  if (tipo === 'comida') return dinero(e * 0.10);
-  if (tipo === 'repuesto') return dinero(e * 0.08);
+  if (tipo === 'comida') return dinero(e * 0.05);   // 5% del envío: al piloto le queda CASI TODO (las grandes se quedan con 20-30%)
+  if (tipo === 'repuesto') return dinero(e * 0.05);
   if (e <= 25) return 2;
   if (e <= 50) return 3;
   return 5;
@@ -190,7 +190,7 @@ module.exports = wrap(async (req, res) => {
     const tel = String(b.tel || '').trim().slice(0, 25);
     if (!zona || !nombre || !tel || !b.direccion) return res.status(200).json({ ok: false, error: 'Faltan datos: nombre, WhatsApp, zona y dirección.' });
     if (!b.detalle) return res.status(200).json({ ok: false, error: 'Contanos qué querés pedir.' });
-    const TARIFA_FIJA = { comida: 20, repuesto: 25, viaje: 30 }; // tarifa fija DragoExpres (modelo PedidosYa: sin regatear)
+    const TARIFA_FIJA = { comida: 15, repuesto: 20, viaje: 25 }; // tarifa fija DragoExpres: MAS BARATA que las apps grandes (InDrive ~Q27 a Oakland, PedidosYa Q15-25 + cargos)
     const envio = TARIFA_FIJA[tipo];
     const propina = Math.max(0, dinero(b.propina || 0)); // voluntaria, 100% para el piloto
     const pago = b.pago === 'transferencia' ? 'transferencia' : 'efectivo';

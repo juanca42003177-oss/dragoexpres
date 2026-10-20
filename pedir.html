@@ -469,21 +469,21 @@ function zonaValor(){
 function extra(){
   var h='';
   var pre=LOCAL_PRE?' (ej: de '+LOCAL_PRE+')':'';
-  if(TIPO==='comida')h='<label>Dirección de entrega</label><input id="f-dir" placeholder="Calle, número, colonia"><label>Referencia (opcional)</label><input id="f-ref" placeholder="Casa azul, portón negro..."><label>¿Qué querés y de dónde?'+pre+'</label><textarea id="f-det" placeholder="Ej: 2 pizzas grandes de la pizzería El Horno"></textarea><label>Precio estimado de tu orden (Q) — se lo pagás al local</label><input id="f-compra" type="number" inputmode="decimal" placeholder="Ej: 120"><label>Envío (tarifa fija DragoExpres)</label><div class="tarifa" id="f-tarifa">Q20 · sin regatear</div>';
-  if(TIPO==='viaje')h='<label>Dirección de recogida</label><input id="f-dir" placeholder="¿De dónde te recogemos?"><label>Referencia (opcional)</label><input id="f-ref" placeholder="Frente al parque..."><label>¿A dónde vas?</label><textarea id="f-det" placeholder="Ej: De Mixco Centro a Oakland Mall"></textarea><label>Envío (tarifa fija DragoExpres)</label><div class="tarifa" id="f-tarifa">Q30 · sin regatear</div>';
-  if(TIPO==='repuesto')h='<label>Dirección de entrega</label><input id="f-dir" placeholder="Calle, número, colonia"><label>Referencia (opcional)</label><input id="f-ref" placeholder="Taller La Bendición..."><label>¿Qué repuesto necesitás y para qué vehículo?</label><textarea id="f-det" placeholder="Ej: Pastillas de freno para Honda Wave 110"></textarea><label>Precio estimado del repuesto (Q) — se lo pagás al local</label><input id="f-compra" type="number" inputmode="decimal" placeholder="Ej: 180"><label>Envío (tarifa fija DragoExpres)</label><div class="tarifa" id="f-tarifa">Q25 · sin regatear</div>';
+  if(TIPO==='comida')h='<label>Dirección de entrega</label><input id="f-dir" placeholder="Calle, número, colonia"><label>Referencia (opcional)</label><input id="f-ref" placeholder="Casa azul, portón negro..."><label>¿Qué querés y de dónde?'+pre+'</label><textarea id="f-det" placeholder="Ej: 2 pizzas grandes de la pizzería El Horno"></textarea><label>Precio estimado de tu orden (Q) — se lo pagás al local</label><input id="f-compra" type="number" inputmode="decimal" placeholder="Ej: 120"><label>Envío (tarifa fija DragoExpres)</label><div class="tarifa" id="f-tarifa">Q15 · sin regatear</div>';
+  if(TIPO==='viaje')h='<label>Dirección de recogida</label><input id="f-dir" placeholder="¿De dónde te recogemos?"><label>Referencia (opcional)</label><input id="f-ref" placeholder="Frente al parque..."><label>¿A dónde vas?</label><textarea id="f-det" placeholder="Ej: De Mixco Centro a Oakland Mall"></textarea><label>Envío (tarifa fija DragoExpres)</label><div class="tarifa" id="f-tarifa">Q25 · sin regatear</div>';
+  if(TIPO==='repuesto')h='<label>Dirección de entrega</label><input id="f-dir" placeholder="Calle, número, colonia"><label>Referencia (opcional)</label><input id="f-ref" placeholder="Taller La Bendición..."><label>¿Qué repuesto necesitás y para qué vehículo?</label><textarea id="f-det" placeholder="Ej: Pastillas de freno para Honda Wave 110"></textarea><label>Precio estimado del repuesto (Q) — se lo pagás al local</label><input id="f-compra" type="number" inputmode="decimal" placeholder="Ej: 180"><label>Envío (tarifa fija DragoExpres)</label><div class="tarifa" id="f-tarifa">Q20 · sin regatear</div>';
   h+='<label>Propina para el piloto (opcional)</label><div class="chips" id="f-propinas">'+[0,5,10,15].map(function(p){return '<div class="chip'+(p===0?' on':'')+'" onclick="elegirProp(this,'+p+')">Q'+p+'</div>'}).join('')+'</div><p class="mini" style="margin:4px 0 0">Como en las apps grandes: la propina es voluntaria. Con propina los pilotos suelen volar más rápido.</p>';
   document.getElementById('extra').innerHTML=h;
 }
 var ULT_TEL='',PROPINA=0;
-var TARIFA={comida:20,viaje:30,repuesto:25};
+var TARIFA={comida:15,viaje:25,repuesto:20};
 function elegirProp(el,p){PROPINA=p;var t=document.querySelectorAll('#f-propinas .chip');for(var i=0;i<t.length;i++)t[i].classList.remove('on');el.classList.add('on');}
 
 async function enviar(){
   var v=function(id){var e=document.getElementById(id);return e?e.value.trim():''};
   var u=LS();
   var telCli=v('f-tel')||u.tel;MI_TEL=telCli;
-  var d={action:'crear',tipo:TIPO,local:(LOCAL_TEL?{nombre:LOCAL_PRE,tel:LOCAL_TEL}:undefined),nombre:v('f-nombre')||u.nombre,tel:telCli,zona:zonaValor(),direccion:v('f-dir'),referencia:v('f-ref'),detalle:v('f-det'),compra:v('f-compra')||0,envio:TARIFA[TIPO]||20,propina:PROPINA};
+  var d={action:'crear',tipo:TIPO,local:(LOCAL_TEL?{nombre:LOCAL_PRE,tel:LOCAL_TEL}:undefined),nombre:v('f-nombre')||u.nombre,tel:telCli,zona:zonaValor(),direccion:v('f-dir'),referencia:v('f-ref'),detalle:v('f-det'),compra:v('f-compra')||0,envio:TARIFA[TIPO]||15,propina:PROPINA};
   if(!d.nombre||!d.tel||!d.zona||!d.direccion||!d.detalle){alert('Completá tu nombre, WhatsApp, zona, dirección y qué pedís.');return}
   // guardar perfil para la proxima
   u.nombre=d.nombre;u.tel=d.tel;u.zona=d.zona;u.dires=u.dires||[];
