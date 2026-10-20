@@ -138,6 +138,25 @@ module.exports = wrap(async (req, res) => {
     const j = await r.json();
     return res.status(200).json({ ok: true, img: 'data:image/jpeg;base64,' + j.content });
   }
+  if (action === 'sugerencias') {
+    const fs = await ghGet('sugerencias.json');
+    const arr = fs ? fs.data : [];
+    return res.status(200).json({ ok: true, sugerencias: arr.slice(-30).reverse() });
+  }
+  if (action === 'sugLeida') {
+    const fs = await ghGet('sugerencias.json');
+    const arr = fs ? fs.data : [];
+    const x = arr.find(y => y.id === String(b.id || ''));
+    if (x) { x.leida = true; await ghPut('sugerencias.json', fs ? fs.sha : null, arr, 'sugerencia leida ' + b.id); }
+    return res.status(200).json({ ok: true });
+  }
+  if (action === 'sugDel') {
+    const fs = await ghGet('sugerencias.json');
+    const arr = fs ? fs.data : [];
+    const nueva = arr.filter(y => y.id !== String(b.id || ''));
+    await ghPut('sugerencias.json', fs ? fs.sha : null, nueva, 'sugerencia borrada ' + b.id);
+    return res.status(200).json({ ok: true });
+  }
   if (action === 'pozo') {
     const rp = await fetch(`https://api.github.com/repos/${REPO}/contents/pedidos.json?ref=${BRANCH}`, { headers: { Authorization: 'Bearer ' + TOKEN(), Accept: 'application/vnd.github+json' } });
     const pedidos = rp.ok ? JSON.parse(Buffer.from((await rp.json()).content, 'base64').toString('utf8') || '[]') : [];

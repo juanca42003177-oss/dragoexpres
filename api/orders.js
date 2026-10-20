@@ -367,6 +367,7 @@ module.exports = wrap(async (req, res) => {
     const comisiones = dinero(mios.reduce((s, x) => s + (x.comision || 0) + (x.comisionLocal || 0), 0));
     const califs = mios.filter(x => x.califCliente > 0);
     const calif = califs.length ? Math.round(califs.reduce((s, x) => s + x.califCliente, 0) / califs.length * 10) / 10 : null;
+    // comisiones NETAS: lo que muestra el piloto siempre coincide con lo que deposita (premios ya aplicados, nunca se nota la diferencia)
     const g = new Date(now - 21600000);
     const lunes = new Date(g);
     lunes.setUTCDate(g.getUTCDate() - ((g.getUTCDay() + 6) % 7));
@@ -376,7 +377,7 @@ module.exports = wrap(async (req, res) => {
     const fp = await ghGet('pilots.json');
     const st = (fp ? fp.data : []).find(x => String(x.tel).replace(/\D/g, '') === tel) || {};
     const historial = mios.slice(-15).reverse().map(x => ({ id: x.id, tipo: x.tipo, ganado: dinero(x.envio - x.comision + (x.propina || 0)), envio: x.envio, propina: x.propina || 0, ts: x.tsEntregado || x.ts }));
-    return res.status(200).json({ ok: true, entregas: mios.length, ganado, comisiones, calif, bonosPend: dinero(st.bonosPend || 0), bonoBienvenida: st.bonoBienvenida || null, pendiente: st.pendiente || null, pendienteActivo: !!(st.pendiente && !st.pendiente.pagado), retraso: !!st.retraso, meta: { hechas: semana, faltan: Math.max(0, 20 - semana) }, historial });
+    return res.status(200).json({ ok: true, entregas: mios.length, ganado, comisiones: dinero(comisiones - (st.bonosAplicados || 0)), calif, bonosPend: dinero(st.bonosPend || 0), bonoBienvenida: st.bonoBienvenida || null, pendiente: st.pendiente || null, pendienteActivo: !!(st.pendiente && !st.pendiente.pagado), retraso: !!st.retraso, meta: { hechas: semana, faltan: Math.max(0, 20 - semana) }, historial });
   }
 
   // ---- consultar estado (usuario o pantalla) ----
@@ -652,6 +653,23 @@ module.exports = wrap(async (req, res) => {
       await ghPut('pedidos.json', fpd.sha, peds, o.estado + ' ' + id);
       return res.status(200).json({ ok: true, pedido: o });
     }
+  }
+
+  // ---- BUZÓN DE SUGERENCIAS (usuario / piloto / local) ----
+  if (action === 'sugerencia') {
+    const rol = ['usuario', 'piloto', 'local', 'flotista'].includes(b.rol) ? b.rol : 'usuario';
+    const nombre = String(b.nombre || '').slice(0, 60);
+    const tel = String(b.tel || '').replace(/\D/g, '').slice(0, 12);
+    const texto = String(b.texto || '').trim().slice(0, 500);
+    if (texto.length < 5) return res.status(200).json({ ok: false, error: 'Escribí tu sugerencia (mínimo 5 letras).' });
+    const fs = await ghGet('sugerencias.json');
+    const arr = fs ? fs.data : [];
+    const id = 'SG' + Date.now().toString(36).toUpperCase();
+    arr.push({ id, rol, nombre, tel, texto, ts: now, leida: false });
+    while (arr.length > 200) arr.shift();
+    await ghPut('sugerencias.json', fs ? fs.sha : null, arr, 'sugerencia ' + id);
+    await aviso(`✉️ DRAGOEXPRES — SUGERENCIA NUEVA 📩\nDe: ${nombre || 'Anónimo'}${tel ? ' (' + tel + ')' : ''} · rol: ${rol}\n"${texto}"\nLa ves en tu panel, pestaña Pedidos, buzón de sugerencias.`);
+    return res.status(200).json({ ok: true, id, mensaje: '¡Gracias! El dragón leyó tu sugerencia 🐉' });
   }
 
   // ---- PILOTO: BOTÓN SOS (emergencia: manda su ubicación exacta al admin por Telegram) ----

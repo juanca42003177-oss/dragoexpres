@@ -84,7 +84,7 @@ module.exports = wrap(async (req, res) => {
       const bono = Math.min(dinero(st.bonosPend || 0), dinero(p.comisiones - comp));
       const neto = dinero(p.comisiones - comp - bono);
       p.compAplicada = comp; p.bonoAplicado = bono; p.neto = neto;
-      if (bono > 0) st.bonosPend = dinero((st.bonosPend || 0) - bono);
+      if (bono > 0) { st.bonosPend = dinero((st.bonosPend || 0) - bono); st.bonosAplicados = dinero((st.bonosAplicados || 0) + bono); }
       if (comp > 0) st.compensa = dinero((st.compensa || 0) - comp);
       if (neto > 0) st.pendiente = { monto: dinero((st.pendiente && !st.pendiente.pagado ? st.pendiente.monto : 0) + neto), desde: new Date(now - TZ).toISOString().slice(0, 10), pagado: false };
     });

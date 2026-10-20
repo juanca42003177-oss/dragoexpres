@@ -183,6 +183,12 @@ nav div.on{color:var(--rojo)}
       <div><b id="p-nombre" style="font-size:17px">¡Hola!</b><p class="mini" id="p-datos" style="margin:3px 0 0">Iniciá tus datos para pedir más rápido</p></div>
     </div>
     <div class="pcard">
+      <b style="font-size:15px">💡 Buzón de sugerencias</b>
+      <p class="mini" style="margin:6px 0">¿Cómo podemos mejorar? Decinos qué local querés, qué te gustaría que el dragón haga mejor, o cualquier idea. Llega directo al administrador.</p>
+      <textarea id="sug-texto" placeholder="Escribí acá tu sugerencia o pedido..." style="width:100%;box-sizing:border-box;border:1px solid #e0e0e0;border-radius:10px;padding:10px;font-size:14px;min-height:70px;resize:vertical"></textarea>
+      <button class="btn bA" onclick="enviarSugerencia()" id="sug-btn">Enviar al administrador 🐉</button>
+    </div>
+    <div class="pcard">
       <b style="font-size:15px">Mi información</b>
       <label>Nombre</label><input id="mi-nombre" placeholder="Ej: María López">
       <label>WhatsApp</label><input id="mi-tel" type="tel" placeholder="Ej: 55501234">
@@ -342,6 +348,19 @@ function pintarPerfil(){
   document.getElementById('mi-nombre').value=u.nombre||'';
   document.getElementById('mi-tel').value=u.tel||'';
   pintarDirs();
+}
+async function enviarSugerencia(){
+  var tx=document.getElementById('sug-texto').value.trim();
+  if(tx.length<5){alert('Escribí tu sugerencia primero (mínimo 5 letras).');return}
+  var btn=document.getElementById('sug-btn');btn.disabled=true;btn.textContent='Enviando...';
+  try{
+    var u=datosUsuario();
+    var r=await fetch(api('orders'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'sugerencia',rol:'usuario',nombre:(u&&u.nombre)||'',tel:(u&&u.tel)||'',texto:tx})});
+    var j=await r.json();
+    if(j.ok){document.getElementById('sug-texto').value='';alert('¡Gracias! El dragón leyó tu sugerencia 🐉');}
+    else alert(j.error||'No se pudo enviar, probá de nuevo.');
+  }catch(e){alert('No se pudo enviar, revisá tu internet.')}
+  btn.disabled=false;btn.textContent='Enviar al administrador 🐉';
 }
 function guardarPerfil(){
   var u=LS();
