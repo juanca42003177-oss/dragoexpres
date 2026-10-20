@@ -17,12 +17,11 @@ async function compensarPiloto(tel, id) {
     const fp = await ghGet('pilots.json'); const arr = fp ? fp.data : [];
     const st = arr.find(x => x.tel === tel);
     if (!st) return 0;
-    if (st.compensaSem !== semana()) { st.compensaSem = semana(); st.compensaSemana = 0; st.compensaN = 0; }
-    st.compensaSemana = dinero((st.compensaSemana || 0) + COMP_GAS);
+    st.compensa = dinero((st.compensa || 0) + COMP_GAS);
     st.compensaN = (st.compensaN || 0) + 1;
     st.compensaPedidos = st.compensaPedidos || []; st.compensaPedidos.push(id);
     await ghPut('pilots.json', fp.sha, arr, 'compensacion gasolina ' + tel + ' ' + id);
-    return st.compensaSemana;
+    return st.compensa;
   } catch (e) { return 0; }
 }
 const semana = () => 'S' + Math.floor((Date.now() - TZ) / (7 * 864e5));
@@ -140,7 +139,7 @@ module.exports = wrap(async (req, res) => {
     const califs = peds.filter(o => o.piloto && o.piloto.tel === tel && o.califCliente > 0);
     const calif = califs.length ? Math.round(califs.reduce((x, o) => x + o.califCliente, 0) / califs.length * 10) / 10 : null;
     const zonaF = zona.filter(o => !(o.rechazadoPor || []).includes(tel));
-    return res.status(200).json({ ok: true, piloto: { nombre: p.datos.nombre, zona: p.datos.zona, vehiculo: p.datos.vehiculo, marca: p.datos.marca || '', color: p.datos.color || '', placa: p.datos.placa || '', disponible: st.disponible, ganadoHoy: st.ganadoHoy || 0, ganadoSemana: st.ganadoSemana || 0, pedidosHoy: st.pedidosHoy || 0, racha: st.racha || 0, boletosExtra: st.boletosExtra || 0, compensa: st.compensaSem === semana() ? (st.compensaSemana || 0) : 0, compensaN: st.compensaSem === semana() ? (st.compensaN || 0) : 0, calif: calif, pendiente: st.pendiente || null }, activo: mio[0] || null, zonaBuscando: zonaF });
+    return res.status(200).json({ ok: true, piloto: { nombre: p.datos.nombre, zona: p.datos.zona, vehiculo: p.datos.vehiculo, marca: p.datos.marca || '', color: p.datos.color || '', placa: p.datos.placa || '', disponible: st.disponible, ganadoHoy: st.ganadoHoy || 0, ganadoSemana: st.ganadoSemana || 0, pedidosHoy: st.pedidosHoy || 0, racha: st.racha || 0, boletosExtra: st.boletosExtra || 0, compensa: st.compensa || 0, compensaN: st.compensaN || 0, calif: calif, pendiente: st.pendiente || null }, activo: mio[0] || null, zonaBuscando: zonaF });
   }
 
   // ---- PILOTO: ponerse disponible / no disponible ----
@@ -410,7 +409,7 @@ module.exports = wrap(async (req, res) => {
     if (salioConPiloto2) o.compensa = COMP_GAS;
     await ghPut('pedidos.json', fpd.sha, peds, 'local cancela ' + id);
     if (salioConPiloto2 && telPiloto2) await compensarPiloto(telPiloto2, id);
-    await aviso('🚀 DRAGOEXPRES — ' + id + '\n🏪 El local canceló el pedido' + (razon ? ' (' + razon + ')' : '') + (teniaPiloto ? '. El piloto queda LIBRE y su racha NO se rompe.' : '') + '. El cliente no fue cobrado.' + (salioConPiloto2 ? '\n⛽ Q' + COMP_GAS + ' de gasolina acreditados al piloto (salen de SUS comisiones el domingo).' : ''));
+    await aviso('🚀 DRAGOEXPRES — ' + id + '\n🏪 El local canceló el pedido' + (razon ? ' (' + razon + ')' : '') + (teniaPiloto ? '. El piloto queda LIBRE y su racha NO se rompe.' : '') + '. El cliente no fue cobrado.' + (salioConPiloto2 ? '\n⛽ Q' + COMP_GAS + ' de gasolina acreditados al piloto (salen de SUS comisiones en la próxima liquidación de 72h).' : ''));
     return res.status(200).json({ ok: true, pedido: o });
   }
   if (action === 'clienteCancela') {
@@ -430,7 +429,7 @@ module.exports = wrap(async (req, res) => {
     await ghPut('pedidos.json', fpd.sha, peds, 'cliente cancela ' + id);
     if (salioConPiloto && o.pilotoAlCancelar) await compensarPiloto(o.pilotoAlCancelar.tel, id);
     await aviso(conViaje
-      ? '🚀 DRAGOEXPRES — ' + id + '\n🧑⚠️ El cliente canceló CON EL PILOTO EN CAMINO. El piloto quedó libre, su racha sigue viva. Cancelaciones de este cliente con viaje: ' + (cancelos + 1) + '.' + (salioConPiloto ? '\n⛽ Compensación de gasolina Q' + COMP_GAS + ' acreditada al piloto (se le descuenta de SUS comisiones el domingo, vos no pones nada).' : '')
+      ? '🚀 DRAGOEXPRES — ' + id + '\n🧑⚠️ El cliente canceló CON EL PILOTO EN CAMINO. El piloto quedó libre, su racha sigue viva. Cancelaciones de este cliente con viaje: ' + (cancelos + 1) + '.' + (salioConPiloto ? '\n⛽ Compensación de gasolina Q' + COMP_GAS + ' acreditada al piloto (se descuenta de SUS comisiones en la próxima liquidación de 72h, vos no pones nada).' : '')
       : '🚀 DRAGOEXPRES — ' + id + '\n🧑 El cliente canceló mientras buscábamos piloto. Nadie pierde nada.');
     return res.status(200).json({ ok: true, pedido: o });
   }

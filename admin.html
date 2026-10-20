@@ -159,7 +159,7 @@ async function waResumen(tel){
     '📊 Esta semana: '+s.semana+' entregas'+(s.faltan===undefined?'':' — te faltan '+Math.max(0,20-s.semana)+' para el POZO dominical 💰')+'\n'+
     '💵 Ganado histórico: Q'+s.ganado+' ('+s.entregas+' entregas)\n'+
     '🤝 Comisiones liquidadas: Q'+s.comisiones+'\n'+
-    (s.pendiente?'💰 A liquidar este domingo: Q'+s.pendiente+'\n':'')+
+    (s.pendiente?'💰 A liquidar (ciclo 72h): Q'+s.pendiente+'\n':'')+
     'Seguí picando fuerte, el dragón va con vos 🔥';
   window.open('https://wa.me/'+tel+'?text='+encodeURIComponent(txt),'_blank');
 }

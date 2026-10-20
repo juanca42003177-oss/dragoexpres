@@ -1,4 +1,6 @@
 // DragoExpres — Pozo semanal de pilotos (Fase 2).
+// NOTA: la LIQUIDACIÓN de comisiones ya NO corre acá: corre cada 72h en api/ciclo.js.
+// Acá solo: reparto del pozo dominical, reset de rachas/boletos, suspensiones informativas.
 // Reglas: meta 20 entregas por piloto (lunes→domingo GT).
 // Pozo = 25% de las comisiones de la semana + acumulado de semanas sin ganador.
 // Reparto: domingo 20:00 GT, entre pilotos con meta cumplida, proporcional
@@ -71,7 +73,7 @@ async function estado() {
   const pilotos = Object.values(porPiloto).sort((a, b) => b.entregas - a.entregas);
   try {
     const fpl = await ghGet('pilots.json');
-    (fpl ? fpl.data : []).forEach(st => { const pp = porPiloto[st.tel]; if (pp) { pp.boletos = st.boletosExtra || 0; pp.compensa = st.compensaSemana || 0; } });
+    (fpl ? fpl.data : []).forEach(st => { const pp = porPiloto[st.tel]; if (pp) { pp.boletos = st.boletosExtra || 0; pp.compensa = st.compensa || 0; } });
   } catch (e) {}
   const califican = pilotos.filter(p => p.entregas >= META);
   const pozoSemana = dinero(comisiones * PCT_POZO);
@@ -105,19 +107,11 @@ module.exports = wrap(async (req, res) => {
     reparto.forEach(p => gana[p.tel] = p.monto);
     // pendientes de la semana pasada sin pagar → SUSPENSION automatica
     const fpr = await ghGet('pilots.json');
-    try { const arr2 = fpr ? fpr.data : []; let chg = false; arr2.forEach(x => { if (x.racha || x.boletosExtra || x.compensaSemana) { x.racha = 0; x.boletosExtra = 0; x.compensaSemana = 0; x.compensaN = 0; chg = true; } }); if (chg) await ghPut('pilots.json', fpr.sha, arr2, 'reset semanal de rachas y compensaciones'); } catch (e) {}
+    try { const arr2 = fpr ? fpr.data : []; let chg = false; arr2.forEach(x => { if (x.racha || x.boletosExtra) { x.racha = 0; x.boletosExtra = 0; chg = true; } }); if (chg) await ghPut('pilots.json', fpr.sha, arr2, 'reset semanal de rachas'); } catch (e) {}
     const fp = await ghGet('pilots.json');
     const parr = fp ? fp.data : [];
     const sancionados = [];
-    parr.forEach(x => { if (x.pendiente && !x.pendiente.pagado) { x.susp = true; sancionados.push(x.nombre || x.tel); } });
-    // nuevos pendientes de esta semana (comisiones − pozo ganado)
-    s.pilotos.forEach(p => {
-      let st = parr.find(x => x.tel === p.tel);
-      if (!st) { st = { tel: p.tel }; parr.push(st); }
-      const neto = dinero(p.comisiones - (gana[p.tel] || 0) - Math.min((p.compensa || 0), p.comisiones));
-      if (neto > 0) st.pendiente = { monto: dinero((st.pendiente && !st.pendiente.pagado ? st.pendiente.monto : 0) + neto), desde: g.toISOString().slice(0, 10) };
-    });
-    await ghPut('pilots.json', fp ? fp.sha : null, parr, 'liquidacion semanal pendientes');
+    parr.forEach(x => { if (x.pendiente && !x.pendiente.pagado) sancionados.push(x.nombre || x.tel); });
     const conEntregas = new Set(s.pilotos.map(p => p.tel));
     const compSinCobrar = (fpr ? fpr.data : []).filter(x => (x.compensaSemana || 0) > 0 && !conEntregas.has(x.tel)).map(x => `${x.tel} (Q${x.compensaSemana})`);
     const COMPTXT = compSinCobrar.length ? `\n\n⛽ Compensaciones de gasolina sin abonar (piloto sin comisiones esta semana, vos no pagas): ${compSinCobrar.join(', ')}` : '';
@@ -126,14 +120,15 @@ module.exports = wrap(async (req, res) => {
       pozo.acumulado = dinero((pozo.acumulado || 0) + s.pozoSemana);
       pozo.historial.push({ domingo: g.toISOString().slice(0, 10), monto: s.pozoSemana, reparto: [], nota: 'sin pilotos con meta, se acumula' });
       await ghPut('pozo.json', pz ? pz.sha : null, pozo, 'pozo: sin ganadores, acumula');
-      await aviso(`🏆 DRAGOEXPRES — RESUMEN SEMANAL\nNadie cumplió la meta de ${META} entregas 😢 el pozo de Q${s.pozoSemana} se ACUMULA.\n\n💰 LIQUIDACIÓN (cada piloto te transfiere su neto a tu Industrial 7171286805):\n${lineas(s, []) || 'Sin entregas esta semana'}${COMPTXT}${SANC}`);
+      await aviso(`🏆 DRAGOEXPRES — POZO SEMANAL\nNadie cumplió la meta de ${META} entregas 😢 el pozo de Q${s.pozoSemana} se ACUMULA para la próxima.\nLa liquidación de comisiones ya corre cada 72h (su propio aviso).${COMPTXT}${SANC}`);
       return res.status(200).json({ ok: true, acumulado: pozo.acumulado, liquidacion: lineas(s, []), sancionados });
     }
     pozo.historial.push({ domingo: g.toISOString().slice(0, 10), monto: s.total, reparto });
     pozo.acumulado = 0;
     await ghPut('pozo.json', pz ? pz.sha : null, pozo, 'pozo repartido');
     const LINEAS = lineas(s, reparto);
-    await aviso(`🏆 DRAGOEXPRES — RESUMEN SEMANAL 🐉\nPozo de la semana: Q${s.total} (25% de comisiones + acumulado)\n\n💰 LIQUIDACIÓN (cada piloto te transfiere su neto a tu Industrial 7171286805):\n${LINEAS}${SANC}\n\nSi el pozo ganado supera las comisiones de un piloto, ese poquito sí lo pagás vos. El resto llega solo.\nEl piloto que no liquida queda SUSPENDIDO el próximo domingo: no recibe pedidos hasta pagar.\nLas compensaciones ⛽ de viajes cancelados se descontaron de las comisiones de cada piloto (de sus propios viajes, no de tu bolsa).${COMPTXT}`);
+    const REPARTOTXT = reparto.length ? reparto.map(p => `• ${p.nombre}: Q${p.monto}`).join('\n') : '—';
+    await aviso(`🏆 DRAGOEXPRES — POZO SEMANAL 🐉\nPozo de la semana: Q${s.total} (25% de comisiones + acumulado)\nGanadores (pagás a mano, como los premios por volumen):\n${REPARTOTXT}\n\nLa liquidación de comisiones ya corre cada 72h en su propio aviso.\nEl piloto que no liquidó su ciclo queda SUSPENDIDO: no recibe pedidos hasta pagar (botón ✅ LIQUIDADO en tu panel).${SANC}`);
     return res.status(200).json({ ok: true, total: s.total, reparto, liquidacion: LINEAS, sancionados });
   }
 

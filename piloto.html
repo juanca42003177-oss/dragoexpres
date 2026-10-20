@@ -135,7 +135,7 @@ async function verBilletera(){
     '<div class="stat"><div class="n">Q'+j.comisiones+'</div><div class="l">COMISIONES PAGADAS</div></div>'+
     '<div class="stat"><div class="n">'+(j.calif?j.calif+'★':'—')+'</div><div class="l">ESTRELLAS</div></div></div>';
   h+='<div class="card"><div class="mini">🎯 POZO SEMANAL: '+j.meta.hechas+'/20 entregas'+(j.meta.faltan?' · te faltan '+j.meta.faltan+' para el pozo 💰':' · ¡META CUMPLIDA! 🐉')+'</div><div style="background:#2a2b38;border-radius:8px;height:8px;margin-top:6px"><div style="background:#f0b90b;height:8px;border-radius:8px;width:'+Math.min(100,j.meta.hechas*5)+'%"></div></div></div>';
-  if(j.pendiente)h+='<div class="card">💰 Debés <b>Q'+j.pendiente.monto+'</b> de comisiones — se paga el domingo</div>';
+  if(j.pendiente)h+='<div class="card">💰 Debés <b>Q'+j.pendiente.monto+'</b> de comisiones — se paga en la liquidación (cada 72h)</div>';
   if(j.historial&&j.historial.length){h+='<div class="card"><div class="mini">ÚLTIMOS VIAJES</div>'+j.historial.map(function(x){var f=new Date(x.ts-21600000).toISOString().slice(0,10);var ic={comida:'🍔',viaje:'🛺',repuesto:'🔧'}[x.tipo]||'📦';return '<div style="display:flex;justify-content:space-between;font-size:13px;margin:6px 0"><span>'+ic+' '+x.id+'</span><b style="color:#f0b90b">+Q'+x.ganado+'</b></div>'}).join('')+'</div>';}
   document.getElementById('billetera').innerHTML=h;
   }catch(e){document.getElementById('billetera').innerHTML='<div class="card">Revisá tu internet y volvé a abrir.</div>'}
@@ -171,7 +171,7 @@ function pintar(j){
   document.getElementById('p-nombre').textContent=p.nombre.split(' ')[0];
   var r=p.racha||0,bx=p.boletosExtra||0,cp=p.compensa||0;
   var st=document.createElement('div');st.style.cssText='color:#ffe08a;font-size:12.5px;font-weight:800;margin:2px 0';
-  st.textContent=(r>0?('🔥 Racha: '+r+' entrega'+(r>1?'s':'')+' seguida'+(r>1?'s':'')+(bx?' · 🎟️ '+bx+' boleto'+(bx>1?'s':'')+' extra al pozo':'')):'')+(cp>0?' ⛽ Q'+cp+' de gasolina por viajes cancelados (se te abona el domingo)':'');
+  st.textContent=(r>0?('🔥 Racha: '+r+' entrega'+(r>1?'s':'')+' seguida'+(r>1?'s':'')+(bx?' · 🎟️ '+bx+' boleto'+(bx>1?'s':'')+' extra al pozo':'')):'')+(cp>0?' ⛽ Q'+cp+' de gasolina por viajes cancelados (se abona en tu próxima liquidación, cada 72h)':'');
   var hn=document.getElementById('p-nombre');if(hn&&hn.parentNode&&!hn.dataset.r){hn.dataset.r=1;hn.parentNode.insertBefore(st,hn.nextSibling);}
   document.getElementById('p-zona').textContent='Zona: '+p.zona+' · '+(p.vehiculo||'—')+(p.marca?' '+p.marca:'')+(p.color?' · '+p.color:'')+(p.placa?' · '+String(p.placa).toUpperCase():'')+' · Piloto verificado ✅';
   document.getElementById('g-hoy').textContent='Q'+(p.ganadoHoy||0);
@@ -179,13 +179,13 @@ function pintar(j){
   document.getElementById('g-ped').textContent=p.pedidosHoy||0;
   document.getElementById('g-cal').textContent=p.calif?p.calif+'★':'—';
   var av=document.getElementById('deuda');
-  if(p.pendiente){av.style.display='block';av.innerHTML='💰 Debés <b>Q'+p.pendiente.monto+'</b> de comisiones de la semana. Transferí a la cuenta del banco (te la manda el admin por WhatsApp) el domingo y quedás al día.';}
+  if(p.pendiente){av.style.display='block';av.innerHTML='💰 Debés <b>Q'+p.pendiente.monto+'</b> de comisiones de la semana. Transferí a la cuenta del banco (te la manda el admin por WhatsApp) antes de la próxima liquidación y quedás al día.';}
   else{av.style.display='none'}
   var sw=document.getElementById('sw');sw.className='sw'+(p.disponible?' on':'');
   document.getElementById('dis-txt').textContent=p.disponible?'DISPONIBLE 🟢':'NO DISPONIBLE';
   var act=document.getElementById('pedidoActivo'),sin=document.getElementById('sinPedido');
   if(j.activo&&AID&&j.activo.id!==AID){alert('Tu pedido '+AID+' fue cancelado. No es tu culpa: tu racha sigue viva 🐉');AID=j.activo.id;}
-  if(!j.activo&&AID){alert('Tu pedido '+AID+' fue cancelado. Si ya ibas en camino, te acreditamos Q5 de gasolina (se te abonan el domingo junto a tu liquidación). 🐉');AID=null;}
+  if(!j.activo&&AID){alert('Tu pedido '+AID+' fue cancelado. Si ya ibas en camino, te acreditamos Q5 de gasolina (se te abona en tu próxima liquidación, cada 72h). 🐉');AID=null;}
   if(j.activo){if(j.activo.estado==='asignado'){if(!OF||OF.id!==j.activo.id){mostrarOferta(j.activo)}}else{cerrarOferta()}
   sin.style.display='none';act.style.display='block';var ci0=document.getElementById('chat-in');var cv0=ci0?ci0.value:'';var foc0=!!ci0&&document.activeElement===ci0;AID=j.activo.id;act.innerHTML=pedidoHTML(j.activo);var ci1=document.getElementById('chat-in');if(ci1){ci1.value=cv0;if(foc0)ci1.focus();}}
   else if(PCALIF){cerrarOferta();act.style.display='block';sin.style.display='none';act.innerHTML='<div class="pedido"><h3>¿Cómo estuvo el cliente? ⭐</h3><div class="mini">'+PCALIF.cliente+'</div><div id="cest" style="margin:10px 0">'+[1,2,3,4,5].map(function(n){return '<span style="font-size:30px;cursor:pointer;padding:2px" onclick="calificarCliente('+n+')">⭐</span>'}).join('')+'</div></div>';}

@@ -1,6 +1,32 @@
 {
   "headers": [
-    { "source": "/(.*)\\.html", "headers": [{ "key": "Cache-Control", "value": "no-cache, must-revalidate" }] },
-    { "source": "/", "headers": [{ "key": "Cache-Control", "value": "no-cache, must-revalidate" }] }
+    {
+      "source": "/(.*)\\.html",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "no-cache, must-revalidate"
+        }
+      ]
+    },
+    {
+      "source": "/",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "no-cache, must-revalidate"
+        }
+      ]
+    }
+  ],
+  "crons": [
+    {
+      "path": "/api/ciclo",
+      "schedule": "0 3 * * *"
+    },
+    {
+      "path": "/api/pozo",
+      "schedule": "0 2 * * 1"
+    }
   ]
 }
