@@ -71,7 +71,29 @@ module.exports = wrap(async (req, res) => {
       pedidos: porEstado,
       entregadosHoy: peds.filter(o => o.estado === 'entregado' && new Date((o.tsEntregado||0) - 21600000).toISOString().slice(0,10) === new Date(Date.now() - 21600000).toISOString().slice(0,10)).length,
       localesAprobados: regs.filter(r => r.tipo === 'local' && r.estado === 'aprobado').length,
-      pilotosAprobados: regs.filter(r => r.tipo === 'piloto' && r.estado === 'aprobado').length
+      pilotosAprobados: regs.filter(r => r.tipo === 'piloto' && r.estado === 'aprobado').length,
+      pilotosList: regs.filter(r => r.tipo === 'piloto' && r.estado === 'aprobado').map(r => {
+        const tel = String((r.datos || {}).tel || '').replace(/\D/g, '');
+        const st = arr.find(x => x.tel === tel) || {};
+        const mios = peds.filter(o => o.piloto && o.piloto.tel === tel);
+        const califs = mios.filter(o => o.califCliente > 0);
+        const calif = califs.length ? Math.round(califs.reduce((x, o) => x + o.califCliente, 0) / califs.length * 10) / 10 : null;
+        return { nombre: r.datos.nombre, tel, zona: r.datos.zona || '', disponible: !!st.disponible,
+          enRuta: mios.some(o => ['asignado', 'aceptado', 'en_camino'].includes(o.estado)),
+          calif, malas: califs.filter(o => o.califCliente <= 2).length,
+          entregasHoy: mios.filter(o => o.estado === 'entregado' && new Date((o.tsEntregado || 0) - 21600000).toISOString().slice(0, 10) === new Date(Date.now() - 21600000).toISOString().slice(0, 10)).length,
+          racha: st.racha || 0, deuda: (st.pendiente && !st.pendiente.pagado) ? st.pendiente.monto : 0 };
+      }),
+      localesList: regs.filter(r => r.tipo === 'local' && r.estado === 'aprobado').map(r => {
+        const tel = String((r.datos || {}).tel || '').replace(/\D/g, '');
+        const mios = peds.filter(o => o.local && o.local.tel === tel);
+        const entSem = mios.filter(o => o.estado === 'entregado' && (o.tsEntregado || 0) >= Date.now() - 7 * 86400000);
+        return { nombre: r.datos.nombre, tel, zona: r.datos.zona || '',
+          pedidosHoy: mios.filter(o => new Date((o.ts || 0) - 21600000).toISOString().slice(0, 10) === new Date(Date.now() - 21600000).toISOString().slice(0, 10)).length,
+          pedidosSemana: entSem.length, ventasSemana: Math.round(entSem.reduce((x, o) => x + (o.compra || 0), 0) * 10) / 10 };
+      }),
+      resenas: peds.filter(o => (o.califCliente > 0 && o.califCliente <= 2) || (o.califPiloto > 0 && o.califPiloto <= 2)).slice(-12).reverse()
+        .map(o => ({ id: o.id, cliente: (o.cliente || {}).nombre || '', piloto: (o.piloto || {}).nombre || '', califCliente: o.califCliente || 0, califPiloto: o.califPiloto || 0, detalle: String(o.detalle || '').slice(0, 60) }))
     } });
   }
   if (action === 'rachaOk') {
