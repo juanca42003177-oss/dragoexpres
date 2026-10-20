@@ -244,7 +244,9 @@ module.exports = wrap(async (req, res) => {
     if (!m) { m = { tel, items: [] }; arr.push(m); }
     if (action === 'menuAdd') {
       if (m.items.length >= 40) return res.status(200).json({ ok: false, error: 'Máximo 40 productos. Borrale alguno primero.' });
-      m.items.push({ id: String(now) + String(Math.floor(Math.random() * 90) + 10), nombre: String(b.nombre || '').trim().slice(0, 60), precio: dinero(b.precio || 0), foto: String(b.foto || '').slice(0, 300), agotado: false });
+      const CATS = ['Platos fuertes', 'Entradas', 'Bebidas', 'Postres', 'Combos', 'Repuestos', 'Otros'];
+      const categoria = CATS.includes(b.categoria) ? b.categoria : 'Otros';
+      m.items.push({ id: String(now) + String(Math.floor(Math.random() * 90) + 10), nombre: String(b.nombre || '').trim().slice(0, 60), desc: String(b.desc || '').trim().slice(0, 120), categoria, precio: dinero(b.precio || 0), foto: String(b.foto || '').slice(0, 300), agotado: false });
     }
     if (action === 'menuEdit') {
       const it = m.items.find(x => x.id === String(b.id || ''));
@@ -252,6 +254,8 @@ module.exports = wrap(async (req, res) => {
       if (b.agotado !== undefined) it.agotado = b.agotado === true || b.agotado === 'true';
       if (b.precio !== undefined) it.precio = dinero(b.precio);
       if (b.nombre !== undefined) it.nombre = String(b.nombre).trim().slice(0, 60);
+      if (b.desc !== undefined) it.desc = String(b.desc).trim().slice(0, 120);
+      if (b.categoria !== undefined && ['Platos fuertes', 'Entradas', 'Bebidas', 'Postres', 'Combos', 'Repuestos', 'Otros'].includes(b.categoria)) it.categoria = b.categoria;
     }
     if (action === 'menuDel') {
       m.items = m.items.filter(x => x.id !== String(b.id || ''));

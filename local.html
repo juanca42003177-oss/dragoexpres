@@ -51,12 +51,18 @@ label{font-size:12px;color:#9aa3b5;display:block;margin-top:10px}
     <div id="menuBox"></div>
     <div class="card">
       <b style="font-size:14px">Agregar producto</b>
-      <label>Nombre del producto</label><input id="m-nombre" placeholder="Ej: Pepián con arroz">
+      <label>Categoría</label>
+      <select id="m-cat" style="width:100%;background:#14151c;border:1px solid #2a2b38;border-radius:10px;color:#fff;padding:11px;font-size:15px;margin:5px 0">
+        <option>Platos fuertes</option><option>Entradas</option><option>Bebidas</option><option>Postres</option><option>Combos</option><option>Repuestos</option><option>Otros</option>
+      </select>
+      <label>Nombre del producto</label><input id="m-nombre" placeholder="Ej: Pepián">
+      <label>Descripción corta (opcional)</label><input id="m-desc" placeholder="Ej: con arroz, frijoles y 3 tortillas">
       <label>Precio (Q)</label><input id="m-precio" type="number" inputmode="decimal" placeholder="Ej: 35">
       <label>Foto del producto (opcional)</label>
       <input id="m-foto" type="file" accept="image/*" capture="environment" style="background:#0d0e14">
       <img id="m-preview" style="display:none;width:90px;height:90px;object-fit:cover;border-radius:10px;margin-top:6px;border:1px solid #2a2b38">
       <button class="btn bA" id="m-add" onclick="menuAdd()">➕ AGREGAR AL MENÚ</button>
+      <p class="mini" style="margin-top:10px"><b style="color:#ffe08a">📸 Tips para que tu foto venda (los usa PedidosYa):</b><br>• Un solo plato por foto, centrado y completo<br>• Fondo limpio: una mesa o paño liso<br>• Sin texto, precios ni marcas de agua encima<br>• Luz de ventana o de día, sin flash directo<br>• Que sea lo MISMO que le llega al cliente<br>• Primero fotografiá tus 10 más vendidos</p>
     </div>
     <h3 style="color:#f0b90b;margin:16px 0 4px;font-size:15px">Pedidos de tu local</h3>
     <div id="pedidos"></div>
@@ -68,16 +74,25 @@ var TEL=null,PAUSA=null,POLL=null;
 function api(fn){return (location.hostname.includes('vercel.app')?'/api':'https://dragoexpres.vercel.app/api')+'/'+fn}
 
 var MENU=[],FOTOB64='';
+var CATORD=['Platos fuertes','Combos','Entradas','Bebidas','Postres','Repuestos','Otros'];
+function itemRow(it){
+  return '<div style="display:flex;gap:10px;align-items:center;background:#14151c;border:1px solid #2a2b38;border-radius:12px;padding:8px;margin:8px 0">'+
+  (it.foto?'<img src="'+it.foto+'" style="width:58px;height:58px;object-fit:cover;border-radius:10px">':'<div style="width:58px;height:58px;border-radius:10px;background:#241a05;display:flex;align-items:center;justify-content:center;font-size:24px">🍽️</div>')+
+  '<div style="flex:1;min-width:0"><b style="font-size:13.5px">'+it.nombre+'</b><div class="mini">'+(it.desc?it.desc+' · ':'')+'Q'+it.precio+(it.agotado?' · <b style="color:#ff8f8f">AGOTADO</b>':'')+'</div></div>'+
+  '<button class="bMini" onclick="menuToggle(\''+it.id+'\')">'+(it.agotado?'Habilitar':'Agotar')+'</button>'+
+  '<button class="bMini bX" onclick="menuDel(\''+it.id+'\')">✕</button></div>';
+}
 function pintarMenu(){
   var h='';
   if(!MENU.length){h='<div class="mini" style="padding:8px 2px">Tu menú está vacío. Agregá tu primer producto abajo para que los clientes lo vean con foto y precio.</div>';}
-  else{h=MENU.map(function(it){
-    return '<div style="display:flex;gap:10px;align-items:center;background:#14151c;border:1px solid #2a2b38;border-radius:12px;padding:8px;margin:8px 0">'+
-    (it.foto?'<img src="'+it.foto+'" style="width:58px;height:58px;object-fit:cover;border-radius:10px">':'<div style="width:58px;height:58px;border-radius:10px;background:#241a05;display:flex;align-items:center;justify-content:center;font-size:24px">🍽️</div>')+
-    '<div style="flex:1;min-width:0"><b style="font-size:13.5px">'+it.nombre+'</b><div class="mini">Q'+it.precio+(it.agotado?' · <b style="color:#ff8f8f">AGOTADO</b>':'')+'</div></div>'+
-    '<button class="bMini" onclick="menuToggle(\''+it.id+'\')">'+(it.agotado?'Habilitar':'Agotar')+'</button>'+
-    '<button class="bMini bX" onclick="menuDel(\''+it.id+'\')">✕</button></div>';
-  }).join('')}
+  else{
+    var g={};MENU.forEach(function(it){var c=it.categoria||'Otros';(g[c]=g[c]||[]).push(it)});
+    var orden=CATORD.concat(Object.keys(g).filter(function(c){return CATORD.indexOf(c)<0}));
+    orden.forEach(function(c){
+      if(!g[c]||!g[c].length)return;
+      h+='<div style="font-weight:900;color:#f0b90b;font-size:13px;margin:14px 0 2px">'+c.toUpperCase()+'</div>'+g[c].map(itemRow).join('');
+    });
+  }
   document.getElementById('menuBox').innerHTML=h;
 }
 async function cargarMenu(){
@@ -102,7 +117,7 @@ function comprimirFoto(file,cb){
   rd.readAsDataURL(file);
 }
 async function menuAdd(){
-  var n=document.getElementById('m-nombre').value.trim(),p=parseFloat(document.getElementById('m-precio').value);
+  var n=document.getElementById('m-nombre').value.trim(),p=parseFloat(document.getElementById('m-precio').value);var cat=document.getElementById('m-cat').value,ds=document.getElementById('m-desc').value.trim();
   if(!n||!p){alert('Poné el nombre y el precio del producto.');return}
   var b=document.getElementById('m-add');b.disabled=true;b.textContent='Guardando...';
   var foto='';
@@ -110,12 +125,12 @@ async function menuAdd(){
     try{var r=await fetch(api('menuphoto'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({tel:TEL,b64:FOTOB64})});
     var j=await r.json();if(j.ok)foto=j.foto;else{b.disabled=false;b.textContent='➕ AGREGAR AL MENÚ';alert(j.error||'No se pudo subir la foto, probá sin foto.');return}}catch(e){}
   }
-  var r2=await fetch(api('orders'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'menuAdd',tel:TEL,nombre:n,precio:p,foto:foto})});
+  var r2=await fetch(api('orders'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'menuAdd',tel:TEL,nombre:n,desc:ds,categoria:cat,precio:p,foto:foto})});
   var j2=await r2.json();
   b.disabled=false;b.textContent='➕ AGREGAR AL MENÚ';
   if(!j2.ok){alert(j2.error);return}
   MENU=j2.items;pintarMenu();
-  document.getElementById('m-nombre').value='';document.getElementById('m-precio').value='';
+  document.getElementById('m-nombre').value='';document.getElementById('m-precio').value='';document.getElementById('m-desc').value='';
   document.getElementById('m-preview').style.display='none';FOTOB64='';
   document.getElementById('m-foto').value='';
 }

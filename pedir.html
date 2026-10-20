@@ -228,6 +228,12 @@ nav div.on{color:var(--rojo)}
   <button class="btn bA" style="background:#333;color:#fff;box-shadow:none" onclick="cerrarMenu()">Cerrar</button>
 </div>
 
+<!-- ============ FICHA DEL PRODUCTO ============ -->
+<div class="sheet" id="prodSheet" style="z-index:43">
+  <div class="asa" onclick="cerrarProd()"></div>
+  <div id="prodBody"></div>
+</div>
+
 <!-- ============ TRACKER ============ -->
 <div class="trk" id="trk">
   <div class="th"><b>🐉 Siguiendo tu pedido</b><div class="x" onclick="cerrarTrk()">✕</div></div>
@@ -368,13 +374,48 @@ async function verMenu(idx){
   var j=await r.json();var items=j.ok?j.items:[];
   if(!items.length){document.getElementById('menuLista').innerHTML='<p class="mini">Este local todavía no cargó su menú. Podés pedirle lo que querás escribiéndolo.</p><button class="btn bA" onclick="cerrarMenu();abrirPedidoLocal('+idx+')">Escribir mi pedido</button>';return}
   MENU_CACHE[idx]=items;
-  document.getElementById('menuLista').innerHTML=items.map(function(it,idx2){
-    return '<div class="loc" style="cursor:pointer'+(it.agotado?';opacity:.45':'')+'" onclick="'+(it.agotado?'':'pedirProducto('+idx+','+idx2+')')+'">'
-    +(it.foto?'<img src="'+it.foto+'" style="width:58px;height:58px;border-radius:12px;object-fit:cover;flex:none">':'<div class="avatar">🍽️</div>')
-    +'<div class="info"><b>'+it.nombre+'</b><span>'+(it.agotado?'<span class="chip" style="background:#fde3e3;color:#b02a2a">AGOTADO</span>':'Q'+it.precio+' · Tocá para pedir')+'</span></div>'
-    +(it.agotado?'':'<div style="font-weight:900;color:var(--rojo)">›</div>')+'</div>';
-  }).join('');
+  var g={};items.forEach(function(it){var c=it.categoria||'Otros';(g[c]=g[c]||[]).push(it)});
+  var orden=['Platos fuertes','Combos','Entradas','Bebidas','Postres','Repuestos','Otros'].concat(Object.keys(g).filter(function(c){return ['Platos fuertes','Combos','Entradas','Bebidas','Postres','Repuestos','Otros'].indexOf(c)<0}));
+  var pos={};var fila=0;items.forEach(function(it){pos[it.id]=fila++});
+  var h2='';
+  orden.forEach(function(c){
+    if(!g[c]||!g[c].length)return;
+    h2+='<div style="font-weight:900;font-size:13px;margin:16px 2px 6px;color:var(--tinta)">'+c.toUpperCase()+'</div>';
+    h2+=g[c].map(function(it){
+      var p=pos[it.id];
+      return '<div class="loc" style="cursor:pointer'+(it.agotado?';opacity:.45':'')+'" onclick="'+(it.agotado?'':'verProducto('+idx+',\''+it.id+'\')')+'">'
+      +(it.foto?'<img src="'+it.foto+'" style="width:64px;height:64px;border-radius:12px;object-fit:cover;flex:none">':'<div class="avatar">🍽️</div>')
+      +'<div class="info"><b>'+it.nombre+'</b><span>'+(it.desc?it.desc+'<br>':'')+(it.agotado?'<span class="chip" style="background:#fde3e3;color:#b02a2a">AGOTADO</span>':'<b style="color:var(--rojo)">Q'+it.precio+'</b> · Tocá para ver')+'</span></div>'
+      +(it.agotado?'':'<div style="font-weight:900;color:var(--rojo)">›</div>')+'</div>';
+    }).join('');
+  });
+  document.getElementById('menuLista').innerHTML=h2;
   }catch(e){document.getElementById('menuLista').innerHTML='<p class="mini">No pudimos cargar el menú. Revisá internet.</p>'}
+}
+
+function verProducto(idxLocal,idProd){
+  var it=(MENU_CACHE[idxLocal]||[]).find(function(x){return x.id===idProd});if(!it)return;
+  document.getElementById('prodBody').innerHTML=
+    (it.foto?'<img src="'+it.foto+'" style="width:100%;border-radius:16px;aspect-ratio:1;object-fit:cover;margin-bottom:12px">':'')
+    +'<h2 style="font-size:19px;margin:0 0 4px">'+it.nombre+'</h2>'
+    +'<p class="mini" style="margin:0 0 6px">'+(it.desc||'')+'</p>'
+    +'<div style="font-size:22px;font-weight:900;color:var(--rojo)">Q'+it.precio+'</div>'
+    +'<button class="btn bA" onclick="pedirProductoId('+idxLocal+',\''+idProd+'\')">🐉 PEDIR ESTE PRODUCTO</button>'
+    +'<button class="btn" style="background:#333;color:#fff;box-shadow:none" onclick="cerrarProd()">Volver al menú</button>';
+  document.getElementById('prodSheet').style.display='block';
+  document.getElementById('menuSheet').style.display='none';
+}
+function cerrarProd(){document.getElementById('prodSheet').style.display='none';document.getElementById('menuSheet').style.display='block'}
+function pedirProductoId(idxLocal,idProd){
+  var it=(MENU_CACHE[idxLocal]||[]).find(function(x){return x.id===idProd});if(!it)return;
+  document.getElementById('prodSheet').style.display='none';
+  document.getElementById('menuSheet').style.display='none';
+  abrirPedidoLocal(idxLocal);
+  setTimeout(function(){
+    var d=document.getElementById('f-det');
+    if(d)d.value=it.nombre+(it.desc?' ('+it.desc+')':'')+' — Q'+it.precio;
+    var c=document.getElementById('f-compra');if(c)c.value=it.precio;
+  },90);
 }
 function cerrarMenu(){document.getElementById('menuSheet').style.display='none';if(document.getElementById('sheet').style.display!=='block'){document.getElementById('veil').style.display='none'}}
 function pedirProducto(idxLocal,idxItem){
