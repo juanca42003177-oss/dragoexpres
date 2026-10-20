@@ -90,13 +90,13 @@ var OF=null,OFINT=null;
 function cerrarOferta(){document.getElementById('oferta').style.display='none';if(OFINT){clearInterval(OFINT);OFINT=null}OF=null}
 function mostrarOferta(o){
   OF=o;
-  var gan=o.envio-o.comision;
+  var gan=o.envio-o.comision+(o.propina||0);
   document.getElementById('ofData').innerHTML='<div class="pedido"><h3>'+({comida:'🍔 Comida',viaje:'🛺 Viaje',repuesto:'🔧 Repuesto'}[o.tipo]||'📦')+' · '+o.id+'</h3>'+
    '<div class="dato">🏪 '+(o.local?o.local.nombre:'Local del cliente')+'</div>'+
    '<div class="dato">👤 '+o.cliente.nombre+' · Zona '+o.zona+'</div>'+
    '<div class="dato">📍 '+o.cliente.direccion+'</div>'+
    '<div class="dato">📝 '+String(o.detalle).slice(0,120)+'</div>'+
-   '<div class="dato" style="font-size:15px">💰 GANÁS <b style="color:#f0b90b;font-size:19px">Q'+gan+'</b> (envío Q'+o.envio+' − comisión Q'+o.comision+')'+(o.compra?'<br>💵 El cliente te paga <b>Q'+(+o.compra+ +o.envio)+'</b> en efectivo (compra '+o.compra+' + envío '+o.envio+')':'')+'</div></div>';
+   '<div class="dato" style="font-size:15px">💰 GANÁS <b style="color:#f0b90b;font-size:19px">Q'+gan+'</b> (envío Q'+o.envio+' − comisión Q'+o.comision+')'+(o.compra?'<br>💵 El cliente te paga <b>Q'+(+o.compra+ +o.envio+ +(o.propina||0))+'</b> en efectivo (compra '+o.compra+' + envío '+o.envio+((o.propina||0)>0?' + propina '+o.propina:'')+')':'')+'</div></div>';
   document.getElementById('ofOk').onclick=function(){cerrarOferta();hacer('aceptar',o.id)};
   document.getElementById('oferta').style.display='block';
   var restante=Math.max(0,Math.round(30-(Date.now()-(o.tsAsignado||o.ts))/1000));
@@ -209,7 +209,7 @@ function pedidoHTML(o){
   '<div class="dato">📍 '+o.cliente.direccion+(o.cliente.referencia?'<br><span class="mini">'+o.cliente.referencia+'</span>':'')+'</div>'+
   '<div class="dato">📝 '+o.detalle+'</div>'+
   (o.compra?'<div class="dato">💵 Compra: <b>Q'+o.compra+'</b> (al local le pagás <b>Q'+(o.compra-(o.comisionLocal||0))+'</b>'+(o.comisionLocal?' · 5% promo de zona':'')+')</div>':'')+
-  '<div class="dato">🐉 Tu envío: <b style="color:#f0b90b">Q'+o.envio+'</b> (menos Q'+o.comision+' de comisión = <b>Q'+(o.envio-o.comision)+'</b> para vos)</div>'+
+  '<div class="dato">Tu envío: <b style="color:#f0b90b">Q'+o.envio+'</b> (menos Q'+o.comision+' de comisión = <b>Q'+(o.envio-o.comision)+'</b> para vos)'+((o.propina||0)>0?' · <b style="color:#f0b90b">+ Q'+o.propina+' de propina</b>':'')+'</div>'+
   '<div class="dato">⏱️ '+(o.prep?('El local confirmó: listo en ~'+o.prep.min+' min'):(o.local?'Esperando confirmación del local…':''))+'</div>'+
   '<a class="wa" href="'+wa+'" target="_blank">💬 Escribille al cliente</a>'+
   '<div style="margin-top:10px;border-top:1px solid #2a2b38;padding-top:8px"><div class="mini">💬 CHAT DEL PEDIDO (cliente y local)</div><div id="chat-list" style="max-height:140px;overflow-y:auto">'+chatHTML(o)+'</div>'+
@@ -219,7 +219,7 @@ function pedidoHTML(o){
  '<div style="display:flex;gap:6px;margin-top:6px"><input id="chat-in" placeholder="Escribí tu mensaje..." style="flex:1"><button class="btn bA" style="padding:9px 12px" onclick="enviarMsg()">➤</button></div></div>'+botones+'</div>';
 }
 function pedidoPequeno(o){
-  return '<div class="card" style="padding:10px;margin:8px 0"><b>'+({comida:'🍔',viaje:'🛺',repuesto:'🔧'}[o.tipo])+' '+o.id+'</b> · '+o.cliente.zona+'<div class="mini">'+String(o.detalle).slice(0,80)+' · Envío Q'+o.envio+'</div><button class="btn bV" style="margin-top:8px;padding:9px" onclick="hacer(\'aceptar\',\''+o.id+'\')">TOMARLO</button></div>';
+  return '<div class="card" style="padding:10px;margin:8px 0"><b>'+({comida:'🍔',viaje:'🛺',repuesto:'🔧'}[o.tipo])+' '+o.id+'</b> · '+o.cliente.zona+'<div class="mini">'+String(o.detalle).slice(0,80)+' · Envío Q'+o.envio+((o.propina||0)>0?' + propina Q'+o.propina:'')+'</div><button class="btn bV" style="margin-top:8px;padding:9px" onclick="hacer(\'aceptar\',\''+o.id+'\')">TOMARLO</button></div>';
 }
 async function hacer(accion,id){
   if(DEMO){alert('Vista previa: los cambios no se guardan.');return}

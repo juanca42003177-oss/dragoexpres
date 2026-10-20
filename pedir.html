@@ -26,12 +26,16 @@ body{margin:0;background:var(--fondo);color:var(--tinta);font-family:system-ui,-
 h2{font-size:17px;margin:2px 0 10px;font-weight:800}
 .sub{font-size:12.5px;color:var(--gris);margin:-6px 0 10px}
 /* banners */
-.banners{display:flex;gap:10px;overflow-x:auto;padding:0 16px;margin-top:-32px;position:relative;z-index:2;scrollbar-width:none}
+.banners{display:flex;gap:10px;overflow-x:auto;padding:0 16px;margin-top:-32px;position:relative;z-index:2;scrollbar-width:none;scroll-snap-type:x mandatory;scroll-padding-left:16px}
 .banners::-webkit-scrollbar{display:none}
-.bn{min-width:86%;border-radius:var(--borde);padding:16px 78px 16px 16px;color:#fff;position:relative;overflow:hidden;box-shadow:0 6px 16px rgba(0,0,0,.15);min-height:96px;display:flex;flex-direction:column;justify-content:center}
+.bn{min-width:100%;scroll-snap-align:start;border-radius:var(--borde);padding:16px 78px 16px 16px;color:#fff;position:relative;overflow:hidden;box-shadow:0 6px 16px rgba(0,0,0,.15);min-height:96px;display:flex;flex-direction:column;justify-content:center}
 .bn b{font-size:15.5px;display:block;line-height:1.25;margin-bottom:3px}
 .bn span:not(.em){font-size:12px;opacity:.95;line-height:1.35}
 .bn .em{position:absolute;right:12px;top:50%;transform:translateY(-50%);font-size:46px}
+.tarifa{background:#f6f6f8;border:1.5px dashed #c9c9d4;border-radius:10px;padding:11px 12px;font-weight:800;color:var(--tinta)}
+.chips{display:flex;gap:8px}
+.chip{flex:1;text-align:center;padding:10px 0;border-radius:10px;border:1.5px solid var(--linea);font-weight:700;cursor:pointer;background:var(--card)}
+.chip.on{background:var(--rojo);color:#fff;border-color:var(--rojo)}
 .bn .dimg{position:absolute;right:10px;top:50%;transform:translateY(-50%);width:76px;height:76px;object-fit:contain;border-radius:12px;filter:drop-shadow(0 4px 10px rgba(0,0,0,.35))}
 .bn1{background:linear-gradient(120deg,#d1121f,#7a0a12)}
 .bn2{background:linear-gradient(120deg,#b8860b,#6b4a00)}
@@ -117,7 +121,7 @@ nav div.on{color:var(--rojo)}
   </div>
   <div class="banners">
     <div class="bn bn1"><img class="dimg" src="img/dragon-paquete.webp" alt="Dragón DragoExpres"><b>Comida, viajes y repuestos a tu puerta</b><span>Pagás en efectivo al recibir.</span></div>
-    <div class="bn bn2"><span class="em">💰</span><b>El envío lo ponés vos</b><span>Ofrecé lo justo y el dragón vuela.</span></div>
+    <div class="bn bn2"><span class="em">💰</span><b>Envío con tarifa fija</b><span>Sin regatear. Le das propina al piloto solo si querés.</span></div>
   </div>
   <div class="sec">
     <h2>¿Qué querés hoy?</h2>
@@ -137,7 +141,7 @@ nav div.on{color:var(--rojo)}
     <div class="pasos">
       <div class="paso"><span class="n">1</span><b>Pedís</b>Elegí qué querés y pagás después</div>
       <div class="paso toca" onclick="abrirPedido('viaje')"><span class="n">2</span><b>Vuela el dragón</b>Un piloto de tu zona lo trae<br><span class="va">Tocá acá ›</span></div>
-      <div class="paso toca" onclick="abrirPedido('repuesto')"><span class="n">3</span><b>Pagás en efectivo</b>Al recibir: compra al local, envío al piloto<br><span class="va">Tocá acá ›</span></div>
+      <div class="paso toca" onclick="abrirPedido('repuesto')"><span class="n">3</span><b>Pagás en efectivo</b>Al recibir: compra al local + tarifa de envío. Propina solo si querés<br><span class="va">Tocá acá ›</span></div>
     </div>
     <button class="btn bA" style="margin:2px 0 8px" onclick="abrirPedido('comida')">HACER MI PRIMER PEDIDO</button>
   </div>
@@ -150,7 +154,7 @@ nav div.on{color:var(--rojo)}
     <div class="bn bn1" style="margin-bottom:12px;min-width:100%"><span class="em">📦</span><b>Tu primer envío, GRATIS</b><span>Registrate como usuario y volá con el dragón desde tu primer pedido.</span></div>
     <div class="pcard"><b>🏍️ Repartí con DragoExpres</b><p class="mini">Trabajá con tu bici, moto o carro en tu propia zona. Pagos semanales + pozo dominical para los que más entregan.</p><button class="btn bA" onclick="location.href='index.html'">Quiero ser piloto</button></div>
     <div class="pcard"><b>🏪 Poné tu local</b><p class="mini">Tu local visto por toda tu zona. Vos ponés precios y promos. Registro gratis y sin comisión los primeros meses.</p><button class="btn bA" onclick="location.href='index.html'">Registrar mi local</button></div>
-    <div class="pcard"><b>💵 Pagás en efectivo, sin vueltas</b><p class="mini">La compra se la pagás al piloto para el local, y el envío al piloto. Sin tarjeta, sin registro de pago.</p></div>
+    <div class="pcard"><b>💵 Pagás en efectivo, sin vueltas</b><p class="mini">La compra se la pagás al piloto para el local, más la tarifa de envío. La propina es aparte y solo si querés. Sin tarjeta, sin registro de pago.</p></div>
   </div>
 </div>
 
@@ -217,7 +221,7 @@ nav div.on{color:var(--rojo)}
   <input id="f-zona-libre" placeholder="Escribí tu zona o colonia" style="display:none">
   <div id="dirs-guardadas"></div>
   <div id="extra"></div>
-  <p class="mini" style="margin-top:12px">💵 <b>Pagás en efectivo al piloto</b>: la compra al local + el envío al piloto. Tarjeta: próximamente.</p>
+  <p class="mini" style="margin-top:12px">💵 <b>Pagás en efectivo al piloto</b>: la compra al local + la tarifa de envío. Propina voluntaria, aparte. Tarjeta: próximamente.</p>
   <button class="btn bA" onclick="enviar()">ENVIAR PEDIDO</button>
 </div>
 
@@ -463,17 +467,21 @@ function zonaValor(){
 function extra(){
   var h='';
   var pre=LOCAL_PRE?' (ej: de '+LOCAL_PRE+')':'';
-  if(TIPO==='comida')h='<label>Dirección de entrega</label><input id="f-dir" placeholder="Calle, número, colonia"><label>Referencia (opcional)</label><input id="f-ref" placeholder="Casa azul, portón negro..."><label>¿Qué querés y de dónde?'+pre+'</label><textarea id="f-det" placeholder="Ej: 2 pizzas grandes de la pizzería El Horno"></textarea><label>Precio estimado de tu orden (Q) — se lo pagás al local</label><input id="f-compra" type="number" inputmode="decimal" placeholder="Ej: 120"><label>Envío que ofrecés (Q)</label><input id="f-envio" type="number" inputmode="decimal" value="15">';
-  if(TIPO==='viaje')h='<label>Dirección de recogida</label><input id="f-dir" placeholder="¿De dónde te recogemos?"><label>Referencia (opcional)</label><input id="f-ref" placeholder="Frente al parque..."><label>¿A dónde vas?</label><textarea id="f-det" placeholder="Ej: De Mixco Centro a Oakland Mall"></textarea><label>Precio que ofrecés por el viaje (Q)</label><input id="f-envio" type="number" inputmode="decimal" value="25">';
-  if(TIPO==='repuesto')h='<label>Dirección de entrega</label><input id="f-dir" placeholder="Calle, número, colonia"><label>Referencia (opcional)</label><input id="f-ref" placeholder="Taller La Bendición..."><label>¿Qué repuesto necesitás y para qué vehículo?</label><textarea id="f-det" placeholder="Ej: Pastillas de freno para Honda Wave 110"></textarea><label>Precio estimado del repuesto (Q) — se lo pagás al local</label><input id="f-compra" type="number" inputmode="decimal" placeholder="Ej: 180"><label>Envío que ofrecés (Q)</label><input id="f-envio" type="number" inputmode="decimal" value="20">';
+  if(TIPO==='comida')h='<label>Dirección de entrega</label><input id="f-dir" placeholder="Calle, número, colonia"><label>Referencia (opcional)</label><input id="f-ref" placeholder="Casa azul, portón negro..."><label>¿Qué querés y de dónde?'+pre+'</label><textarea id="f-det" placeholder="Ej: 2 pizzas grandes de la pizzería El Horno"></textarea><label>Precio estimado de tu orden (Q) — se lo pagás al local</label><input id="f-compra" type="number" inputmode="decimal" placeholder="Ej: 120"><label>Envío (tarifa fija DragoExpres)</label><div class="tarifa" id="f-tarifa">Q20 · sin regatear</div>';
+  if(TIPO==='viaje')h='<label>Dirección de recogida</label><input id="f-dir" placeholder="¿De dónde te recogemos?"><label>Referencia (opcional)</label><input id="f-ref" placeholder="Frente al parque..."><label>¿A dónde vas?</label><textarea id="f-det" placeholder="Ej: De Mixco Centro a Oakland Mall"></textarea><label>Envío (tarifa fija DragoExpres)</label><div class="tarifa" id="f-tarifa">Q30 · sin regatear</div>';
+  if(TIPO==='repuesto')h='<label>Dirección de entrega</label><input id="f-dir" placeholder="Calle, número, colonia"><label>Referencia (opcional)</label><input id="f-ref" placeholder="Taller La Bendición..."><label>¿Qué repuesto necesitás y para qué vehículo?</label><textarea id="f-det" placeholder="Ej: Pastillas de freno para Honda Wave 110"></textarea><label>Precio estimado del repuesto (Q) — se lo pagás al local</label><input id="f-compra" type="number" inputmode="decimal" placeholder="Ej: 180"><label>Envío (tarifa fija DragoExpres)</label><div class="tarifa" id="f-tarifa">Q25 · sin regatear</div>';
+  h+='<label>Propina para el piloto (opcional)</label><div class="chips" id="f-propinas">'+[0,5,10,15].map(function(p){return '<div class="chip'+(p===0?' on':'')+'" onclick="elegirProp(this,'+p+')">Q'+p+'</div>'}).join('')+'</div><p class="mini" style="margin:4px 0 0">Como en las apps grandes: la propina es voluntaria. Con propina los pilotos suelen volar más rápido.</p>';
   document.getElementById('extra').innerHTML=h;
 }
-var ULT_TEL='';
+var ULT_TEL='',PROPINA=0;
+var TARIFA={comida:20,viaje:30,repuesto:25};
+function elegirProp(el,p){PROPINA=p;var t=document.querySelectorAll('#f-propinas .chip');for(var i=0;i<t.length;i++)t[i].classList.remove('on');el.classList.add('on');}
+
 async function enviar(){
   var v=function(id){var e=document.getElementById(id);return e?e.value.trim():''};
   var u=LS();
   var telCli=v('f-tel')||u.tel;MI_TEL=telCli;
-  var d={action:'crear',tipo:TIPO,local:(LOCAL_TEL?{nombre:LOCAL_PRE,tel:LOCAL_TEL}:undefined),nombre:v('f-nombre')||u.nombre,tel:telCli,zona:zonaValor(),direccion:v('f-dir'),referencia:v('f-ref'),detalle:v('f-det'),compra:v('f-compra')||0,envio:v('f-envio')||0};
+  var d={action:'crear',tipo:TIPO,local:(LOCAL_TEL?{nombre:LOCAL_PRE,tel:LOCAL_TEL}:undefined),nombre:v('f-nombre')||u.nombre,tel:telCli,zona:zonaValor(),direccion:v('f-dir'),referencia:v('f-ref'),detalle:v('f-det'),compra:v('f-compra')||0,envio:TARIFA[TIPO]||20,propina:PROPINA};
   if(!d.nombre||!d.tel||!d.zona||!d.direccion||!d.detalle){alert('Completá tu nombre, WhatsApp, zona, dirección y qué pedís.');return}
   // guardar perfil para la proxima
   u.nombre=d.nombre;u.tel=d.tel;u.zona=d.zona;u.dires=u.dires||[];
@@ -520,7 +528,7 @@ async function actualizar(){
   if(o.estado==='buscando'){e.className='st sBus';e.textContent='Buscando piloto...';i.textContent='Encontrando al piloto disponible de tu zona'}
   if(o.estado==='asignado'){e.className='st sAsig';e.textContent='Piloto asignado';i.textContent=o.piloto.nombre+' va a aceptar tu pedido'}
   if(o.estado==='aceptado'){e.className='st sAce';e.textContent='Aceptado ✅';i.textContent=o.piloto.nombre+' aceptó tu pedido'}
-  if(o.estado==='en_camino'){e.className='st sCam';e.textContent='En camino 🛺';i.textContent=o.piloto.nombre+' va en camino. Tenés el efectivo listo: Q'+o.compra+' (compra) + Q'+o.envio+' (envío)'}
+  if(o.estado==='en_camino'){e.className='st sCam';e.textContent='En camino 🛺';i.textContent=o.piloto.nombre+' va en camino. Tenés el efectivo listo: Q'+o.compra+' (compra) + Q'+o.envio+' (envío)'+((o.propina||0)>0?' + Q'+o.propina+' propina':'')}
   if(o.estado==='entregado'){e.className='st sEnt';e.textContent='Entregado ✅';i.textContent='¡Listo! El dragón entregó tu pedido'}
   if(o.prep&&['asignado','aceptado','en_camino'].includes(o.estado)){i.textContent=i.textContent+' — El local confirmó: listo en ~'+o.prep.min+' min ⏱️'}
   else if(o.local&&!o.prep&&['asignado','aceptado'].includes(o.estado)){i.textContent=i.textContent+' — Esperando que '+o.local.nombre+' confirme tu orden…'}
@@ -592,10 +600,10 @@ async function cargarMisPedidos(){
     var act=['buscando','asignado','aceptado','en_camino'].includes(o.estado);
     var h='<div class="ped"><div class="top">'+(IC[o.tipo]||'📦')+' <b style="color:var(--tinta)">'+(EMA[o.estado]||o.estado)+'</b><span class="st '+(CLS[o.estado]||'sBus')+'">'+(EMA[o.estado]||o.estado)+'</span><span class="fecha" style="margin-left:auto">'+fecha+'</span></div>';
     h+='<b class="det">'+String(o.detalle||'').slice(0,80)+'</b>';
-    h+='<p class="mini" style="margin:2px 0 0">Total: Q'+(+o.compra+ +o.envio)+' (compra Q'+o.compra+' + envío Q'+o.envio+')</p>';
+    h+='<p class="mini" style="margin:2px 0 0">Total: Q'+(+o.compra+ +o.envio+ +(o.propina||0))+' (compra Q'+o.compra+' + envío Q'+o.envio+((o.propina||0)>0?' + propina Q'+o.propina:'')+')</p>';
     h+='<div class="fila">';
     if(act)h+='<button class="btnS" onclick="seguirTrk(\''+o.id+'\',\''+u.tel+'\')">Seguir</button>';
-    h+='<button class="btnW" onclick="repetir(\''+encodeURIComponent(JSON.stringify({tipo:o.tipo,detalle:o.detalle,direccion:o.direccion,compra:o.compra,envio:o.envio})).replace(/'/g,'%27')+'\')">Repetir</button>';
+    h+='<button class="btnW" onclick="repetir(\''+encodeURIComponent(JSON.stringify({tipo:o.tipo,detalle:o.detalle,direccion:o.direccion,compra:o.compra})).replace(/'/g,'%27')+'\')">Repetir</button>';
     if(o.estado==='entregado'&&!o.califCliente)h+='<button class="btnW" onclick="seguirTrk(\''+o.id+'\',\''+u.tel+'\')">Calificar ⭐</button>';
     h+='</div></div>';
     return h;
@@ -616,7 +624,7 @@ function repetir(j){
     document.getElementById('f-det').value=o.detalle||'';
     document.getElementById('f-dir').value=o.direccion||'';
     var c=document.getElementById('f-compra');if(c)c.value=o.compra||'';
-    var en=document.getElementById('f-envio');if(en)en.value=o.envio||'';
+    var en=document.getElementById('f-envio');
   },80);
 }
 
