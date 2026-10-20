@@ -362,7 +362,8 @@ input,textarea,select{-webkit-user-select:text;user-select:text}
     <button class="back" onclick="onbGo(1)">‹</button>
     <h2 class="ob">Ingresa tu celular</h2>
     <p class="obs" style="margin-bottom:8px">Número de celular</p>
-    <div class="telBox"><span style="font-size:19px">🇬🇹</span><b>+502</b><span style="width:1.5px;height:22px;background:#ddd"></span><input id="onb-tel" type="tel" inputmode="numeric" placeholder="Ej: 5550 1234"></div>
+    <div class="telBox"><span style="font-size:19px" id="onb-flag">🇬🇹</span><b id="onb-code" style="cursor:pointer" onclick="verPaises()">+502 ▾</b><span style="width:1.5px;height:22px;background:#ddd"></span><input id="onb-tel" type="tel" inputmode="numeric" placeholder="Ej: 5550 1234"></div>
+    <div id="onbPaises" style="display:none;border:1px solid #ddd;border-radius:12px;background:#fff;margin-top:8px;max-height:190px;overflow-y:auto"></div>
     <p class="obs" style="margin:18px 0 8px">¿Cómo te llamás?</p>
     <div class="telBox" style="border-color:#ccc"><input id="onb-nom" placeholder="Ej: María López"></div>
     <button class="lB" onclick="onbCel()">Continuar</button>
@@ -385,7 +386,8 @@ input,textarea,select{-webkit-user-select:text;user-select:text}
     <div class="dirRow" onclick="onbUbicacion()"><span style="font-size:20px">🎯</span><div><b>Usar mi ubicación actual</b><span>El dragón detecta tu dirección por GPS</span></div></div>
     <div id="onb-saved"></div>
     <p class="obs" style="margin:14px 0 6px">Tu zona (para asignar el piloto más cercano)</p>
-    <div class="srch" style="background:#fff;border:1.5px solid #ccc"><select id="onb-zona" style="border:0;background:none;outline:0;flex:1;font-size:15px"><option>Cargando zonas...</option></select></div>
+    <div class="srch" style="background:#fff;border:1.5px solid #ccc"><select id="onb-zona" onchange="onbZonaCambia()" style="border:0;background:none;outline:0;flex:1;font-size:15px"><option>Cargando zonas...</option></select></div>
+    <input id="onb-zona-libre" placeholder="Escribí tu zona, pueblo o colonia" style="display:none;margin-top:8px;width:100%;box-sizing:border-box;border:1.5px solid #ccc;border-radius:12px;padding:12px;font-size:14.5px">
     <button class="lB" onclick="onbFin(false)">Guardar y entrar</button>
   </div>
 </div>
@@ -397,8 +399,9 @@ input,textarea,select{-webkit-user-select:text;user-select:text}
   <div class="srch" style="margin-top:10px"><input id="shDir-nueva" placeholder="Nueva dirección o punto de referencia"><button style="background:var(--oro);border:0;border-radius:10px;padding:8px 12px;font-weight:900;cursor:pointer" onclick="shDirAdd()">Guardar</button></div>
   <div style="display:flex;gap:8px;margin-top:10px">
     <select id="shDir-label" style="flex:1;border:1.5px solid #ccc;border-radius:10px;padding:9px;font-size:13.5px;background:#fff"><option>Casa</option><option>Trabajo</option><option>Otro</option></select>
-    <select id="shDir-zona" style="flex:1;border:1.5px solid #ccc;border-radius:10px;padding:9px;font-size:13.5px;background:#fff"><option value="">Zona...</option></select>
+    <select id="shDir-zona" onchange="shDirZonaCambia()" style="flex:1;border:1.5px solid #ccc;border-radius:10px;padding:9px;font-size:13.5px;background:#fff"><option value="">Zona...</option></select>
   </div>
+  <input id="shDir-zona-libre" placeholder="Escribí tu zona o colonia" style="display:none;width:100%;box-sizing:border-box;border:1.5px solid #ccc;border-radius:10px;padding:9px;font-size:13.5px;margin-top:8px">
   <button class="lG" style="margin-top:10px" onclick="cerrarSheets()">Listo</button>
 </div></div>
 
@@ -410,13 +413,41 @@ input,textarea,select{-webkit-user-select:text;user-select:text}
 </div></div>
 
 <script>
+/* ---------- paises (internacional) ---------- */
+var PAISES=[
+ {n:'Guatemala',f:'🇬🇹',cc:'502',ei:'Ej: 5550 1234'},
+ {n:'El Salvador',f:'🇸🇻',cc:'503',ei:'Ej: 7000 1234'},
+ {n:'Honduras',f:'🇭🇳',cc:'504',ei:'Ej: 9000 1234'},
+ {n:'Nicaragua',f:'🇳🇮',cc:'505',ei:'Ej: 8000 1234'},
+ {n:'Costa Rica',f:'🇨🇷',cc:'506',ei:'Ej: 8000 1234'},
+ {n:'Panamá',f:'🇵🇦',cc:'507',ei:'Ej: 6000 1234'},
+ {n:'México',f:'🇲🇽',cc:'52',ei:'Ej: 55 1234 5678'},
+ {n:'Estados Unidos',f:'🇺🇸',cc:'1',ei:'Ej: (555) 123-4567'},
+ {n:'Colombia',f:'🇨🇴',cc:'57',ei:'Ej: 300 123 4567'},
+ {n:'Argentina',f:'🇦🇷',cc:'54',ei:'Ej: 11 2345 6789'},
+ {n:'Chile',f:'🇨🇱',cc:'56',ei:'Ej: 9 1234 5678'},
+ {n:'Perú',f:'🇵🇪',cc:'51',ei:'Ej: 987 654 321'},
+ {n:'España',f:'🇪🇸',cc:'34',ei:'Ej: 600 123 456'}
+];
+var PAIS_ACT=PAISES[0];
+function verPaises(){
+  var m=document.getElementById('onbPaises');
+  if(m.style.display==='none'){
+    m.innerHTML='<b style="display:block;padding:10px 12px;border-bottom:1px solid #eee">Elegir país</b>'+PAISES.map(function(p,i){return '<div style="display:flex;justify-content:space-between;padding:11px 12px;cursor:pointer;border-bottom:1px solid #f5f5f5" onclick="elegirPais('+i+')"><span>'+p.f+' &nbsp;'+p.n+'</span><b>+'+p.cc+'</b></div>'}).join('');
+    m.style.display='block';
+  }else{m.style.display='none'}
+}
+function elegirPais(i){PAIS_ACT=PAISES[i];document.getElementById('onb-flag').textContent=PAIS_ACT.f;document.getElementById('onb-code').textContent='+'+PAIS_ACT.cc+' ▾';document.getElementById('onb-tel').placeholder=PAIS_ACT.ei;document.getElementById('onbPaises').style.display='none'}
+function waPais(u){return (u&&u.pais?String(u.pais).replace(/\D/g,''):'502')}
+function waTel(t,u){t=String(t||'').replace(/\D/g,'');var cc=waPais(u);if(t.indexOf(cc)===0)return t;return cc+t}
+
 /* ---------- onboarding estilo grande ---------- */
 function onbGo(n){for(var i=1;i<=4;i++)document.getElementById('onb'+i).className='paso'+(i===n?' on':'');window.scrollTo(0,0);if(n===4)onbZonas()}
 function onbCel(){
   var tel=document.getElementById('onb-tel').value.replace(/\D/g,''),nom=document.getElementById('onb-nom').value.trim();
-  if(!tel||tel.length<8){alert('Poné tu número de celular con 8 dígitos.');return}
+  if(!tel||tel.length<7){alert('Poné tu número de celular.');return}
   if(!nom){alert('Poné tu nombre para que el piloto te reconozca.');return}
-  var u=LS();u.tel=tel;u.nombre=nom;SS(u);onbGo(3);
+  var u=LS();u.tel=tel;u.nombre=nom;u.pais=PAIS_ACT.cc;SS(u);onbGo(3);
 }
 function onbGps(){
   if(!navigator.geolocation){onbGo(4);return}
@@ -430,20 +461,23 @@ function onbUbicacion(){
 }
 function onbZonas(){
   var z=document.getElementById('onb-zona');
-  pintarZonasSel(z,ZONAS,false);
+  pintarZonasSel(z,ZONAS,true);
   z.insertAdjacentHTML('afterbegin','<option value="">Elegí tu zona</option>');
   var u=LS();
   if(u.zona){for(var i=0;i<z.options.length;i++){if(z.options[i].value===u.zona){z.value=u.zona;break}}}
   var sv=document.getElementById('onb-saved'),h='';(u.dires||[]).forEach(function(d,i){h+='<div class="dirRow" onclick="onbElegirDir('+i+')"><span style="font-size:20px">⭐</span><div><b>'+d.label+'</b><span>'+d.dir+'</span></div></div>'});
   sv.innerHTML=h;
 }
+function onbZonaCambia(){var z=document.getElementById('onb-zona'),lib=document.getElementById('onb-zona-libre');lib.style.display=(z.value==='__otra')?'block':'none'}
 function onbElegirDir(i){var u=LS();var d=(u.dires||[])[i];if(d){u.dire=d.dir;SS(u);document.getElementById('onb-dir').value=d.dir;var z=document.getElementById('onb-zona');if(u.zona)z.value=u.zona;}}
 function onbFin(guest){
   var u=LS();
   if(!guest){
     var dir=document.getElementById('onb-dir').value.trim();
     if(!dir){alert('Poné una dirección o tocá "Usar mi ubicación actual".');return}
-    var z=document.getElementById('onb-zona').value||u.zona||'';
+    var z=document.getElementById('onb-zona').value;
+    if(z==='__otra')z=document.getElementById('onb-zona-libre').value.trim();
+    if(!z)z=u.zona||'';
     u.dire=dir;u.zona=z;u.dires=u.dires||[];var ya=u.dires.some(function(d){return d.dir===dir});
     if(!ya)u.dires.unshift({label:'Casa',dir:dir});
   }else{u.guest=true}
@@ -464,13 +498,15 @@ function abrirDirecciones(){
   (u.dires||[]).forEach(function(d,i){h+='<div class="dirRow" onclick="shDirUse('+i+')"><span style="font-size:20px">'+(d.label==='Casa'?'🏠':d.label==='Trabajo'?'🏢':'⭐')+'</span><div style="flex:1"><b>'+d.label+'</b><span>'+d.dir+'</span></div>'+(u.dire===d.dir?'<span style="color:var(--ok);font-weight:900">✓</span>':'')+'</div>'});
   l.innerHTML=h||'<p class="mini">Todavía no tenés direcciones guardadas. Agregá la primera abajo.</p>';
   var zz=document.getElementById('shDir-zona');
-  if(zz.options.length<=1){pintarZonasSel(zz,ZONAS,false);zz.insertAdjacentHTML('afterbegin','<option value="">Zona...</option>');zz.value='';if(u.zona){for(var i=0;i<zz.options.length;i++){if(zz.options[i].value===u.zona){zz.value=u.zona;break}}}}
+  if(zz.options.length<=1){pintarZonasSel(zz,ZONAS,true);zz.insertAdjacentHTML('afterbegin','<option value="">Zona...</option>');zz.value='';if(u.zona){for(var i=0;i<zz.options.length;i++){if(zz.options[i].value===u.zona){zz.value=u.zona;break}}}}
   document.getElementById('shDir').className='sheet on';
 }
+function shDirZonaCambia(){var z=document.getElementById('shDir-zona'),lib=document.getElementById('shDir-zona-libre');lib.style.display=(z.value==='__otra')?'block':'none'}
 function shDirUse(i){var u=LS();var d=u.dires[i];u.dire=d.dir;SS(u);pintarDirHeader();cerrarSheets()}
 function shDirAdd(){
   var nd=document.getElementById('shDir-nueva').value.trim();if(!nd){alert('Escribí la dirección.');return}
   var u=LS();u.dires=u.dires||[];var lb=document.getElementById('shDir-label').value,z=document.getElementById('shDir-zona').value;
+  if(z==='__otra')z=document.getElementById('shDir-zona-libre').value.trim();
   u.dires.unshift({label:lb,dir:nd});u.dire=nd;if(z)u.zona=z;SS(u);document.getElementById('shDir-nueva').value='';
   pintarDirHeader();abrirDirecciones();
 }
@@ -499,7 +535,7 @@ function api(fn){return (location.hostname.includes('vercel.app')?'/api':'https:
 var ZGT=[
  {g:'Ciudad de Guatemala',z:['Zona 1','Zona 2','Zona 3','Zona 4','Zona 5','Zona 6','Zona 7','Zona 8','Zona 9','Zona 10','Zona 11','Zona 12','Zona 13','Zona 14','Zona 15','Zona 16','Zona 17','Zona 18','Zona 19','Zona 20','Zona 21','Zona 22','Zona 23','Zona 24','Zona 25']},
  {g:'Área metropolitana',z:['Mixco','Villa Nueva','Villa Canales','Chinautla','San Miguel Petapa','Amatitlán','Fraijanes','Palencia','San José Pinula','San Juan Sacatepéquez','San Pedro Ayampuc','San Raymundo','San José El Golfo','Petapa']},
- {g:'Occidente',z:['Antigua Guatemala','Chimaltenango','San Lucas Sacatepéquez','Escuintla','Santa Lucía Cotzumalguapa','Puerto San José','Mazatenango','Retalhuleu','Quetzaltenango','Coatepeque','Totonicapán','Huehuetenango','San Marcos']},
+ {g:'Occidente',z:['Antigua Guatemala','Chimaltenango','San Lucas Sacatepéquez','Escuintla','Santa Lucía Cotzumalguapa','Puerto San José','La Gomera','Sipacate','Tiquisate','Mazatenango','Retalhuleu','Quetzaltenango','Coatepeque','Totonicapán','Sololá','Panajachel','Nebaj','Santa Cruz del Quiché','Huehuetenango','San Marcos']},
  {g:'Norte y Oriente',z:['Salamá','Cobán','Flores','San Benito','Poptún','Puerto Barrios','Los Amates','Morales','Zacapa','Chiquimula','Esquipulas','Jalapa','Monjas','Jutiapa','Chiquimulilla','Cuilapa','Guastatoya','Sanarate','El Progreso','Sansare']}
 ];
 function pintarZonasSel(sel,zonasActivas,conOtra){
@@ -558,7 +594,7 @@ function pintarLocales(){
   if(!loc.length){h='<div class="empty">Aún no hay locales mostrándose acá.<br><b>Recomendá tu local favorito</b> para que se registre<br><br><button class="btn bA" style="width:auto;padding:11px 18px;display:inline-block" onclick="location.href=\'index.html\'">Recomendar un local</button></div>';}
   loc.forEach(function(l,idx){
     var ini=(l.nombre||'?').trim().charAt(0).toUpperCase();
-    var wa='https://wa.me/502'+String(l.tel).replace(/\D/g,'').replace(/^502/,'');
+    var u0=LS();var wa='https://wa.me/'+waTel(l.tel,u0);
     var cerrado=l.abierto===false;
     var pausado=l.pausado?true:false;
     h+='<div class="loc"'+((cerrado||pausado)?' style="opacity:0.55"':'')+'><div class="avatar">'+(l.fotoLocal?'<img src="'+l.fotoLocal+'" style="width:100%;height:100%;object-fit:cover;border-radius:50%">':ini)+'</div>'
@@ -860,7 +896,7 @@ async function actualizar(){
     vb.innerHTML='<div style="font-size:11px;font-weight:800;color:#9a7b00;margin-bottom:4px">TU PILOTO VIENE EN</div><div style="font-size:15px;font-weight:900;color:#1a1a22">'+tv+(o.piloto.marca?' '+o.piloto.marca:'')+(o.piloto.color?' · '+o.piloto.color:'')+'</div>'+(o.piloto.placa?'<div style="display:inline-block;margin-top:6px;background:#fff;border:2px solid #1a1a22;border-radius:6px;padding:2px 12px;font-weight:900;letter-spacing:2px;font-size:15px">'+String(o.piloto.placa).toUpperCase()+'</div>':'');
   }else{vb.style.display='none'}
   var wa=document.getElementById('owa');
-  if(o.piloto){wa.style.display='block';wa.href='https://wa.me/502'+String(o.piloto.tel).replace(/\D/g,'').replace(/^502/,'')+'?text='+encodeURIComponent('Hola '+o.piloto.nombre+', soy '+o.cliente.nombre+', del pedido '+o.id+' de DragoExpres.')}
+  if(o.piloto){var uW=LS();wa.style.display='block';wa.href='https://wa.me/'+waTel(o.piloto.tel,uW)+'?text='+encodeURIComponent('Hola '+o.piloto.nombre+', soy '+o.cliente.nombre+', del pedido '+o.id+' de DragoExpres.')}
   var cb=document.getElementById('chatBox');
   if(o.piloto&&!['entregado','cancelado'].includes(o.estado)){
     cb.style.display='block';
