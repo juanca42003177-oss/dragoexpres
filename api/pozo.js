@@ -44,9 +44,11 @@ function lineas(s, reparto) {
   (reparto||[]).forEach(p => gana[p.tel] = p.monto);
   return s.pilotos.map(p => {
     const pozoG = gana[p.tel] || 0;
-    const neto = dinero(p.comisiones - pozoG);
-    if (neto >= 0) return `• ${p.nombre} (${p.tel}): ${p.entregas} entregas · comisiones Q${p.comisiones}${pozoG ? ' − pozo Q' + pozoG : ''} → TE TRANSFIERE Q${neto}`;
-    return `• ${p.nombre} (${p.tel}): ${p.entregas} entregas · comisiones Q${p.comisiones} − pozo Q${pozoG} → LE PAGÁS VOS Q${-neto}`;
+    const comp = Math.min((p.compensa || 0), p.comisiones);
+    const neto = dinero(p.comisiones - pozoG - comp);
+    const compTxt = comp ? ' − ⛽ comp Q' + comp : '';
+    if (neto >= 0) return `• ${p.nombre} (${p.tel}): ${p.entregas} entregas · comisiones Q${p.comisiones}${pozoG ? ' − pozo Q' + pozoG : ''}${compTxt} → TE TRANSFIERE Q${neto}`;
+    return `• ${p.nombre} (${p.tel}): ${p.entregas} entregas · comisiones Q${p.comisiones} − pozo Q${pozoG}${compTxt} → LE PAGÁS VOS Q${-neto}`;
   }).join('\n');
 }
 async function estado() {
@@ -69,7 +71,7 @@ async function estado() {
   const pilotos = Object.values(porPiloto).sort((a, b) => b.entregas - a.entregas);
   try {
     const fpl = await ghGet('pilots.json');
-    (fpl ? fpl.data : []).forEach(st => { const pp = porPiloto[st.tel]; if (pp) pp.boletos = st.boletosExtra || 0; });
+    (fpl ? fpl.data : []).forEach(st => { const pp = porPiloto[st.tel]; if (pp) { pp.boletos = st.boletosExtra || 0; pp.compensa = st.compensaSemana || 0; } });
   } catch (e) {}
   const califican = pilotos.filter(p => p.entregas >= META);
   const pozoSemana = dinero(comisiones * PCT_POZO);
@@ -103,7 +105,7 @@ module.exports = wrap(async (req, res) => {
     reparto.forEach(p => gana[p.tel] = p.monto);
     // pendientes de la semana pasada sin pagar → SUSPENSION automatica
     const fpr = await ghGet('pilots.json');
-    try { const arr2 = fpr ? fpr.data : []; let chg = false; arr2.forEach(x => { if (x.racha || x.boletosExtra) { x.racha = 0; x.boletosExtra = 0; chg = true; } }); if (chg) await ghPut('pilots.json', fpr.sha, arr2, 'reset semanal de rachas'); } catch (e) {}
+    try { const arr2 = fpr ? fpr.data : []; let chg = false; arr2.forEach(x => { if (x.racha || x.boletosExtra || x.compensaSemana) { x.racha = 0; x.boletosExtra = 0; x.compensaSemana = 0; x.compensaN = 0; chg = true; } }); if (chg) await ghPut('pilots.json', fpr.sha, arr2, 'reset semanal de rachas y compensaciones'); } catch (e) {}
     const fp = await ghGet('pilots.json');
     const parr = fp ? fp.data : [];
     const sancionados = [];
@@ -112,7 +114,7 @@ module.exports = wrap(async (req, res) => {
     s.pilotos.forEach(p => {
       let st = parr.find(x => x.tel === p.tel);
       if (!st) { st = { tel: p.tel }; parr.push(st); }
-      const neto = dinero(p.comisiones - (gana[p.tel] || 0));
+      const neto = dinero(p.comisiones - (gana[p.tel] || 0) - Math.min((p.compensa || 0), p.comisiones));
       if (neto > 0) st.pendiente = { monto: dinero((st.pendiente && !st.pendiente.pagado ? st.pendiente.monto : 0) + neto), desde: g.toISOString().slice(0, 10) };
     });
     await ghPut('pilots.json', fp ? fp.sha : null, parr, 'liquidacion semanal pendientes');
