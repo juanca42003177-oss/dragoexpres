@@ -81,13 +81,18 @@ module.exports = wrap(async (req, res) => {
     const selfOk = Array.isArray(d.docs) && d.docs.some(y => y.tipo === 'selfie');
     checks.push({ k: 'SELFIE', ok: selfOk, txt: selfOk ? 'Selfie de verificación recibida' : 'Sin selfie' });
   }
-  const estadoReg = d.tipo === 'usuario' ? 'aprobado' : 'pendiente_verificacion';
+  // AUTO-APROBACION estilo apps grandes: si TODO pasa la verificacion automatica, entra ya.
+  // Solo cae al admin lo raro: licencia en tramite (pide su OK) o checks fallidos.
+  const tieneLic = Array.isArray(d.docs) && d.docs.some(y => y.tipo === 'licencia');
+  const pideOkManual = d.tipo === 'piloto' && d.vehiculo !== 'bicicleta' && d.licenciaEnTramite === true && !tieneLic;
+  const todoOk = checks.every(c => c.ok) && !pideOkManual;
+  const estadoReg = d.tipo === 'usuario' ? 'aprobado' : (todoOk ? 'aprobado' : 'pendiente_verificacion');
   const firmaContrato = (d.tipo === 'piloto' || d.tipo === 'local') && d.contrato
     ? { version: 'C-2026.5', aceptado: true, tsFirma: now, ip: (req.headers && (req.headers['x-forwarded-for'] || req.headers['x-real-ip'])) || null }
     : null;
-  data.push({ tipo: d.tipo, datos: d, estado: estadoReg, checks, ts: now, firmaContrato });
+  data.push({ tipo: d.tipo, datos: d, estado: estadoReg, auto: (d.tipo !== 'usuario' && todoOk) || undefined, checks, ts: now, firmaContrato });
   await ghPut(f ? f.sha : null, data);
   const icono = { piloto: '🏍️', local: '🏪', flota: '🚚', usuario: '👤' }[d.tipo] || '📋';
-  await aviso(`🚀 DRAGOEXPRES — Registro nuevo\n${icono} ${d.tipo.toUpperCase()}: ${d.nombre}\nWhatsApp: ${d.tel}\nZona: ${d.zona}${d.vehiculo ? '\nVehículo: ' + d.vehiculo + (d.placa ? ' (' + d.placa + ')' : '') : ''}${d.propio ? '\n🛺 DUEÑO-CONDUCTOR: el vehículo es suyo y lo maneja él mismo (gana el 100%, sin split 75/25)' : ''}${(d.licenciaEnTramite && d.vehiculo !== 'bicicleta') ? '\n📜 LICENCIA EN TRÁMITE: pide tu OK especial para trabajar mientras la tramita (abrí el detalle 📄 antes de aprobar)' : ''}${d.rubro ? '\nRubro: ' + d.rubro : ''}${(d.tipo === 'piloto' || d.tipo === 'flota') ? '\nVerificación: ' + checks.map(c => (c.ok ? '✅' : '❌') + c.k).join(' ') : ''}${firmaContrato ? '\n✍️ Contrato ' + firmaContrato.version + ' aceptado digitalmente' : ''}${d.tipo === 'usuario' ? '\n✅ Auto-verificado (selfie + WhatsApp) — ya puede pedir' : ''}\n→ ${d.tipo === 'usuario' ? 'Visible en pestaña Usuarios' : 'Revisalo en el panel admin (pendiente de aprobar)'}`);
-  return res.status(200).json({ ok: true, mensaje: 'Registro recibido' });
+  await aviso(`🚀 DRAGOEXPRES — Registro nuevo\n${icono} ${d.tipo.toUpperCase()}: ${d.nombre}\nWhatsApp: ${d.tel}\nZona: ${d.zona}${d.vehiculo ? '\nVehículo: ' + d.vehiculo + (d.placa ? ' (' + d.placa + ')' : '') : ''}${d.propio ? '\n🛺 DUEÑO-CONDUCTOR: el vehículo es suyo y lo maneja él mismo (gana el 100%, sin split 75/25)' : ''}${(d.licenciaEnTramite && d.vehiculo !== 'bicicleta') ? '\n📜 LICENCIA EN TRÁMITE: pide tu OK especial para trabajar mientras la tramita (abrí el detalle 📄 antes de aprobar)' : ''}${d.rubro ? '\nRubro: ' + d.rubro : ''}${(d.tipo === 'piloto' || d.tipo === 'flota') ? '\nVerificación: ' + checks.map(c => (c.ok ? '✅' : '❌') + c.k).join(' ') : ''}${firmaContrato ? '\n✍️ Contrato ' + firmaContrato.version + ' aceptado digitalmente' : ''}${d.tipo === 'usuario' ? '\n✅ Auto-verificado (selfie + WhatsApp) — ya puede pedir' : ''}\n→ ${d.tipo === 'usuario' ? 'Visible en pestaña Usuarios' : (estadoReg === 'aprobado' ? (pideOkManual ? '' : '✅ AUTO-APROBADO (todo pasó la verificación): ya puede entrar a trabajar. Sus datos quedaron en tu panel; si algo te suena raro, desactivalo con ✕') : '⏳ PENDIENTE: revisalo en el panel admin')}`);
+  return res.status(200).json({ ok: true, mensaje: 'Registro recibido', estado: estadoReg });
 });

@@ -138,6 +138,7 @@ async function verDetalle(tel){
   h2+='<div style="display:flex;justify-content:space-between;align-items:center"><h2 style="margin:0">'+(d.nombre||'')+'</h2><button class="btn bR" onclick="cerrarDetalle()">✕</button></div>';
   h2+='<div class="s">📱 '+(d.tel||'')+' · 📍 '+(d.zona||'')+(d.vehiculo?' · '+d.vehiculo+' '+(d.marca||'')+' '+(d.color||''):'')+(d.placa?' · 🔖 '+d.placa:'')+(d.dpi?' · DPI '+d.dpi:'')+'</div>';
   if(d.h24)h2+='<div class="s" style="color:#f0b90b">⏰ Turno 24hrs</div>';
+  if(j.auto)h2+='<div class="s" style="color:#8fe28f">🤖 Auto-aprobado por verificación automática (podés desactivarlo con ✕ en la lista)</div>';
   if(d.propio)h2+='<div class="s" style="color:#f0b90b">🛺 Dueño-conductor: vehículo propio, lo maneja él mismo (sin split 75/25)</div>';
   if(d.licenciaEnTramite)h2+='<div class="s" style="color:#ffd479;border:1px solid #6a4a10;border-radius:8px;padding:8px;margin-top:6px">📜 <b>LICENCIA EN TRÁMITE</b> — este piloto te pide el OK para trabajar mientras termina de tramitar su licencia. Si le das ✓ APROBAR, le das esa oportunidad (revocable). Las multas por manejar sin licencia son 100% su responsabilidad (cláusula 2 del contrato C-2026.5).</div>';
   if(j.firmaContrato){h2+='<div class="s" style="margin:6px 0;border-color:#4a5530">'+j.firmaContrato+'</div>';}

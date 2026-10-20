@@ -118,7 +118,7 @@ module.exports = wrap(async (req, res) => {
     const dinero2 = (q) => Math.round(+q * 100) / 100;
     const firma = reg.firmaContrato || null;
     const firmaTxt = firma ? ('✍️ Contrato ' + firma.version + ' aceptado digitalmente el ' + new Date((firma.tsFirma || reg.ts) - 21600000).toISOString().replace('T', ' ').slice(0, 16) + ' GT' + (firma.ip ? ' · IP ' + String(firma.ip).split(',')[0].trim() : '')) : 'Sin contrato firmado (registro anterior)';
-    return res.status(200).json({ ok: true, registro: reg.datos, estado: reg.estado, checks: reg.checks || [], docs: (reg.datos && reg.datos.docs) || [], firmaContrato: firmaTxt, stats: {
+    return res.status(200).json({ ok: true, registro: reg.datos, estado: reg.estado, auto: !!reg.auto, checks: reg.checks || [], docs: (reg.datos && reg.datos.docs) || [], firmaContrato: firmaTxt, stats: {
       entregas: mios.length,
       semana,
       ganado: dinero2(mios.reduce((s, x) => s + (x.envio - x.comision), 0)),

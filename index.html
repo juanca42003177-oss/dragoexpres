@@ -113,7 +113,7 @@ footer b{color:var(--oro)}
     <label>Foto de tu licencia de conducir 🪪</label><input type="file" accept="image/*" capture="environment" id="pLicencia" style="padding:8px">
     <label style="display:flex;gap:8px;align-items:flex-start;margin-top:10px"><input type="checkbox" id="pLicTramite" style="width:auto;margin-top:3px"> <span>Mi licencia está <b>EN TRÁMITE</b> (la estoy tramitando) 📜<br><span style="color:#f0b90b">Pido la oportunidad de trabajar mientras la termino: el administrador decide con su OK. Cualquier multa por manejar sin licencia es mi responsabilidad.</span></span></label>
     </div>
-    <p class="desc" style="font-size:11px;margin:0 0 8px">La verificación es automática: DPI bien escrito + tus 2 fotos = quedás listo para aprobación de 1 toque. Sin papeleo.</p>
+    <p class="desc" style="font-size:11px;margin:0 0 8px">La verificación es automática: DPI bien escrito + tus 2 fotos = quedás APROBADO AL INSTANTE y podés trabajar ya. Sin papeleo, sin esperar.</p>
     <label>Tu área</label><input id="pZona" placeholder="Ej: Zona 11, Mixco, Villa Nueva...">
     <label style="display:flex;gap:8px;align-items:flex-start;margin-top:14px"><input type="checkbox" id="p24" style="width:auto;margin-top:3px"> <span>Me animo a turnos de <b>24 horas</b> <span style="color:#f0b90b">(prioridad en pedidos nocturnos + el cliente paga Q5 extra de noche que es 100% tuyo + boletos extra para el pozo dominical)</span></span></label>
     <button class="btn" onclick="enviar('piloto')">Registrarme de piloto</button>
@@ -415,18 +415,19 @@ function intentarEnviar() {
     fetch(apiBase() + '/register', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(reg) })
       .then(function(r){ return r.json(); })
       .then(function(j){
-        if (j && j.ok) { q.shift(); localStorage.setItem('dx_cola', JSON.stringify(q)); mostrarOk(reg.tipo); if (q.length) intentarEnviar(); }
+        if (j && j.ok) { q.shift(); localStorage.setItem('dx_cola', JSON.stringify(q)); mostrarOk(reg.tipo, j.estado); if (q.length) intentarEnviar(); }
         else mostrarOkLocal(reg.tipo);
       })
       .catch(function(){ mostrarOkLocal(reg.tipo); });
   } catch(e) {}
 }
-function mostrarOk(t) {
+function mostrarOk(t, estado) {
+  var instante = estado === 'aprobado';
   var m = {
-    usuario:'¡Quedaste verificado! 🤳✅ Con tu selfie y tu WhatsApp ya podés pedir comida, viajes y repuestos cuando tu zona se active. Tu primer envío gratis te lo ganaste.',
-    piloto:'Tu registro quedó listo 📋✅ Verificación automática completa (DPI, licencia y selfie). Apenas el admin toque el botón de aprobación, podés entrar con tu WhatsApp y placa.',
-    local:'Tu local quedó registrado. Te contactamos por WhatsApp para subir tu catálogo y tus promos.',
-    flota:'Tu vehículo quedó registrado 🚗✅ Con tu DPI y selfie queda listo para aprobación. Apenas el admin apruebe, entrás a tu pantalla de flota para asignar conductores.'
+    usuario:'¡Quedaste verificado! 🤳✅ Con tu selfie y tu WhatsApp ya podés pedir comida, viajes y repuestos. Tu primer envío gratis te lo ganaste.',
+    piloto: instante ? '¡APROBADO AL INSTANTE! 🎉🎉 Todo pasó la verificación automática. Entrá YA con tu WhatsApp y placa, marcate disponible y empezá a recibir pedidos.' : 'Tu registro quedó en revisión rápida 📋 (licencia en trámite o algo por confirmar): el admin te da el OK, suele tardar poco. Te avisamos por WhatsApp.',
+    local: instante ? '¡APROBADO AL INSTANTE! 🎉 Entrá YA a tu panel de local con tu WhatsApp para subir tu menú, precios, promos y la foto del frente de tu negocio.' : 'Tu local quedó registrado y en revisión rápida: el admin te da el OK y te avisamos.',
+    flota: instante ? '¡APROBADO AL INSTANTE! 🎉 Entrá YA a tu pantalla de flota con tu WhatsApp para asignar tu vehículo a un conductor aprobado.' : 'Tu vehículo quedó registrado y en revisión rápida: el admin te da el OK y te avisamos.'
   };
   document.getElementById('okT').textContent = '¡Listo, quedaste registrado!';
   document.getElementById('okM').textContent = m[t] || m.usuario;
