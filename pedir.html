@@ -13,7 +13,7 @@
 body{margin:0;background:var(--fondo);color:var(--tinta);font-family:system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;padding-bottom:72px}
 .w{max-width:520px;margin:0 auto}
 /* header rojo */
-.hdr{background:linear-gradient(160deg,var(--rojo),var(--rojo2));padding:14px 16px 22px;border-radius:0 0 26px 26px;color:#fff;position:sticky;top:0;z-index:20}
+.hdr{background:linear-gradient(160deg,var(--rojo),var(--rojo2));padding:14px 16px 52px;border-radius:0 0 26px 26px;color:#fff;position:sticky;top:0;z-index:20}
 .hdr .row{display:flex;align-items:center;gap:10px}
 .hdr img{width:34px;height:34px;border-radius:9px}
 .hdr b{font-size:19px;letter-spacing:.2px}
@@ -26,7 +26,7 @@ body{margin:0;background:var(--fondo);color:var(--tinta);font-family:system-ui,-
 h2{font-size:17px;margin:2px 0 10px;font-weight:800}
 .sub{font-size:12.5px;color:var(--gris);margin:-6px 0 10px}
 /* banners */
-.banners{display:flex;gap:10px;overflow-x:auto;padding:0 16px;margin-top:-26px;scrollbar-width:none}
+.banners{display:flex;gap:10px;overflow-x:auto;padding:0 16px;margin-top:-32px;position:relative;z-index:2;scrollbar-width:none}
 .banners::-webkit-scrollbar{display:none}
 .bn{min-width:84%;border-radius:var(--borde);padding:16px;color:#fff;position:relative;overflow:hidden;box-shadow:0 6px 16px rgba(0,0,0,.15)}
 .bn b{font-size:16px;display:block}
@@ -52,7 +52,10 @@ h2{font-size:17px;margin:2px 0 10px;font-weight:800}
 /* pasos */
 .pasos{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;text-align:center}
 .paso{background:var(--card);border:1px solid var(--linea);border-radius:var(--borde);padding:12px 6px;font-size:11.5px;color:var(--gris)}
+.paso.toca{cursor:pointer;position:relative}
+.paso.toca:active{background:#fff5f5;border-color:var(--rojo)}
 .paso b{display:block;font-size:12.5px;color:var(--tinta);margin-top:6px}
+.paso .va{display:block;margin-top:6px;font-size:11px;font-weight:900;color:var(--rojo)}
 .paso .n{display:inline-block;width:22px;height:22px;border-radius:50%;background:var(--rojo);color:#fff;font-weight:900;line-height:22px;font-size:12px}
 /* pedidos */
 .ped{background:var(--card);border:1px solid var(--linea);border-radius:var(--borde);padding:13px;margin-bottom:11px;box-shadow:0 2px 8px rgba(0,0,0,.05)}
@@ -132,9 +135,10 @@ nav div.on{color:var(--rojo)}
     <h2>¿Cómo funciona?</h2>
     <div class="pasos">
       <div class="paso"><span class="n">1</span><b>Pedís</b>Elegí qué querés y pagás después</div>
-      <div class="paso"><span class="n">2</span><b>Vuela el dragón</b>Un piloto de tu zona lo trae</div>
-      <div class="paso"><span class="n">3</span><b>Pagás en efectivo</b>Al recibir: compra al local, envío al piloto</div>
+      <div class="paso toca" onclick="abrirPedido('viaje')"><span class="n">2</span><b>Vuela el dragón</b>Un piloto de tu zona lo trae<br><span class="va">Tocá acá ›</span></div>
+      <div class="paso toca" onclick="abrirPedido('repuesto')"><span class="n">3</span><b>Pagás en efectivo</b>Al recibir: compra al local, envío al piloto<br><span class="va">Tocá acá ›</span></div>
     </div>
+    <button class="btn bA" style="margin:2px 0 8px" onclick="abrirPedido('comida')">🐉 HACER MI PRIMER PEDIDO</button>
   </div>
 </div>
 
