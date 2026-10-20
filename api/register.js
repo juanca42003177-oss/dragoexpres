@@ -56,6 +56,7 @@ module.exports = wrap(async (req, res) => {
   // VERIFICACION AUTOMATICA de asociados (motos, carros, bicicletas) y usuarios
   const checks = [];
   const limpiar = (q) => String(q || '').replace(/\D/g, '');
+  if ((d.tipo === 'piloto' || d.tipo === 'local') && d.contrato !== true) return res.status(200).json({ ok: false, error: 'Para registrarte tenés que aceptar el Contrato Digital de DragoExpres.' });
   if (d.tipo === 'piloto') {
     const dpiOk = limpiar(d.dpi).length === 13;
     checks.push({ k: 'DPI', ok: dpiOk, txt: dpiOk ? 'DPI de 13 dígitos' : 'DPI incompleto (' + limpiar(d.dpi).length + '/13)' });
