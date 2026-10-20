@@ -210,6 +210,9 @@ module.exports = wrap(async (req, res) => {
   // ---- LOCAL: pausar / reanudar pedidos ----
   if (action === 'pausaLocal') {
     const tel = String(b.tel || '').replace(/\D/g, ''), min = parseInt(b.min) || 0;
+    const freg = await ghGet('registros.json');
+    const rl = (freg ? freg.data : []).find(x => x.tipo === 'local' && x.estado === 'aprobado' && String(x.datos.whatsapp || x.datos.tel || '').replace(/\D/g, '') === tel);
+    if (!rl) return res.status(200).json({ ok: false, error: 'No encontramos un local aprobado con ese WhatsApp.' });
     const fl = await ghGet('locales.json'); const arr = fl ? fl.data : [];
     let row = arr.find(x => x.tel === tel);
     if (min > 0) {

@@ -35,10 +35,7 @@ label{font-size:12px;color:#9aa3b5;display:block;margin-top:10px}
     <label>Tu WhatsApp (el que registraste)</label><input id="l-tel" type="tel" placeholder="Ej: 55501234" inputmode="tel">
     <button class="btn bA" onclick="login()">ENTRAR</button>
     <p id="lerr" style="color:#ff8f8f;font-size:13px"></p>
-    <div style="margin-top:16px;border-top:1px solid #2a2b38;padding-top:14px">
-      <button class="btn" style="background:#1c1f2a;border:1px solid #f0b90b;color:#f0b90b;margin-top:0" onclick="vistaDueno()">👑 Soy el dueño: ver vista previa</button>
-      <p class="mini" style="margin-top:6px">Mirá cómo ve la pantalla un local, con datos de ejemplo.</p>
-    </div>
+    
     <p class="mini" style="margin-top:14px">¿Tu local no está registrado todavía? <a href="index.html" style="color:#f0b90b">Registralo gratis acá</a>.</p>
   </div>
 
@@ -94,39 +91,44 @@ function pintar(j){
   document.getElementById('stats').textContent='Pedidos entregados por DragoExpres: '+j.totalEntregados;
 }
 async function tick(){
+  if(DEMO)return
   if(!TEL)return;
   try{var r=await fetch(api('orders'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'loginLocal',tel:TEL})});
   var j=await r.json();if(j.ok)pintar(j);}catch(e){}
 }
 async function prep(id,min){
+  if(DEMO){DEMODATA.activos[0].prep={min:min};pintar(DEMODATA);return}
   var r=await fetch(api('orders'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'prep',tel:TEL,id:id,min:min})});
   var j=await r.json();
   if(!j.ok){alert(j.error);return}
   tick();
 }
 async function pausar(min){
+  if(DEMO){DEMODATA.pausa=min>0?Date.now()+min*60000:null;pintar(DEMODATA);return}
   var r=await fetch(api('orders'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'pausaLocal',tel:TEL,min:min})});
   var j=await r.json();
   if(!j.ok){alert(j.error);return}
   tick();
 }
-async function vistaDueno(){
-  var p=prompt('Contraseña de administrador:');if(!p)return;
-  try{
-    var r=await fetch(api('admin'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({pass:p,action:'check'})});
-    var j=await r.json();
-    if(!(j&&j.ok)&&p!=='dragon2026'){document.getElementById('lerr').textContent='Contraseña incorrecta.';return}
-  }catch(e){if(p!=='dragon2026'){document.getElementById('lerr').textContent='No se pudo verificar.';return}}
-  TEL='00000000';
-  pintar({local:{nombre:'Comedor Doña Mary (EJEMPLO)',zona:'Mixco Centro'},pausa:null,totalEntregados:23,
-    activos:[{id:'DX-DEMO1',tipo:'comida',estado:'aceptado',detalle:'2 platos de pepián + 2 tortillas extra',compra:80,envio:15,
-      cliente:{nombre:'María López (ejemplo)',direccion:'6a Calle 4-20, Zona 1'},prep:null}]});
+var DEMO=false,DEMODATA=null;
+function entrarVista(){
+  DEMO=true;TEL='0';
+  DEMODATA={local:{nombre:'Tu Local (ejemplo)',zona:'Tu zona'},pausa:null,totalEntregados:0,
+    activos:[{id:'DX-EJEMPLO',tipo:'comida',estado:'aceptado',detalle:'2 platos del día (ejemplo)',compra:80,envio:15,
+      cliente:{nombre:'Cliente (ejemplo)',direccion:'6a Calle 4-20 (ejemplo)'},prep:null}]};
+  pintar(DEMODATA);
   document.getElementById('login').style.display='none';document.getElementById('app').style.display='block';
-  var b=document.createElement('div');b.style.cssText='background:#241a05;border:1px solid #f0b90b;color:#ffe08a;font-size:12.5px;padding:9px 12px;border-radius:10px;margin:10px 0;text-align:center;font-weight:800';
-  b.textContent='👑 VISTA PREVIA DEL DUEÑO — datos de ejemplo, nada se guarda';
-  var app=document.getElementById('app');app.insertBefore(b,app.firstChild);
-}
+  var bn=document.createElement('div');bn.style.cssText='background:#241a05;border:1px solid #f0b90b;color:#ffe08a;font-size:12.5px;padding:9px 12px;border-radius:10px;margin:10px 0;text-align:center;font-weight:800';
+  bn.textContent='👁 VISTA PREVIA — pantalla del local con 0 pedidos reales (el pedido mostrado es de ejemplo y los botones no guardan nada).';
+  var app=document.getElementById('app');app.insertBefore(bn,app.firstChild);
+}(async function(){
+  var p=null;try{p=localStorage.getItem('dx_admin')}catch(e){}
+  if(!p)return;
+  try{var r=await fetch(api('admin'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({pass:p,action:'check'})});
+  var j=await r.json();if(j&&j.ok)entrarVista();}catch(e){}
+})();
 (function(){
+  if(localStorage.getItem('dx_admin'))return;
   var g=localStorage.getItem('dxLocal');
   if(g){document.getElementById('l-tel').value=g;login();}
 })();

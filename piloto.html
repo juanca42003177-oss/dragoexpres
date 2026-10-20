@@ -51,10 +51,7 @@ label{font-size:12px;color:#9aa3b5;display:block;margin-top:10px}
     <label>Placa de tu vehículo</label><input id="l-placa" placeholder="Ej: C123ABC" style="text-transform:uppercase">
     <button class="btn bA" onclick="login()">ENTRAR</button>
     <p id="lerr" style="color:#ff8f8f;font-size:13px"></p>
-    <div style="margin-top:16px;border-top:1px solid #2a2b38;padding-top:14px">
-      <button class="btn" style="background:#1c1f2a;border:1px solid #f0b90b;color:#f0b90b;margin-top:0" onclick="vistaDueno()">👑 Soy el dueño: ver vista previa</button>
-      <p class="mini" style="margin-top:6px">Mirá cómo ve la pantalla un piloto, con datos de ejemplo. Solo con tu contraseña de administrador.</p>
-    </div>
+    
     <p class="mini" style="margin-top:14px">¿No te han aprobado todavía? Revisá en la app principal. ¿No sos piloto? <a href="index.html" style="color:#f0b90b">Registrate acá</a>.</p>
   </div>
 
@@ -116,6 +113,7 @@ var AID=null;
 function api(fn){return (location.hostname.includes('vercel.app')?'/api':'https://dragoexpres.vercel.app/api')+'/'+fn}
 function chatHTML(o){return (o.chat||[]).map(function(m){return '<div style="margin:4px 0;font-size:13px"><b>'+(m.de==='piloto'?'Vos':'🧑 '+o.cliente.nombre.split(' ')[0])+':</b> '+m.texto+'</div>'}).join('')||'<div class="mini">Escribile a tu cliente acá (le llega al instante)</div>'}
 async function enviarMsg(){
+  if(DEMO)return
   var inp=document.getElementById('chat-in');if(!inp)return;var t=inp.value.trim();if(!t||!AID)return;
   try{await fetch(api('orders'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'msg',id:AID,de:'piloto',tel:PILOTO.tel,texto:t})});inp.value='';}catch(e){}
 }
@@ -138,22 +136,20 @@ async function verBilletera(){
   }catch(e){document.getElementById('billetera').innerHTML='<div class="card">Revisá tu internet y volvé a abrir.</div>'}
 }
 
-async function vistaDueno(){
-  var p=prompt('Contraseña de administrador:');if(!p)return;
-  try{
-    var r=await fetch(api('admin'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({pass:p,action:'check'})});
-    var j=await r.json();
-    if(!(j&&j.ok)&&p!=='dragon2026'){document.getElementById('lerr').textContent='Contraseña incorrecta.';return}
-  }catch(e){if(p!=='dragon2026'){document.getElementById('lerr').textContent='No se pudo verificar.';return}}
-  PILOTO={tel:'00000000',demo:true};
-  var demo={ok:true,piloto:{nombre:'Carlos Pérez (EJEMPLO)',zona:'Mixco Centro',vehiculo:'moto',marca:'Honda Wave 110',color:'Rojo',placa:'M123ABC',disponible:true,ganadoHoy:85,ganadoSemana:410,pedidosHoy:6,calif:4.8,pendiente:null},
-    activo:{id:'DX-DEMO',tipo:'comida',estado:'aceptado',zona:'Mixco Centro',direccion:'6a Calle 4-20, Zona 1 (ejemplo)',referencia:'Casa azul, portón negro',detalle:'2 pizzas grandes de El Horno',compra:120,envio:15,comision:1.5,cliente:{nombre:'María López (ejemplo)',tel:'55501234'},piloto:{nombre:'Carlos Pérez (EJEMPLO)',tel:'00000000'},chat:[]},zonaBuscando:[]};
-  pintar(demo);
+var DEMO=false;
+function entrarVista(){
+  DEMO=true;PILOTO={tel:'0'};
+  pintar({piloto:{nombre:'Piloto (ejemplo)',zona:'Tu zona',vehiculo:'moto',marca:'Honda Wave',color:'Rojo',placa:'C123ABC',disponible:false,ganadoHoy:0,ganadoSemana:0,pedidosHoy:0,calif:null,pendiente:null},activo:null,zonaBuscando:[]});
   document.getElementById('login').style.display='none';document.getElementById('app').style.display='block';
-  var b=document.createElement('div');b.style.cssText='background:#241a05;border:1px solid #f0b90b;color:#ffe08a;font-size:12.5px;padding:9px 12px;border-radius:10px;margin:10px 0;text-align:center;font-weight:800';
-  b.textContent='👑 VISTA PREVIA DEL DUEÑO — datos de ejemplo, nada de esto es real ni se guarda';
-  var app=document.getElementById('app');app.insertBefore(b,app.firstChild);
-}
+  var bn=document.createElement('div');bn.style.cssText='background:#241a05;border:1px solid #f0b90b;color:#ffe08a;font-size:12.5px;padding:9px 12px;border-radius:10px;margin:10px 0;text-align:center;font-weight:800';
+  bn.textContent='👁 VISTA PREVIA — así ve un piloto su pantalla en 0 pedidos. Nada de esto se guarda. Salí con el botón atrás de tu navegador.';
+  var app=document.getElementById('app');app.insertBefore(bn,app.firstChild);
+}(async function(){
+  var p=null;try{p=localStorage.getItem('dx_admin')}catch(e){}
+  if(!p)return;
+  try{var r=await fetch(api('admin'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({pass:p,action:'check'})});
+  var j=await r.json();if(j&&j.ok)entrarVista();}catch(e){}
+})();
 async function login(){
   var tel=document.getElementById('l-tel').value.trim(),placa=document.getElementById('l-placa').value.trim().toUpperCase();
   if(!tel||!placa){document.getElementById('lerr').textContent='Poné tu WhatsApp y tu placa.';return}
@@ -209,6 +205,7 @@ function pedidoPequeno(o){
   return '<div class="card" style="padding:10px;margin:8px 0"><b>'+({comida:'🍔',viaje:'🛺',repuesto:'🔧'}[o.tipo])+' '+o.id+'</b> · '+o.cliente.zona+'<div class="mini">'+String(o.detalle).slice(0,80)+' · Envío Q'+o.envio+'</div><button class="btn bV" style="margin-top:8px;padding:9px" onclick="hacer(\'aceptar\',\''+o.id+'\')">TOMARLO</button></div>';
 }
 async function hacer(accion,id){
+  if(DEMO){alert('Vista previa: los cambios no se guardan.');return}
   var r=await fetch(api('orders'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:accion,tel:PILOTO.tel,id:id})});
   var j=await r.json();
   if(!j.ok){alert(j.error);return}
@@ -232,12 +229,14 @@ function gpsLoop(){
 }
 setInterval(gpsLoop,15000);
 async function cambiarDis(){
+  if(DEMO){alert('Vista previa: el switch real funciona igual, pero acá no se guarda.');return}
   var val=!document.getElementById('sw').className.includes('on');
   var r=await fetch(api('orders'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'disponible',tel:PILOTO.tel,val:val})});
   var j=await r.json();if(!j.ok){alert(j.error);return}
   tick();
 }
 async function tick(){
+  if(DEMO)return
   var g=JSON.parse(localStorage.getItem('dxPiloto')||'{}');
   var r=await fetch(api('orders'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'loginPiloto',tel:g.tel,placa:g.placa})});
   var j=await r.json();if(j.ok)pintar(j);
