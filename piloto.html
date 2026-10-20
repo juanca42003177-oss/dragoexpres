@@ -248,7 +248,7 @@ function pedidoHTML(o){
  '<div style="display:flex;gap:6px;margin-top:6px"><input id="chat-in" placeholder="Escribí tu mensaje..." style="flex:1"><button class="btn bA" style="padding:9px 12px" onclick="enviarMsg()">➤</button></div></div>'+botones+'</div>';
 }
 function pedidoPequeno(o){
-  return '<div class="card" style="padding:10px;margin:8px 0"><b>'+({comida:'🍔',viaje:'🛺',repuesto:'🔧'}[o.tipo])+' '+o.id+'</b> · '+o.cliente.zona+'<div class="mini">'+String(o.detalle).slice(0,80)+' · Envío Q'+o.envio+((o.propina||0)>0?' + propina Q'+o.propina:'')+'</div><button class="btn bV" style="margin-top:8px;padding:9px" onclick="hacer(\'aceptar\',\''+o.id+'\')">TOMARLO</button>'+(o.tipo==='viaje'?'<button class="btn" style="margin-top:6px;padding:9px;background:#7a0a12" onclick="pedirMas(\''+o.id+'\','+o.envio+')">💰 PEDIR MÁS</button>':'')+'</div>';
+  return '<div class="card" style="padding:10px;margin:8px 0"><b>'+({comida:'🍔',viaje:'🛺',repuesto:'🔧'}[o.tipo])+' '+o.id+'</b> · '+o.cliente.zona+'<div class="mini">'+String(o.detalle).slice(0,80)+' · Envío Q'+o.envio+(o.nocturno?' 🌙 (incluye tu extra nocturno de Q'+o.recargo+')':'')+((o.propina||0)>0?' + propina Q'+o.propina:'')+'</div><button class="btn bV" style="margin-top:8px;padding:9px" onclick="hacer(\'aceptar\',\''+o.id+'\')">TOMARLO</button>'+(o.tipo==='viaje'?'<button class="btn" style="margin-top:6px;padding:9px;background:#7a0a12" onclick="pedirMas(\''+o.id+'\','+o.envio+')">💰 PEDIR MÁS</button>':'')+'</div>';
 }
 async function pedirMas(id,tarifa){
   if(DEMO){alert('Vista previa: los cambios no se guardan.');return}

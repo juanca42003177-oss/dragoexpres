@@ -51,6 +51,10 @@ async function aviso(texto) {
 }
 const PCT_LOCAL = 0.10, GRACIA_LOCAL_MS = 90 * 864e5; // 10% al local tras 90 dias de operar la zona (intermedio vs las grandes)
 const CUENTA_LIQ = 'Banco Industrial, cuenta monetaria No. 7171286805, a nombre de Andrea Ester Perez Acosta';
+// Turno nocturno (23:00-06:00 GT): recargo Q5 que paga el cliente, 100% para el piloto (como la propina)
+const RECARGO_NOCHE = 5;
+function horaGT(ts) { return (new Date(ts).getUTCHours() + 18) % 24; } // GT = UTC-6
+function esNoche(ts) { const h = horaGT(ts); return h >= 23 || h < 6; }
 function comisionDe(tipo, envio) {
   const e = dinero(envio);
   if (tipo === 'comida') return dinero(e * 0.05);   // 5% del envío: al piloto le queda CASI TODO (las grandes se quedan con 20-30%)
@@ -191,7 +195,9 @@ module.exports = wrap(async (req, res) => {
     if (!zona || !nombre || !tel || !b.direccion) return res.status(200).json({ ok: false, error: 'Faltan datos: nombre, WhatsApp, zona y dirección.' });
     if (!b.detalle) return res.status(200).json({ ok: false, error: 'Contanos qué querés pedir.' });
     const TARIFA_FIJA = { comida: 15, repuesto: 20, viaje: 25 }; // tarifa fija DragoExpres: MAS BARATA que las apps grandes (InDrive ~Q27 a Oakland, PedidosYa Q15-25 + cargos)
-    const envio = TARIFA_FIJA[tipo];
+    const nocturno = esNoche(now);
+    const recargo = nocturno ? RECARGO_NOCHE : 0;
+    const envio = TARIFA_FIJA[tipo] + recargo; // de noche +Q5 (100% para el piloto, sin comisión)
     const propina = Math.max(0, dinero(b.propina || 0)); // voluntaria, 100% para el piloto
     const pago = b.pago === 'transferencia' ? 'transferencia' : 'efectivo';
     const referencia = pago === 'transferencia' ? String(b.refbanco || '').trim().slice(0, 40) : '';
@@ -216,7 +222,7 @@ module.exports = wrap(async (req, res) => {
       id, tipo, zona,
       cliente: { nombre, tel, direccion: String(b.direccion).slice(0, 160), referencia: String(b.referencia || '').slice(0, 160) },
       detalle: String(b.detalle).slice(0, 400),
-      compra: dinero(b.compra || 0), envio, propina, comision: comisionDe(tipo, envio), comisionLocal,
+      compra: dinero(b.compra || 0), envio, propina, comision: comisionDe(tipo, envio - recargo), comisionLocal, nocturno, recargo,
       estado: 'buscando', piloto: null, ts: now, pago, referencia, local: localObj || undefined
     };
     // dispatch: primer piloto disponible de la zona
@@ -227,7 +233,15 @@ module.exports = wrap(async (req, res) => {
     const ocupados = new Set(peds.filter(o => o.piloto && ['asignado', 'aceptado', 'en_camino'].includes(o.estado)).map(o => o.piloto.tel));
     const cand = pilots.filter(x => x.disponible && !(x.pendiente && !x.pendiente.pagado) && aprobados.has(x.tel) && !ocupados.has(x.tel))
       .filter(x => { const r = reg.find(y => y.tipo === 'piloto' && String(y.datos.tel).trim() === x.tel); return r && r.datos.zona === zona; })
-      .sort((a, b2) => (a.desde || 0) - (b2.desde || 0));
+      .sort((a, b2) => {
+        if (nocturno) { // de noche: primero los turnos 24hrs, después los demás (FIFO)
+          const ra = reg.find(y => y.tipo === 'piloto' && String(y.datos.tel).trim() === a.tel);
+          const rb = reg.find(y => y.tipo === 'piloto' && String(y.datos.tel).trim() === b2.tel);
+          const ha = ra && ra.datos.h24 ? 1 : 0, hb = rb && rb.datos.h24 ? 1 : 0;
+          if (ha !== hb) return hb - ha;
+        }
+        return (a.desde || 0) - (b2.desde || 0);
+      });
     if (cand.length) {
       const r = reg.find(y => y.tipo === 'piloto' && String(y.datos.tel).trim() === cand[0].tel);
       pedido.estado = 'asignado';
@@ -240,7 +254,7 @@ module.exports = wrap(async (req, res) => {
     peds.push(pedido);
     await ghPut('pedidos.json', fpd ? fpd.sha : null, peds, 'pedido nuevo ' + id);
     const ic = { comida: '🍔', viaje: '🛺', repuesto: '🔧' }[tipo];
-    await aviso(`🚀 DRAGOEXPRES — PEDIDO NUEVO ${ic}\n${id} · ${tipo.toUpperCase()} · ${zona}\nCliente: ${nombre} (${tel})\n${pedido.local ? 'Local: ' + pedido.local.nombre + ' · ' : ''}Detalle: ${String(b.detalle).slice(0, 120)}\nEnvío: Q${envio} (tarifa fija)${propina ? ' · Propina voluntaria: Q' + propina + ' (100% piloto)' : ''} · Comisión DragoExpres: Q${pedido.comision}${pedido.comisionLocal ? ' · 🍽️ 5% al local (zona operativa >3 meses): Q' + pedido.comisionLocal : ''}\n${pago === 'transferencia' ? '💳 Pago: TRANSFERENCIA al Banco Industrial' + (referencia ? ' · Ref: ' + referencia : ' · (sin referencia, verificar)') : '💵 Pago: EFECTIVO al piloto'}\n${pedido.piloto ? '→ Asignado AUTOMÁTICAMENTE a: ' + pedido.piloto.nombre + ' (' + pedido.piloto.tel + ')' : '→ SIN piloto disponible ahora, queda BUSCANDO'}`);
+    await aviso(`🚀 DRAGOEXPRES — PEDIDO NUEVO ${ic}\n${id} · ${tipo.toUpperCase()} · ${zona}\nCliente: ${nombre} (${tel})\n${pedido.local ? 'Local: ' + pedido.local.nombre + ' · ' : ''}Detalle: ${String(b.detalle).slice(0, 120)}\nEnvío: Q${envio} (tarifa fija)${recargo ? ' · 🌙 Incluye recargo nocturno Q' + recargo + ' (100% piloto, sin comisión)' : ''}${propina ? ' · Propina voluntaria: Q' + propina + ' (100% piloto)' : ''} · Comisión DragoExpres: Q${pedido.comision}${pedido.comisionLocal ? ' · 🍽️ 5% al local (zona operativa >3 meses): Q' + pedido.comisionLocal : ''}\n${pago === 'transferencia' ? '💳 Pago: TRANSFERENCIA al Banco Industrial' + (referencia ? ' · Ref: ' + referencia : ' · (sin referencia, verificar)') : '💵 Pago: EFECTIVO al piloto'}\n${pedido.piloto ? '→ Asignado AUTOMÁTICAMENTE a: ' + pedido.piloto.nombre + ' (' + pedido.piloto.tel + ')' : '→ SIN piloto disponible ahora, queda BUSCANDO'}`);
     return res.status(200).json({ ok: true, pedido });
   }
 
@@ -505,6 +519,7 @@ module.exports = wrap(async (req, res) => {
     st.pedidosHoy = (st.pedidosHoy || 0) + 1;
     st.racha = (st.racha || 0) + 1;
     if (st.racha % 3 === 0) st.boletosExtra = (st.boletosExtra || 0) + 1;
+    if (o.nocturno) st.boletosExtra = (st.boletosExtra || 0) + 1; // 🌙 boleto extra por entrega nocturna
     await ghPut('pilots.json', fp ? fp.sha : null, arr, 'cobrado no-responde ' + id);
     await aviso('🚀 DRAGOEXPRES — ' + id + '\n⏱️ Cerrado tras 10 minutos sin respuesta del cliente. El piloto cobra COMPLETO su envío (Q' + neto + ').');
     return res.status(200).json({ ok: true, pedido: o });
@@ -621,6 +636,7 @@ module.exports = wrap(async (req, res) => {
         if (st.semana !== semana()) { st.semana = semana(); st.ganadoSemana = 0; }
         st.racha = (st.racha || 0) + 1;
         if (st.racha % 3 === 0) st.boletosExtra = (st.boletosExtra || 0) + 1;
+        if (o.nocturno) st.boletosExtra = (st.boletosExtra || 0) + 1; // 🌙 boleto extra por entrega nocturna
         const neto = dinero(o.envio - o.comision + (o.propina || 0));
         let gananciaPiloto = neto, flotaTxt = '';
         const ff = await ghGet('flotas.json');
