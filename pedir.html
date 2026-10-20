@@ -41,6 +41,43 @@ h2{font-size:17px;margin:2px 0 10px;font-weight:800}
 .bn1 .btxt{min-width:0}
 .bn1 .dimg{position:static;transform:none;flex:0 0 92px;width:92px;height:92px;object-fit:contain;box-sizing:border-box;padding:9px;background:rgba(0,0,0,.38);border-radius:16px}
 .bn2{background:linear-gradient(120deg,#b8860b,#6b4a00)}
+/* onboarding estilo grande */
+#onb{position:fixed;inset:0;z-index:200;background:var(--fondo,#fafafa);display:none;flex-direction:column;overflow-y:auto}
+#onb.on{display:flex}
+#onb .hero{background:linear-gradient(160deg,#d1121f 0%,#7a0a12 70%);border-radius:0 0 46px 46px;padding:34px 22px 40px;text-align:center;color:#fff}
+#onb .hero img{width:150px;max-width:70%;border-radius:22px;box-shadow:0 10px 30px rgba(0,0,0,.35)}
+#onb .hero b.logoTx{display:block;font-size:26px;letter-spacing:.5px;margin-top:12px}
+#onb .hero .logoTx i{color:#ffd24d;font-style:normal}
+#onb .paso{display:none;padding:24px 22px 40px;max-width:420px;margin:0 auto;width:100%;box-sizing:border-box}
+#onb .paso.on{display:block}
+#onb h2.ob{font-size:21px;margin:18px 0 6px;color:#151515}
+#onb p.obs{color:#555;font-size:14px;margin:0 0 18px}
+#onb .back{background:none;border:0;font-size:26px;cursor:pointer;color:#151515;padding:4px 0}
+#onb .telBox{display:flex;align-items:center;border:1.5px solid #151515;border-radius:14px;padding:12px 14px;gap:10px;background:#fff}
+#onb .telBox input{border:0;outline:0;font-size:17px;flex:1;background:none}
+#onb .lB{display:block;width:100%;background:linear-gradient(90deg,var(--oro),#ffd44d);color:#231a00;border:0;border-radius:26px;padding:15px;font-size:16px;font-weight:900;cursor:pointer;margin-top:18px;box-shadow:0 6px 16px rgba(240,185,11,.35)}
+#onb .lG{display:block;width:100%;background:#f2f2f2;color:#333;border:0;border-radius:26px;padding:15px;font-size:15px;font-weight:800;cursor:pointer;margin-top:12px}
+#onb .legal{font-size:11px;color:#999;text-align:center;padding:0 26px 22px;margin-top:auto}
+#onb .legal u{color:#777}
+#onb .ilus{text-align:center;margin:8px 0 4px}
+#onb .ilus img{width:170px;border-radius:24px}
+#onb .dirRow{display:flex;gap:12px;align-items:center;padding:14px 4px;border-bottom:1px solid #eee;cursor:pointer}
+#onb .dirRow b{font-size:14.5px;color:#151515;display:block}
+#onb .dirRow span{font-size:12.5px;color:#777}
+#onb .srch{display:flex;align-items:center;gap:10px;background:#f5f5f5;border-radius:12px;padding:12px 14px}
+#onb .srch input{border:0;background:none;outline:0;flex:1;font-size:14.5px}
+/* header nuevo estilo PedidosYa */
+.hIcons{margin-left:auto;display:flex;gap:6px}
+.hIco{position:relative;background:#fdeeee;border:0;border-radius:50%;width:38px;height:38px;font-size:17px;cursor:pointer;flex:none}
+.nBadge{position:absolute;top:-3px;right:-3px;background:var(--rojo);color:#fff;font-size:10px;font-weight:900;border-radius:9px;padding:1px 5px}
+.dirNow{display:flex;align-items:center;gap:4px;background:var(--card);border:1px solid var(--linea);border-radius:20px;padding:7px 12px;font-size:12.5px;font-weight:800;cursor:pointer;max-width:52%;white-space:nowrap;overflow:hidden}
+.dirNow span{overflow:hidden;text-overflow:ellipsis}
+/* hoja de direcciones y notificaciones */
+.sheet{position:fixed;inset:0;z-index:150;display:none}
+.sheet.on{display:block}
+.sheet .velo{position:absolute;inset:0;background:rgba(0,0,0,.45)}
+.sheet .caja{position:absolute;left:0;right:0;bottom:0;background:var(--fondo,#fafafa);border-radius:22px 22px 0 0;max-height:78%;overflow-y:auto;padding:18px 18px 26px}
+.sheet h3{margin:2px 0 10px;font-size:17px}
 /* categorias */
 .cats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
 .cat{background:var(--card);border-radius:var(--borde);padding:16px 8px;text-align:center;cursor:pointer;border:1px solid var(--linea);box-shadow:0 2px 8px rgba(0,0,0,.05)}
@@ -121,8 +158,12 @@ input,textarea,select{-webkit-user-select:text;user-select:text}
 <!-- ============ INICIO ============ -->
 <div class="vista on" id="v-inicio">
   <div class="hdr">
-    <div class="row"><img src="img/icono.png" alt="logo"><b>DragoExpres</b>
-      <div class="zona" onclick="tab('perfil')">📍 <span id="zonaTag">Elegí tu zona</span></div>
+    <div class="row"><img src="img/icono.png" alt="logo" style="height:32px"><b style="font-size:16px">Drago<b style="color:var(--rojo)">Expres</b></b>
+      <div class="dirNow" onclick="abrirDirecciones()">📍 <span id="zonaTag">Elegí tu dirección</span> <b style="color:var(--gris)">▾</b></div>
+      <div class="hIcons">
+        <button class="hIco" onclick="abrirNotif()">🔔<span id="nBadge" class="nBadge" style="display:none">1</span></button>
+        <button class="hIco" onclick="tab('pedidos')">🛒</button>
+      </div>
     </div>
     <div class="buscador"><input id="q" placeholder="Locales, platos y productos" oninput="pintarLocales()"><div class="lupa">🔍</div></div>
   </div>
@@ -132,10 +173,14 @@ input,textarea,select{-webkit-user-select:text;user-select:text}
   </div>
   <div class="sec">
     <h2>¿Qué querés hoy?</h2>
-    <div class="cats">
-      <div class="cat" onclick="abrirPedido('comida')"><div class="ic">🍜</div><b>Comida</b><span>De tu local favorito</span></div>
-      <div class="cat" onclick="abrirPedido('viaje')"><div class="ic">🛺</div><b>Viaje</b><span>Movete a donde sea</span></div>
-      <div class="cat" onclick="abrirPedido('repuesto')"><div class="ic">🔧</div><b>Repuesto</b><span>De moto o carro</span></div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+      <div class="cat" style="padding:20px 10px;background:linear-gradient(150deg,#fff,#fff4f5);border-color:#ffd9de" onclick="abrirPedido('comida')"><div class="ic" style="font-size:40px">🍔</div><b style="font-size:15px">Restaurantes</b><span>De tu local favorito</span></div>
+      <div class="cat" style="padding:20px 10px;background:linear-gradient(150deg,#fff,#fffaf0);border-color:#ffeec9" onclick="abrirPedido('repuesto')"><div class="ic" style="font-size:40px">🔧</div><b style="font-size:15px">Repuestos</b><span>De moto o carro</span></div>
+    </div>
+    <div class="cats" style="margin-top:10px">
+      <div class="cat" onclick="abrirPedido('viaje')"><div class="ic">🛺</div><b>Viajes</b><span>Movete a donde sea</span></div>
+      <div class="cat" onclick="tab('promos')"><div class="ic">📦</div><b>Promos</b><span>Ofertas de locales</span></div>
+      <div class="cat" onclick="invitarLocal()"><div class="ic">🏪</div><b>Invitá un local</b><span>Ganá clientes nuevos</span></div>
     </div>
   </div>
   <div class="sec" style="padding-top:0">
@@ -296,7 +341,152 @@ input,textarea,select{-webkit-user-select:text;user-select:text}
   <div id="nv-perfil" onclick="tab('perfil')"><span class="i">👤</span>Mi perfil</div>
 </nav>
 
+<!-- ============ ONBOARDING ESTILO GRANDE ============ -->
+<div id="onb">
+  <!-- paso 1: bienvenida -->
+  <div class="paso on" id="onb1">
+    <div class="hero">
+      <b class="logoTx">Drago<i>Expres</i></b>
+      <img src="img/dragon-fuego.webp" alt="Dragón DragoExpres" style="margin-top:14px">
+    </div>
+    <div style="max-width:420px;margin:0 auto;padding:0 22px">
+      <h2 class="ob">Elige cómo quieres ingresar</h2>
+      <p class="obs">Pedí comida, viajes y repuestos con el dragón.</p>
+      <button class="lB" onclick="onbGo(2)">📲 &nbsp;Continuar con celular</button>
+      <button class="lG" onclick="onbFin(true)">Explorar primero</button>
+    </div>
+    <p class="legal">Al elegir ingresar con celular o explorar, estás aceptando los <u>términos y condiciones de uso</u> y <u>políticas de privacidad</u> de DragoExpres.</p>
+  </div>
+  <!-- paso 2: celular -->
+  <div class="paso" id="onb2">
+    <button class="back" onclick="onbGo(1)">‹</button>
+    <h2 class="ob">Ingresa tu celular</h2>
+    <p class="obs" style="margin-bottom:8px">Número de celular</p>
+    <div class="telBox"><span style="font-size:19px">🇬🇹</span><b>+502</b><span style="width:1.5px;height:22px;background:#ddd"></span><input id="onb-tel" type="tel" inputmode="numeric" placeholder="Ej: 5550 1234"></div>
+    <p class="obs" style="margin:18px 0 8px">¿Cómo te llamás?</p>
+    <div class="telBox" style="border-color:#ccc"><input id="onb-nom" placeholder="Ej: María López"></div>
+    <button class="lB" onclick="onbCel()">Continuar</button>
+  </div>
+  <!-- paso 3: ubicacion -->
+  <div class="paso" id="onb3">
+    <button class="back" style="float:right;color:#999;font-size:22px" onclick="onbGo(4)">✕</button>
+    <div class="ilus"><img src="img/dragon-fuego-pad.webp" alt="Dragón ubicación"></div>
+    <h2 class="ob" style="text-align:center">Descubrí qué hay cerca tuyo</h2>
+    <p class="obs" style="text-align:center">Accediendo a tu ubicación, vamos a ofrecerte locales cercanos.</p>
+    <button class="lB" onclick="onbGps()">Continuar</button>
+    <button class="lG" onclick="onbGo(4)">Ahora no</button>
+  </div>
+  <!-- paso 4: direccion -->
+  <div class="paso" id="onb4">
+    <button class="back" style="float:right;color:#999;font-size:22px" onclick="onbFin(true)">✕</button>
+    <h2 class="ob">Ingresá tu dirección</h2>
+    <p class="obs" style="margin-bottom:10px">Así el piloto te encuentra sin llamadas.</p>
+    <div class="srch"><input id="onb-dir" placeholder="Dirección o punto de referencia"><span>🔍</span></div>
+    <div class="dirRow" onclick="onbUbicacion()"><span style="font-size:20px">🎯</span><div><b>Usar mi ubicación actual</b><span>El dragón detecta tu dirección por GPS</span></div></div>
+    <div id="onb-saved"></div>
+    <p class="obs" style="margin:14px 0 6px">Tu zona (para asignar el piloto más cercano)</p>
+    <div class="srch" style="background:#fff;border:1.5px solid #ccc"><select id="onb-zona" style="border:0;background:none;outline:0;flex:1;font-size:15px"><option>Cargando zonas...</option></select></div>
+    <button class="lB" onclick="onbFin(false)">Guardar y entrar</button>
+  </div>
+</div>
+
+<!-- hoja de direcciones -->
+<div class="sheet" id="shDir"><div class="velo" onclick="cerrarSheets()"></div><div class="caja">
+  <h3>📍 Elegí tu dirección</h3>
+  <div id="shDir-list"></div>
+  <div class="srch" style="margin-top:10px"><input id="shDir-nueva" placeholder="Nueva dirección o punto de referencia"><button style="background:var(--oro);border:0;border-radius:10px;padding:8px 12px;font-weight:900;cursor:pointer" onclick="shDirAdd()">Guardar</button></div>
+  <div style="display:flex;gap:8px;margin-top:10px">
+    <select id="shDir-label" style="flex:1;border:1.5px solid #ccc;border-radius:10px;padding:9px;font-size:13.5px;background:#fff"><option>Casa</option><option>Trabajo</option><option>Otro</option></select>
+    <select id="shDir-zona" style="flex:1;border:1.5px solid #ccc;border-radius:10px;padding:9px;font-size:13.5px;background:#fff"><option value="">Zona...</option></select>
+  </div>
+  <button class="lG" style="margin-top:10px" onclick="cerrarSheets()">Listo</button>
+</div></div>
+
+<!-- hoja de notificaciones -->
+<div class="sheet" id="shNot"><div class="velo" onclick="cerrarSheets()"></div><div class="caja">
+  <h3>🔔 Tus avisos</h3>
+  <div id="shNot-body" class="mini">Sin notificaciones nuevas.</div>
+  <button class="lG" style="margin-top:10px" onclick="cerrarSheets()">Cerrar</button>
+</div></div>
+
 <script>
+/* ---------- onboarding estilo grande ---------- */
+function onbGo(n){for(var i=1;i<=4;i++)document.getElementById('onb'+i).className='paso'+(i===n?' on':'');window.scrollTo(0,0);if(n===4)onbZonas()}
+function onbCel(){
+  var tel=document.getElementById('onb-tel').value.replace(/\D/g,''),nom=document.getElementById('onb-nom').value.trim();
+  if(!tel||tel.length<8){alert('Poné tu número de celular con 8 dígitos.');return}
+  if(!nom){alert('Poné tu nombre para que el piloto te reconozca.');return}
+  var u=LS();u.tel=tel;u.nombre=nom;SS(u);onbGo(3);
+}
+function onbGps(){
+  if(!navigator.geolocation){onbGo(4);return}
+  navigator.geolocation.getCurrentPosition(function(p){var u=LS();u.gps={lat:p.coords.latitude,lng:p.coords.longitude};SS(u);onbGo(4)},function(){onbGo(4)},{timeout:9000});
+  setTimeout(function(){onbGo(4)},9500);
+}
+function onbUbicacion(){
+  if(!navigator.geolocation){alert('Tu navegador no da GPS. Escribí tu dirección abajo.');return}
+  alert('Detectando tu ubicación... esperá unos segundos.');
+  navigator.geolocation.getCurrentPosition(function(p){var u=LS();u.gps={lat:p.coords.latitude,lng:p.coords.longitude};SS(u);document.getElementById('onb-dir').value='Mi ubicación GPS ('+p.coords.latitude.toFixed(4)+', '+p.coords.longitude.toFixed(4)+')';},function(){alert('No pudimos detectarla. Escribí tu dirección abajo.')},{timeout:9000});
+}
+function onbZonas(){
+  var z=document.getElementById('onb-zona');var zs=ZONAS.length?ZONAS:['Sin zona aún'];
+  z.innerHTML=zs.map(function(x){return '<option>'+x+'</option>'}).join('');
+  var u=LS();if(u.zona&&zs.indexOf(u.zona)>=0)z.value=u.zona;
+  var sv=document.getElementById('onb-saved'),h='';var u2=LS();(u2.dires||[]).forEach(function(d,i){h+='<div class="dirRow" onclick="onbElegirDir('+i+')"><span style="font-size:20px">⭐</span><div><b>'+d.label+'</b><span>'+d.dir+'</span></div></div>'});
+  sv.innerHTML=h;
+}
+function onbElegirDir(i){var u=LS();var d=(u.dires||[])[i];if(d){u.dire=d.dir;SS(u);document.getElementById('onb-dir').value=d.dir;var z=document.getElementById('onb-zona');if(u.zona)z.value=u.zona;}}
+function onbFin(guest){
+  var u=LS();
+  if(!guest){
+    var dir=document.getElementById('onb-dir').value.trim();
+    if(!dir){alert('Poné una dirección o tocá "Usar mi ubicación actual".');return}
+    var z=document.getElementById('onb-zona').value;
+    u.dire=dir;u.zona=z;u.dires=u.dires||[];var ya=u.dires.some(function(d){return d.dir===dir});
+    if(!ya)u.dires.unshift({label:'Casa',dir:dir});
+  }else{u.guest=true}
+  u.onboarded=true;SS(u);
+  document.getElementById('onb').className='';document.getElementById('onb').style.display='none';
+  pintarDirHeader();
+}
+function onbArranca(){
+  var u=LS();
+  if(u.onboarded){document.getElementById('onb').style.display='none';return}
+  document.getElementById('onb').className='on';
+}
+
+/* ---------- hojas: direcciones y notificaciones ---------- */
+function cerrarSheets(){document.querySelectorAll('.sheet').forEach(function(s){s.className='sheet'})}
+function abrirDirecciones(){
+  var u=LS();var l=document.getElementById('shDir-list'),h='';
+  (u.dires||[]).forEach(function(d,i){h+='<div class="dirRow" onclick="shDirUse('+i+')"><span style="font-size:20px">'+(d.label==='Casa'?'🏠':d.label==='Trabajo'?'🏢':'⭐')+'</span><div style="flex:1"><b>'+d.label+'</b><span>'+d.dir+'</span></div>'+(u.dire===d.dir?'<span style="color:var(--ok);font-weight:900">✓</span>':'')+'</div>'});
+  l.innerHTML=h||'<p class="mini">Todavía no tenés direcciones guardadas. Agregá la primera abajo.</p>';
+  var zz=document.getElementById('shDir-zona');if(zz.options.length<=1){ZONAS.forEach(function(x){zz.innerHTML+='<option>'+x+'</option>'});if(u.zona)zz.value=u.zona}
+  document.getElementById('shDir').className='sheet on';
+}
+function shDirUse(i){var u=LS();var d=u.dires[i];u.dire=d.dir;SS(u);pintarDirHeader();cerrarSheets()}
+function shDirAdd(){
+  var nd=document.getElementById('shDir-nueva').value.trim();if(!nd){alert('Escribí la dirección.');return}
+  var u=LS();u.dires=u.dires||[];var lb=document.getElementById('shDir-label').value,z=document.getElementById('shDir-zona').value;
+  u.dires.unshift({label:lb,dir:nd});u.dire=nd;if(z)u.zona=z;SS(u);document.getElementById('shDir-nueva').value='';
+  pintarDirHeader();abrirDirecciones();
+}
+function pintarDirHeader(){
+  var u=LS();var t=document.getElementById('zonaTag');if(!t)return;
+  t.textContent=u.dire||(u.zona?u.zona:'Elegí tu dirección');
+  if(u.zona&&!u.dire)t.textContent=u.zona;
+}
+function abrirNotif(){
+  var u=LS();
+  fetch(api('orders'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'misp',tel:u.tel||''})}).then(function(r){return r.json()}).then(function(j){
+    var act=(j.pedidos||[]).find(function(o){return ['buscando','asignado','aceptado','en_camino'].indexOf(o.estado)>=0});
+    var b=document.getElementById('shNot-body');
+    b.innerHTML=act?('<div style="background:#fff;border:1px solid #eee;border-radius:12px;padding:12px"><b>Pedido '+act.id+' en camino 🐉</b><div class="mini" style="margin-top:4px">Estado: '+({buscando:'Buscando piloto',asignado:'Piloto asignado',aceptado:'Piloto va por tu pedido',en_camino:'¡En camino a vos!'}[act.estado]||act.estado)+' · Tocá 🛒 para seguirlo en vivo.</div></div>'):(j.pedidos&&j.pedidos.length?'Tu último pedido: '+j.pedidos[0].id+' — revisá la pestaña Pedidos.':'Sin notificaciones nuevas. Cuando pidas, te avisamos acá.');
+    var nb=document.getElementById('nBadge');if(nb)nb.style.display=act?'inline-block':'none';
+  }).catch(function(){});
+  document.getElementById('shNot').className='sheet on';
+}
+
 /* ---------- perfil local ---------- */
 function LS(){try{return JSON.parse(localStorage.getItem('dx_user')||'{}')}catch(e){return{}}}
 function SS(u){localStorage.setItem('dx_user',JSON.stringify(u))}
@@ -323,7 +513,8 @@ async function cargarZonas(){
   z.innerHTML+='<option value="__otra">Otra (escribo mi zona)</option>';
   var mz=document.getElementById('mi-zona');
   mz.innerHTML=(ZONAS.length?ZONAS:['Sin zona aún']).map(function(x){return '<option>'+x+'</option>'}).join('');
-  var u=LS();if(u.zona&&ZONAS.includes(u.zona)){z.value=u.zona;mz.value=u.zona;document.getElementById('zonaTag').textContent=u.zona;}
+  var u=LS();if(u.zona&&ZONAS.includes(u.zona)){z.value=u.zona;mz.value=u.zona;}
+  pintarDirHeader();onbArranca();
   }catch(e){}
 }
 async function cargarLocales(){
