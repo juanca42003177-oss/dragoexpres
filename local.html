@@ -64,6 +64,12 @@ label{font-size:12px;color:#9aa3b5;display:block;margin-top:10px}
       <button class="btn bA" id="m-add" onclick="menuAdd()">➕ AGREGAR AL MENÚ</button>
       <p class="mini" style="margin-top:10px"><b style="color:#ffe08a">📸 Tips para que tu foto venda (los usa PedidosYa):</b><br>• Un solo plato por foto, centrado y completo<br>• Fondo limpio: una mesa o paño liso<br>• Sin texto, precios ni marcas de agua encima<br>• Luz de ventana o de día, sin flash directo<br>• Que sea lo MISMO que le llega al cliente<br>• Primero fotografiá tus 10 más vendidos</p>
     </div>
+    <h3 style="color:#f0b90b;margin:16px 0 4px;font-size:15px">🏪 Foto de mi local</h3>
+    <p class="mini" style="margin:4px 0 8px">Sacale una foto al frente de tu negocio (con tu letrero si tenés): es la primera cosa que ven los clientes en la app. Le da confianza y ventas.</p>
+    <div id="locFotoPrev" style="margin:6px 0"></div>
+    <label>Foto del frente del local</label>
+    <input id="loc-foto" type="file" accept="image/*" capture="environment" style="background:#0d0e14">
+    <button class="btn bA" id="locFotoBtn" style="margin-top:8px" onclick="guardarFotoLocal()">📸 GUARDAR FOTO DEL LOCAL</button>
     <h3 style="color:#f0b90b;margin:16px 0 4px;font-size:15px">🎉 Mis promos</h3>
     <p class="mini" style="margin:4px 0 8px">Hasta 5 promos activas. Aparecen arriba del menú para los clientes: 2x1, descuentos, combos... Vos las creás y las quitás cuando querés.</p>
     <div id="promosBox"></div>
@@ -71,6 +77,8 @@ label{font-size:12px;color:#9aa3b5;display:block;margin-top:10px}
       <b style="font-size:14px">Crear promo</b>
       <label>Título</label><input id="pr-titulo" placeholder="Ej: 2x1 en Pepián los martes">
       <label>Detalle (opcional)</label><input id="pr-detalle" placeholder="Ej: Válido solo hoy, pedidos por la app">
+      <label style="margin-top:8px">Foto de la promo (opcional — un combo, un 2x1 que se vea rico)</label>
+      <input id="pr-foto" type="file" accept="image/*" capture="environment" style="background:#0d0e14">
       <button class="btn bA" onclick="promoAdd()">🎉 ACTIVAR PROMO</button>
     </div>
     <h3 style="color:#f0b90b;margin:16px 0 4px;font-size:15px">Pedidos de tu local</h3>
@@ -107,15 +115,46 @@ function pintarMenu(){
 var PROMOS=[];
 function pintarPromos(){
   var h='';
-  if(PROMOS.length)h=PROMOS.map(function(p){return '<div class="pedido" style="display:flex;justify-content:space-between;align-items:center;gap:8px"><div><b>🎉 '+p.titulo+'</b>'+(p.detalle?'<div class="mini">'+p.detalle+'</div>':'')+'</div><button class="bMini bX" onclick="promoDel(\''+p.id+'\')">Quitar</button></div>'}).join('');
+  if(PROMOS.length)h=PROMOS.map(function(p){return '<div class="pedido" style="display:flex;justify-content:space-between;align-items:center;gap:8px"><div style="flex:1">'+(p.foto?'<img src="'+p.foto+'" style="width:100%;max-height:120px;object-fit:cover;border-radius:10px;margin-bottom:6px">':'')+'<b>🎉 '+p.titulo+'</b>'+(p.detalle?'<div class="mini">'+p.detalle+'</div>':'')+'</div><button class="bMini bX" onclick="promoDel(\''+p.id+'\')">Quitar</button></div>'}).join('');
   else h='<div class="mini" style="padding:4px 2px">Sin promos activas. Creá una abajo.</div>';
   document.getElementById('promosBox').innerHTML=h;
 }
+var LOCFOTO_B64='',PRFOTO_B64='';
+document.getElementById('loc-foto').addEventListener('change',function(){if(this.files&&this.files[0])comprimirFoto(this.files[0],function(b64){LOCFOTO_B64=b64;document.getElementById('locFotoPrev').innerHTML='<img src="'+b64+'" style="width:100%;max-height:160px;object-fit:cover;border-radius:10px">'})});
+document.getElementById('pr-foto').addEventListener('change',function(){if(this.files&&this.files[0])comprimirFoto(this.files[0],function(b64){PRFOTO_B64=b64})});
+async function guardarFotoLocal(){
+  if(DEMO){alert('Vista previa: los cambios no se guardan.');return}
+  if(!LOCFOTO_B64){alert('Elegí la foto del frente primero.');return}
+  var b=document.getElementById('locFotoBtn');b.disabled=true;b.textContent='Guardando...';
+  try{
+    var r=await fetch(api('menuphoto'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({tel:TEL,b64:LOCFOTO_B64,carpeta:'locales'})});
+    var j=await r.json();
+    if(!j.ok){alert(j.error||'No se pudo subir la foto.');b.disabled=false;b.textContent='📸 GUARDAR FOTO DEL LOCAL';return}
+    var r2=await fetch(api('orders'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'localFoto',tel:TEL,foto:j.foto})});
+    var j2=await r2.json();
+    if(!j2.ok){alert(j2.error||'No se pudo guardar.');return}
+    FOTO_LOCAL=j2.fotoLocal;pintarFotoLocal();
+    b.textContent='✅ FOTO GUARDADA';
+    setTimeout(function(){b.disabled=false;b.textContent='📸 GUARDAR FOTO DEL LOCAL'},2500);
+  }catch(e){alert('Revisá tu internet y probá de nuevo.');b.disabled=false;b.textContent='📸 GUARDAR FOTO DEL LOCAL'}
+}
+function pintarFotoLocal(){
+  var d=document.getElementById('locFotoPrev');if(!d)return;
+  if(FOTO_LOCAL)d.innerHTML='<img src="'+FOTO_LOCAL+'" style="width:100%;max-height:160px;object-fit:cover;border-radius:10px">';
+  else d.innerHTML='';
+}
+var FOTO_LOCAL='';
 async function promoAdd(){
   if(DEMO)return;
   var t=document.getElementById('pr-titulo').value.trim(),d=document.getElementById('pr-detalle').value.trim();
   if(!t){alert('Poné un título a la promo.');return}
-  try{var r=await fetch(api('orders'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'promoAdd',tel:TEL,titulo:t,detalle:d})});
+  var b=document.querySelector('button[onclick="promoAdd()"]');var foto='';
+  if(PRFOTO_B64){
+    try{var rf=await fetch(api('menuphoto'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({tel:TEL,b64:PRFOTO_B64,carpeta:'promos'})});
+    var jf=await rf.json();if(jf.ok)foto=jf.foto;}catch(e){}
+    PRFOTO_B64='';document.getElementById('pr-foto').value='';
+  }
+  try{var r=await fetch(api('orders'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'promoAdd',tel:TEL,titulo:t,detalle:d,foto:foto})});
   var j=await r.json();if(!j.ok){alert(j.error);return}PROMOS=j.promos;document.getElementById('pr-titulo').value='';document.getElementById('pr-detalle').value='';pintarPromos();}catch(e){}
 }
 async function promoDel(id){
@@ -181,6 +220,7 @@ async function login(){
   var j=await r.json();
   if(!j.ok){document.getElementById('lerr').textContent=j.error;return}
   TEL=tel.replace(/\D/g,'');
+  FOTO_LOCAL=(j.local&&j.local.fotoLocal)||'';pintarFotoLocal();
   localStorage.setItem('dxLocal',TEL);
   pintar(j);
   document.getElementById('login').style.display='none';document.getElementById('app').style.display='block';

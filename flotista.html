@@ -44,6 +44,8 @@ h2{font-size:15px;margin:18px 0 4px;color:#f0b90b}
     <h2>Asignar vehículo a un conductor</h2>
     <div class="card">
       <label>Placa del vehículo</label><input id="a-placa" placeholder="Ej: C123ABC" style="text-transform:uppercase">
+      <label>Marca del vehículo</label><input id="a-marca" placeholder="Ej: Honda Wave">
+      <label>Color del vehículo</label><input id="a-color" placeholder="Ej: rojo">
       <label>WhatsApp del conductor (piloto aprobado)</label><input id="a-tel" type="tel" placeholder="Ej: 55505678" inputmode="tel">
       <label>Nombre del conductor</label><input id="a-nombre" placeholder="Ej: Carlos Pérez">
       <button class="btn bA" onclick="agregar()">ASIGNAR VEHÍCULO</button>
@@ -86,16 +88,17 @@ function pintar(j){
   var v=document.getElementById('vehiculos');
   if(!j.vehiculos.length){v.innerHTML='<div class="card"><b>Sin vehículos asignados</b><div class="mini">Asigná tu primer vehículo abajo</div></div>';return}
   v.innerHTML=j.vehiculos.map(function(x){
-    return '<div class="card"><b>'+x.placa+'</b> → '+x.conductor.nombre+' ('+x.conductor.tel+')<div class="mini">Esta semana: '+x.pedidosSemana+' entregas · tu parte Q'+x.ganadoSemana+'</div><button class="btn bR" style="padding:9px;margin-top:8px" onclick="quitar(\''+x.placa+'\')">Desactivar</button></div>';
+    return '<div class="card"><b>'+x.placa+(x.marca?' · '+x.marca+(x.color?' '+x.color:''):'')+'</b> → '+x.conductor.nombre+' ('+x.conductor.tel+')<div class="mini">Esta semana: '+x.pedidosSemana+' entregas · tu parte Q'+x.ganadoSemana+'</div><button class="btn bR" style="padding:9px;margin-top:8px" onclick="quitar(\''+x.placa+'\')">Desactivar</button></div>';
   }).join('');
 }
 async function agregar(){
   if(DEMO){alert('Vista previa: los cambios no se guardan.');return}
-  var placa=document.getElementById('a-placa').value.trim().toUpperCase(),cTel=document.getElementById('a-tel').value.trim(),cNom=document.getElementById('a-nombre').value.trim();
+  var placa=document.getElementById('a-placa').value.trim().toUpperCase(),cTel=document.getElementById('a-tel').value.trim(),cNom=document.getElementById('a-nombre').value.trim(),mar=document.getElementById('a-marca').value.trim(),col=document.getElementById('a-color').value.trim();
   if(!placa||!cTel||!cNom){alert('Completá placa, WhatsApp y nombre del conductor.');return}
-  var r=await fetch(api('flotas'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'agregar',tel:FTEL,placa:placa,conductorTel:cTel,conductorNombre:cNom})});
+  var r=await fetch(api('flotas'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'agregar',tel:FTEL,placa:placa,conductorTel:cTel,conductorNombre:cNom,marca:mar,color:col})});
   var j=await r.json();
   if(!j.ok){alert(j.error);return}
+  document.getElementById('a-marca').value='';document.getElementById('a-color').value='';
   recargar();
 }
 async function quitar(placa){

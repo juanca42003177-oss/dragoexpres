@@ -53,6 +53,8 @@ module.exports = wrap(async (req, res) => {
     const placa = String(b.placa || '').trim().toUpperCase();
     const cTel = String(b.conductorTel || '').trim();
     const cNombre = String(b.conductorNombre || '').trim().slice(0, 80);
+    const marca = String(b.marca || '').trim().slice(0, 30);
+    const color = String(b.color || '').trim().slice(0, 20);
     if (!placa || !cTel || !cNombre) return res.status(200).json({ ok: false, error: 'Faltan placa, nombre y WhatsApp del conductor.' });
     const fr = await ghGet('registros.json');
     const reg = fr ? fr.data : [];
@@ -64,11 +66,13 @@ module.exports = wrap(async (req, res) => {
     const arr = ff ? ff.data : [];
     let a = arr.find(x => x.placa === placa);
     if (!a) { a = { placa, semana: semana(), ganadoSemana: 0, pedidosSemana: 0 }; arr.push(a); }
+    if (marca) a.marca = marca;
+    if (color) a.color = color;
     a.flotista = { tel, nombre: f.datos.nombre };
     a.conductor = { tel: cTel, nombre: cNombre };
     a.activa = true;
     await ghPut('flotas.json', ff ? ff.sha : null, arr, 'flota: asignacion ' + placa);
-    await aviso(`🚚 DRAGOEXPRES — Flota\n${f.datos.nombre} asignó el vehículo ${placa} al conductor ${cNombre} (${cTel})\nReparto automático: 75% conductor / 25% flotista en cada entrega`);
+    await aviso(`🚚 DRAGOEXPRES — Flota\n${f.datos.nombre} asignó el vehículo ${placa}${marca ? ' (' + marca + (color ? ' ' + color : '') + ')' : ''} al conductor ${cNombre} (${cTel})\nReparto automático: 75% conductor / 25% flotista en cada entrega`);
     return res.status(200).json({ ok: true, vehiculo: a });
   }
 

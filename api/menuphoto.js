@@ -30,7 +30,8 @@ module.exports = wrap(async (req, res) => {
   if (b64.length > 400000) return res.status(200).json({ ok: false, error: 'Foto demasiado grande (comprimila desde el celular).' });
   try {
     await asegurarRama();
-    const archivo = `menus/${tel}-${Date.now()}.jpg`;
+    const carpeta = ['menus', 'locales', 'promos'].includes(String(d.carpeta || '')) ? String(d.carpeta) : 'menus';
+    const archivo = `${carpeta}/${tel}-${Date.now()}.jpg`;
     const r = await fetch(`https://api.github.com/repos/${REPO_APP}/contents/${archivo}`, {
       method: 'PUT',
       headers: { ...H(), 'Content-Type': 'application/json' },

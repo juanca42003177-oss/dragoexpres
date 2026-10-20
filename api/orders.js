@@ -139,7 +139,7 @@ module.exports = wrap(async (req, res) => {
       if (!titulo) return res.status(200).json({ ok: false, error: 'Poné un título a la promo.' });
       m.promos = m.promos || [];
       if (m.promos.length >= 5) return res.status(200).json({ ok: false, error: 'Máximo 5 promos activas.' });
-      m.promos.push({ id: String(now) + String(Math.floor(Math.random() * 90) + 10), titulo, detalle, ts: now });
+      m.promos.push({ id: String(now) + String(Math.floor(Math.random() * 90) + 10), titulo, detalle, foto: String(b.foto || '').slice(0, 300), ts: now });
     } else {
       const pid = String(b.promoId || '');
       m.promos = (m.promos || []).filter(x => x.id !== pid);
@@ -277,7 +277,7 @@ module.exports = wrap(async (req, res) => {
     const gL = new Date(now - 21600000); const lunesL = new Date(gL); lunesL.setUTCDate(gL.getUTCDate() - ((gL.getUTCDay() + 6) % 7)); lunesL.setUTCHours(0, 0, 0, 0); const iniSemL = lunesL.getTime() + 21600000;
     const entSem = mios.filter(x => x.estado === 'entregado' && (x.tsEntregado || x.ts) >= iniSemL);
     const ventasSemana = dinero(entSem.reduce((s2, x) => s2 + (+x.compra || 0), 0));
-    return res.status(200).json({ ok: true, local: { nombre: r.datos.nombre, zona: r.datos.zona, tel }, activos: activos.slice(-10).reverse(), totalEntregados: mios.filter(x => x.estado === 'entregado').length, ventasSemana, entregasSemana: entSem.length, pausa: pausa ? pausa.hasta : null, cancelHoy });
+    return res.status(200).json({ ok: true, local: { nombre: r.datos.nombre, zona: r.datos.zona, tel, fotoLocal: r.datos.fotoLocal || '' }, activos: activos.slice(-10).reverse(), totalEntregados: mios.filter(x => x.estado === 'entregado').length, ventasSemana, entregasSemana: entSem.length, pausa: pausa ? pausa.hasta : null, cancelHoy });
   }
 
   // ---- LOCAL: confirmar pedido con tiempo de preparacion ----
@@ -429,6 +429,7 @@ module.exports = wrap(async (req, res) => {
       zona: (r.datos && r.datos.zona) || r.zona || '',
       tel: String((r.datos && (r.datos.whatsapp || r.datos.tel)) || '').replace(/\D/g, ''),
       rubro: (r.datos && (r.datos.rubro || r.datos.tipo)) || 'Comida',
+      fotoLocal: (r.datos && r.datos.fotoLocal) || '',
     }));
     return res.status(200).json({ ok: true, locales: loc });
   }
@@ -444,6 +445,18 @@ module.exports = wrap(async (req, res) => {
 
 
   // ---- CANCELACIONES ----
+  if (action === 'localFoto') {
+    const tel = String(b.tel || '').replace(/\D/g, '');
+    const foto = String(b.foto || '').slice(0, 300);
+    if (!tel || !foto) return res.status(200).json({ ok: false, error: 'Faltan datos de la foto.' });
+    const fr = await ghGet('registros.json'); const reg = fr ? fr.data : [];
+    const r = reg.find(x => x.tipo === 'local' && x.estado === 'aprobado' && String(x.datos.whatsapp || x.datos.tel || '').replace(/\D/g, '') === tel);
+    if (!r) return res.status(200).json({ ok: false, error: 'Solo locales aprobados pueden subir su foto.' });
+    r.datos.fotoLocal = foto;
+    await ghPut('registros.json', fr ? fr.sha : null, reg, 'foto del local ' + tel);
+    await aviso(`🏪 DRAGOEXPRES — Foto del local\n${r.datos.nombre} actualizó la foto de su local (la ven los clientes en la lista).`);
+    return res.status(200).json({ ok: true, fotoLocal: foto });
+  }
   if (action === 'localCancela') {
     const tel = String(b.tel || '').replace(/\D/g, '');
     const id = String(b.id || '');
