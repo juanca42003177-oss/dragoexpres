@@ -24,7 +24,9 @@ label{font-size:12px;color:#9aa3b5;display:block;margin-top:10px}
 .pill3{display:flex;gap:8px;margin-top:10px}
 .pill3 button{flex:1;background:#0d2030;border:1px solid #2f5c7e;color:#7ec8ff;border-radius:10px;padding:10px 0;font-weight:900;font-size:13px;cursor:pointer}
 .st{font-weight:900;padding:3px 10px;border-radius:8px;font-size:11px;display:inline-block}
-.sBus{background:#241a05;color:#ffe08a}.sAsig{background:#0d2030;color:#7ec8ff}.sCam{background:#0d2015;color:#7ee2a8}
+.sBus{background:#241a05;color:#ffe08a}
+.bMini{background:#0d2030;border:1px solid #2f5c7e;color:#7ec8ff;border-radius:8px;padding:8px 10px;font-weight:800;font-size:11px;cursor:pointer}
+.bX{background:#2a0d0d;border-color:#5c2f2f;color:#ff8f8f}.sAsig{background:#0d2030;color:#7ec8ff}.sCam{background:#0d2015;color:#7ee2a8}
 </style>
 </head>
 <body>
@@ -44,6 +46,18 @@ label{font-size:12px;color:#9aa3b5;display:block;margin-top:10px}
     <p class="mini" id="l-zona"></p>
     <div id="pausaCard" class="card" style="display:none;background:#2a230f;border-color:#6b5a10;color:#ffe08a;text-align:center"></div>
     <button class="btn bR" id="pausaBtn" onclick="pausar(30)">⏸️ Cocina saturada: pausar 30 min</button>
+    <h3 style="color:#f0b90b;margin:16px 0 4px;font-size:15px">📋 Mi menú</h3>
+    <p class="mini" style="margin:4px 0 8px">Cargá tus productos con foto y precio. Si algo se te acaba, marcá AGOTADO con un toque: el cliente lo ve gris y no lo puede pedir. Sin foto también funciona.</p>
+    <div id="menuBox"></div>
+    <div class="card">
+      <b style="font-size:14px">Agregar producto</b>
+      <label>Nombre del producto</label><input id="m-nombre" placeholder="Ej: Pepián con arroz">
+      <label>Precio (Q)</label><input id="m-precio" type="number" inputmode="decimal" placeholder="Ej: 35">
+      <label>Foto del producto (opcional)</label>
+      <input id="m-foto" type="file" accept="image/*" capture="environment" style="background:#0d0e14">
+      <img id="m-preview" style="display:none;width:90px;height:90px;object-fit:cover;border-radius:10px;margin-top:6px;border:1px solid #2a2b38">
+      <button class="btn bA" id="m-add" onclick="menuAdd()">➕ AGREGAR AL MENÚ</button>
+    </div>
     <h3 style="color:#f0b90b;margin:16px 0 4px;font-size:15px">Pedidos de tu local</h3>
     <div id="pedidos"></div>
     <div class="card"><b>📊 Tu local</b><div class="mini" id="stats"></div></div>
@@ -52,6 +66,71 @@ label{font-size:12px;color:#9aa3b5;display:block;margin-top:10px}
 <script>
 var TEL=null,PAUSA=null,POLL=null;
 function api(fn){return (location.hostname.includes('vercel.app')?'/api':'https://dragoexpres.vercel.app/api')+'/'+fn}
+
+var MENU=[],FOTOB64='';
+function pintarMenu(){
+  var h='';
+  if(!MENU.length){h='<div class="mini" style="padding:8px 2px">Tu menú está vacío. Agregá tu primer producto abajo para que los clientes lo vean con foto y precio.</div>';}
+  else{h=MENU.map(function(it){
+    return '<div style="display:flex;gap:10px;align-items:center;background:#14151c;border:1px solid #2a2b38;border-radius:12px;padding:8px;margin:8px 0">'+
+    (it.foto?'<img src="'+it.foto+'" style="width:58px;height:58px;object-fit:cover;border-radius:10px">':'<div style="width:58px;height:58px;border-radius:10px;background:#241a05;display:flex;align-items:center;justify-content:center;font-size:24px">🍽️</div>')+
+    '<div style="flex:1;min-width:0"><b style="font-size:13.5px">'+it.nombre+'</b><div class="mini">Q'+it.precio+(it.agotado?' · <b style="color:#ff8f8f">AGOTADO</b>':'')+'</div></div>'+
+    '<button class="bMini" onclick="menuToggle(\''+it.id+'\')">'+(it.agotado?'Habilitar':'Agotar')+'</button>'+
+    '<button class="bMini bX" onclick="menuDel(\''+it.id+'\')">✕</button></div>';
+  }).join('')}
+  document.getElementById('menuBox').innerHTML=h;
+}
+async function cargarMenu(){
+  try{var r=await fetch(api('orders'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'menu',tel:TEL})});
+  var j=await r.json();if(j.ok){MENU=j.items;pintarMenu();}}catch(e){}
+}
+function comprimirFoto(file,cb){
+  var rd=new FileReader();
+  rd.onload=function(){
+    var img=new Image();
+    img.onload=function(){
+      var c=document.createElement('canvas');var m=Math.min(img.width,img.height);
+      var s=520/Math.max(img.width,img.height);if(s>1)s=1;
+      c.width=Math.round(img.width*s);c.height=Math.round(img.height*s);
+      c.getContext('2d').drawImage(img,0,0,c.width,c.height);
+      FOTOB64=c.toDataURL('image/jpeg',0.72);
+      var p=document.getElementById('m-preview');p.src=FOTOB64;p.style.display='block';
+      cb&&cb();
+    };
+    img.src=rd.result;
+  };
+  rd.readAsDataURL(file);
+}
+async function menuAdd(){
+  var n=document.getElementById('m-nombre').value.trim(),p=parseFloat(document.getElementById('m-precio').value);
+  if(!n||!p){alert('Poné el nombre y el precio del producto.');return}
+  var b=document.getElementById('m-add');b.disabled=true;b.textContent='Guardando...';
+  var foto='';
+  if(FOTOB64){
+    try{var r=await fetch(api('menuphoto'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({tel:TEL,b64:FOTOB64})});
+    var j=await r.json();if(j.ok)foto=j.foto;else{b.disabled=false;b.textContent='➕ AGREGAR AL MENÚ';alert(j.error||'No se pudo subir la foto, probá sin foto.');return}}catch(e){}
+  }
+  var r2=await fetch(api('orders'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'menuAdd',tel:TEL,nombre:n,precio:p,foto:foto})});
+  var j2=await r2.json();
+  b.disabled=false;b.textContent='➕ AGREGAR AL MENÚ';
+  if(!j2.ok){alert(j2.error);return}
+  MENU=j2.items;pintarMenu();
+  document.getElementById('m-nombre').value='';document.getElementById('m-precio').value='';
+  document.getElementById('m-preview').style.display='none';FOTOB64='';
+  document.getElementById('m-foto').value='';
+}
+async function menuToggle(id){
+  if(DEMO){alert('Vista previa: los cambios no se guardan.');return}
+  var r=await fetch(api('orders'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'menuEdit',tel:TEL,id:id,agotado:!MENU.find(function(x){return x.id===id}).agotado})});
+  var j=await r.json();if(j.ok){MENU=j.items;pintarMenu()}
+}
+async function menuDel(id){
+  if(DEMO){alert('Vista previa: los cambios no se guardan.');return}
+  if(!confirm('¿Borrar este producto del menú?'))return;
+  var r=await fetch(api('orders'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'menuDel',tel:TEL,id:id})});
+  var j=await r.json();if(j.ok){MENU=j.items;pintarMenu()}
+}
+document.getElementById('m-foto').addEventListener('change',function(){if(this.files&&this.files[0])comprimirFoto(this.files[0])});
 async function login(){
   var tel=document.getElementById('l-tel').value.trim();
   if(!tel){document.getElementById('lerr').textContent='Poné tu WhatsApp.';return}
@@ -62,7 +141,7 @@ async function login(){
   localStorage.setItem('dxLocal',TEL);
   pintar(j);
   document.getElementById('login').style.display='none';document.getElementById('app').style.display='block';
-  if(POLL)clearInterval(POLL);POLL=setInterval(tick,15000);
+  if(POLL)clearInterval(POLL);POLL=setInterval(tick,15000);cargarMenu();
 }
 function pintar(j){
   document.getElementById('l-nombre').textContent=j.local.nombre.split(' ')[0];
@@ -117,6 +196,7 @@ function entrarVista(){
     activos:[{id:'DX-EJEMPLO',tipo:'comida',estado:'aceptado',detalle:'2 platos del día (ejemplo)',compra:80,envio:15,
       cliente:{nombre:'Cliente (ejemplo)',direccion:'6a Calle 4-20 (ejemplo)'},prep:null}]};
   pintar(DEMODATA);
+  MENU=[{id:'ej1',nombre:'Pepián con arroz (ejemplo)',precio:35,foto:'',agotado:false},{id:'ej2',nombre:'Tamalitos (ejemplo)',precio:18,foto:'',agotado:true}];pintarMenu();
   document.getElementById('login').style.display='none';document.getElementById('app').style.display='block';
   var bn=document.createElement('div');bn.style.cssText='background:#241a05;border:1px solid #f0b90b;color:#ffe08a;font-size:12.5px;padding:9px 12px;border-radius:10px;margin:10px 0;text-align:center;font-weight:800';
   bn.textContent='👁 VISTA PREVIA — pantalla del local con 0 pedidos reales (el pedido mostrado es de ejemplo y los botones no guardan nada).';

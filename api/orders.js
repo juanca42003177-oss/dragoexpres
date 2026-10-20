@@ -224,6 +224,42 @@ module.exports = wrap(async (req, res) => {
     return res.status(200).json({ ok: true, pausa: min > 0 ? row.hasta : null });
   }
 
+
+  // ---- MENU del local: productos con foto, precio y agotado ----
+  if (action === 'menu') {
+    const tel = String(b.tel || '').replace(/\D/g, '');
+    if (!tel) return res.status(200).json({ ok: false, error: 'Decinos de qué local el menú.' });
+    const fm = await ghGet('menus.json');
+    const m = (fm ? fm.data : []).find(x => x.tel === tel);
+    return res.status(200).json({ ok: true, items: (m && m.items) || [] });
+  }
+  if (['menuAdd', 'menuEdit', 'menuDel'].includes(action)) {
+    const tel = String(b.tel || '').replace(/\D/g, '');
+    const freg = await ghGet('registros.json');
+    const rl = (freg ? freg.data : []).find(x => x.tipo === 'local' && x.estado === 'aprobado' && String(x.datos.whatsapp || x.datos.tel || '').replace(/\D/g, '') === tel);
+    if (!rl) return res.status(200).json({ ok: false, error: 'No encontramos un local aprobado con ese WhatsApp.' });
+    const fm = await ghGet('menus.json');
+    const arr = fm ? fm.data : [];
+    let m = arr.find(x => x.tel === tel);
+    if (!m) { m = { tel, items: [] }; arr.push(m); }
+    if (action === 'menuAdd') {
+      if (m.items.length >= 40) return res.status(200).json({ ok: false, error: 'Máximo 40 productos. Borrale alguno primero.' });
+      m.items.push({ id: String(now) + String(Math.floor(Math.random() * 90) + 10), nombre: String(b.nombre || '').trim().slice(0, 60), precio: dinero(b.precio || 0), foto: String(b.foto || '').slice(0, 300), agotado: false });
+    }
+    if (action === 'menuEdit') {
+      const it = m.items.find(x => x.id === String(b.id || ''));
+      if (!it) return res.status(200).json({ ok: false, error: 'Producto no encontrado.' });
+      if (b.agotado !== undefined) it.agotado = b.agotado === true || b.agotado === 'true';
+      if (b.precio !== undefined) it.precio = dinero(b.precio);
+      if (b.nombre !== undefined) it.nombre = String(b.nombre).trim().slice(0, 60);
+    }
+    if (action === 'menuDel') {
+      m.items = m.items.filter(x => x.id !== String(b.id || ''));
+    }
+    await ghPut('menus.json', fm ? fm.sha : null, arr, 'menu ' + action + ' ' + tel);
+    return res.status(200).json({ ok: true, items: m.items });
+  }
+
   // ---- CHAT cliente <-> piloto (estilo PedidosYa) ----
   if (action === 'msg') {
     const id = String(b.id || '');

@@ -220,6 +220,14 @@ nav div.on{color:var(--rojo)}
   <button class="btn bA" onclick="enviar()">ENVIAR PEDIDO 🐉</button>
 </div>
 
+<!-- ============ MENU DEL LOCAL ============ -->
+<div class="sheet" id="menuSheet" style="z-index:42">
+  <div class="asa" onclick="cerrarMenu()"></div>
+  <h2 id="menuTitulo" style="font-size:18px">Menú</h2>
+  <div id="menuLista"><p class="mini">Cargando el menú...</p></div>
+  <button class="btn bA" style="background:#333;color:#fff;box-shadow:none" onclick="cerrarMenu()">Cerrar</button>
+</div>
+
 <!-- ============ TRACKER ============ -->
 <div class="trk" id="trk">
   <div class="th"><b>🐉 Siguiendo tu pedido</b><div class="x" onclick="cerrarTrk()">✕</div></div>
@@ -306,7 +314,8 @@ function pintarLocales(){
     h+='<div class="loc"><div class="avatar">'+ini+'</div>'
       +'<div class="info"><b>'+l.nombre+'</b><span><span class="chip">'+(l.rubro||'Local')+'</span>✅ Verificado · '+(l.zona||'')+'</span></div>'
       +'<button class="btnW" onclick="window.open(\''+wa+'\',\'_blank\')">💬</button>'
-      +'<button class="btnS" onclick="abrirPedidoLocal('+idx+')">Pedir aquí</button></div>';
+      +'<button class="btnW" onclick="verMenu('+idx+')">Menú 📋</button>'+
+      '<button class="btnS" onclick="abrirPedidoLocal('+idx+')">Pedir aquí</button></div>';
   });
   document.getElementById('lista-locales').innerHTML=h;
 }
@@ -347,6 +356,39 @@ function cerrarSesion(){if(confirm('¿Borrar tus datos de este celular?')){local
 
 /* ---------- sheet de pedido ---------- */
 var TIPO='comida',LOCAL_PRE='',LOCAL_TEL='';
+var MENU_LOCAL=null,MENU_CACHE={};
+
+async function verMenu(idx){
+  var l=LOCALES[idx];if(!l)return;MENU_LOCAL=l;
+  document.getElementById('menuTitulo').textContent='Menú de '+l.nombre;
+  document.getElementById('veil').style.display='block';
+  document.getElementById('menuSheet').style.display='block';
+  document.getElementById('menuLista').innerHTML='<p class="mini">Cargando el menú...</p>';
+  try{var r=await fetch(api('orders'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'menu',tel:l.tel})});
+  var j=await r.json();var items=j.ok?j.items:[];
+  if(!items.length){document.getElementById('menuLista').innerHTML='<p class="mini">Este local todavía no cargó su menú. Podés pedirle lo que querás escribiéndolo.</p><button class="btn bA" onclick="cerrarMenu();abrirPedidoLocal('+idx+')">Escribir mi pedido</button>';return}
+  MENU_CACHE[idx]=items;
+  document.getElementById('menuLista').innerHTML=items.map(function(it,idx2){
+    return '<div class="loc" style="cursor:pointer'+(it.agotado?';opacity:.45':'')+'" onclick="'+(it.agotado?'':'pedirProducto('+idx+','+idx2+')')+'">'
+    +(it.foto?'<img src="'+it.foto+'" style="width:58px;height:58px;border-radius:12px;object-fit:cover;flex:none">':'<div class="avatar">🍽️</div>')
+    +'<div class="info"><b>'+it.nombre+'</b><span>'+(it.agotado?'<span class="chip" style="background:#fde3e3;color:#b02a2a">AGOTADO</span>':'Q'+it.precio+' · Tocá para pedir')+'</span></div>'
+    +(it.agotado?'':'<div style="font-weight:900;color:var(--rojo)">›</div>')+'</div>';
+  }).join('');
+  }catch(e){document.getElementById('menuLista').innerHTML='<p class="mini">No pudimos cargar el menú. Revisá internet.</p>'}
+}
+function cerrarMenu(){document.getElementById('menuSheet').style.display='none';if(document.getElementById('sheet').style.display!=='block'){document.getElementById('veil').style.display='none'}}
+function pedirProducto(idxLocal,idxItem){
+  var l=LOCALES[idxLocal];var items=[]// refetch no: usamos el ultimo render
+  // tomamos del DOM actual (render guardado)
+  var it=MENU_CACHE[idxLocal]&&MENU_CACHE[idxLocal][idxItem];if(!it)return;
+  cerrarMenu();abrirPedidoLocal(idxLocal);
+  setTimeout(function(){
+    var d=document.getElementById('f-det');
+    if(d)d.value=it.nombre+' — Q'+it.precio;
+    var c=document.getElementById('f-compra');if(c)c.value=it.precio;
+  },90);
+}
+
 function abrirPedidoLocal(idx){var l=LOCALES[idx];if(!l)return;LOCAL_PRE=l.nombre;LOCAL_TEL=l.tel;abrirPedido('comida')}
 function abrirPedido(tipo,local){
   if(!local){LOCAL_PRE='';LOCAL_TEL=''}
