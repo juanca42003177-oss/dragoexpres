@@ -258,7 +258,7 @@ function pedidoHTML(o){
   '<a class="wa" href="'+wa+'" target="_blank">💬 Escribille al cliente</a>'+
   '<div style="margin-top:10px;border-top:1px solid #2a2b38;padding-top:8px"><div class="mini">💬 CHAT DEL PEDIDO (cliente y local)</div><div id="chat-list" style="max-height:140px;overflow-y:auto">'+chatHTML(o)+'</div>'+
  '<div style="display:flex;gap:6px;margin:6px 0;flex-wrap:wrap">'+
- ['📍 Estoy afuera','🛺 Ya voy en camino','⏱️ Demora en el local, ya salgo'].map(function(q){return '<button class="bMini" onclick="rapida(\''+q+'\')">'+q+'</button>'}).join('')+
+ ['📍 Estoy afuera','🛺 Ya voy en camino','⏱️ Demora en el local, ya salgo','💰 Llevá el efectivo exacto','🧭 Voy directo a tu dirección','🙏 ¡Pedido entregado, gracias!'].map(function(q){return '<button class="bMini" onclick="rapida(\''+q+'\')">'+q+'</button>'}).join('')+
  '</div>'+
  '<div style="display:flex;gap:6px;margin-top:6px"><input id="chat-in" placeholder="Escribí tu mensaje..." style="flex:1"><button class="btn bA" style="padding:9px 12px" onclick="enviarMsg()">➤</button></div></div>'+botones+'</div>';
 }

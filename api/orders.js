@@ -220,8 +220,8 @@ module.exports = wrap(async (req, res) => {
     }
     const pedido = {
       id, tipo, zona,
-      cliente: { nombre, tel, direccion: String(b.direccion).slice(0, 160), referencia: String(b.referencia || '').slice(0, 160) },
-      detalle: String(b.detalle).slice(0, 400),
+      cliente: { nombre, tel, direccion: String(b.direccion).slice(0, 500), referencia: String(b.referencia || '').slice(0, 500) },
+      detalle: String(b.detalle).slice(0, 800),
       compra: dinero(b.compra || 0), envio, propina, comision: comisionDe(tipo, envio - recargo), comisionLocal, nocturno, recargo,
       estado: 'buscando', piloto: null, ts: now, pago, referencia, local: localObj || undefined
     };
@@ -354,7 +354,7 @@ module.exports = wrap(async (req, res) => {
   if (action === 'msg') {
     const id = String(b.id || '');
     const de = ['piloto', 'cliente', 'local'].includes(b.de) ? b.de : 'cliente';
-    const texto = String(b.texto || '').trim().slice(0, 300);
+    const texto = String(b.texto || '').trim().slice(0, 800);
     const tel = String(b.tel || '').replace(/\D/g, '');
     if (!id || !texto || !tel) return res.status(200).json({ ok: false, error: 'Faltan datos del mensaje.' });
     const fpd = await ghGet('pedidos.json');

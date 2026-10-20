@@ -273,7 +273,8 @@ input,textarea,select{-webkit-user-select:text;user-select:text}
       <div id="chatBox" style="display:none;text-align:left;margin-top:12px">
         <p class="mini" style="margin:0 0 6px;font-weight:800">💬 CHAT CON TU PILOTO</p>
         <div id="chat-list" style="max-height:190px;overflow-y:auto;background:#fff;border:1px solid var(--linea);border-radius:12px;padding:9px"></div>
-        <div style="display:flex;gap:6px;margin-top:8px">
+        <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px" id="chat-rapidas"></div>
+        <div style="display:flex;gap:6px;margin-top:6px">
           <input id="chat-in" placeholder="Escribí tu mensaje..." style="flex:1;margin:0">
           <button class="btn bA" style="width:auto;margin:0;padding:10px 16px" onclick="enviarMsg()">➤</button>
         </div>
@@ -516,9 +517,9 @@ function zonaValor(){
 function extra(){
   var h='';
   var pre=LOCAL_PRE?' (ej: de '+LOCAL_PRE+')':'';
-  if(TIPO==='comida')h='<label>Dirección de entrega</label><input id="f-dir" placeholder="Calle, número, colonia"><label>Referencia (opcional)</label><input id="f-ref" placeholder="Casa azul, portón negro..."><label>¿Qué querés y de dónde?'+pre+'</label><textarea id="f-det" placeholder="Ej: 2 pizzas grandes de la pizzería El Horno"></textarea><label>Precio estimado de tu orden (Q) — se lo pagás al local</label><input id="f-compra" type="number" inputmode="decimal" placeholder="Ej: 120"><label>Envío (tarifa fija DragoExpres)</label><div class="tarifa" id="f-tarifa">Q15 · sin regatear<span class="nch"></span></div>';
-  if(TIPO==='viaje')h='<label>Dirección de recogida</label><input id="f-dir" placeholder="¿De dónde te recogemos?"><label>Referencia (opcional)</label><input id="f-ref" placeholder="Frente al parque..."><label>¿A dónde vas?</label><textarea id="f-det" placeholder="Ej: De Mixco Centro a Oakland Mall"></textarea><label>Envío (tarifa fija DragoExpres)</label><div class="tarifa" id="f-tarifa">Q25 · sin regatear<span class="nch"></span></div>';
-  if(TIPO==='repuesto')h='<label>Dirección de entrega</label><input id="f-dir" placeholder="Calle, número, colonia"><label>Referencia (opcional)</label><input id="f-ref" placeholder="Taller La Bendición..."><label>¿Qué repuesto necesitás y para qué vehículo?</label><textarea id="f-det" placeholder="Ej: Pastillas de freno para Honda Wave 110"></textarea><label>Precio estimado del repuesto (Q) — se lo pagás al local</label><input id="f-compra" type="number" inputmode="decimal" placeholder="Ej: 180"><label>Envío (tarifa fija DragoExpres)</label><div class="tarifa" id="f-tarifa">Q20 · sin regatear<span class="nch"></span></div>';
+  if(TIPO==='comida')h='<label>Dirección de entrega</label><textarea id="f-dir" rows="3" style="height:auto" placeholder="Calle, número, colonia... y contá con detalle exacto cómo te lo dejamos (portón, timbre, quién recibe): sin límite de texto"></textarea><label>Referencia (opcional)</label><textarea id="f-ref" rows="2" style="height:auto" placeholder="Casa azul, portón negro, timbre plateado... (opcional, escribí con confianza)"></textarea><label>¿Qué querés y de dónde?'+pre+'</label><textarea id="f-det" placeholder="Ej: 2 pizzas grandes de la pizzería El Horno"></textarea><label>Precio estimado de tu orden (Q) — se lo pagás al local</label><input id="f-compra" type="number" inputmode="decimal" placeholder="Ej: 120"><label>Envío (tarifa fija DragoExpres)</label><div class="tarifa" id="f-tarifa">Q15 · sin regatear<span class="nch"></span></div>';
+  if(TIPO==='viaje')h='<label>Dirección de recogida</label><textarea id="f-dir" rows="3" style="height:auto" placeholder="¿De dónde te recogemos? Punto exacto: frente a qué, color del edificio, etc. — sin límite de texto"></textarea><label>Referencia (opcional)</label><textarea id="f-ref" rows="2" style="height:auto" placeholder="Frente al parque, bajo el puente... (opcional)"></textarea><label>¿A dónde vas?</label><textarea id="f-det" placeholder="Ej: De Mixco Centro a Oakland Mall"></textarea><label>Envío (tarifa fija DragoExpres)</label><div class="tarifa" id="f-tarifa">Q25 · sin regatear<span class="nch"></span></div>';
+  if(TIPO==='repuesto')h='<label>Dirección de entrega</label><textarea id="f-dir" rows="3" style="height:auto" placeholder="Calle, número, colonia... y contá con detalle exacto cómo te lo dejamos (portón, timbre, quién recibe): sin límite de texto"></textarea><label>Referencia (opcional)</label><textarea id="f-ref" rows="2" style="height:auto" placeholder="Taller La Bendición, portón verde... (opcional)"></textarea><label>¿Qué repuesto necesitás y para qué vehículo?</label><textarea id="f-det" placeholder="Ej: Pastillas de freno para Honda Wave 110"></textarea><label>Precio estimado del repuesto (Q) — se lo pagás al local</label><input id="f-compra" type="number" inputmode="decimal" placeholder="Ej: 180"><label>Envío (tarifa fija DragoExpres)</label><div class="tarifa" id="f-tarifa">Q20 · sin regatear<span class="nch"></span></div>';
   h+='<label>Propina para el piloto (opcional)</label><div class="chips" id="f-propinas">'+[0,5,10,15].map(function(p){return '<div class="chip'+(p===0?' on':'')+'" onclick="elegirProp(this,'+p+')">Q'+p+'</div>'}).join('')+'</div><p class="mini" style="margin:4px 0 0">Como en las apps grandes: la propina es voluntaria. Con propina los pilotos suelen volar más rápido.</p>';
   document.getElementById('extra').innerHTML=h;
 }
@@ -645,6 +646,9 @@ async function actualizar(){
   var cb=document.getElementById('chatBox');
   if(o.piloto&&!['entregado','cancelado'].includes(o.estado)){
     cb.style.display='block';
+    var RAP_CLIENTE=['📍 Estoy afuera / bajando','🚪 Dejalo en el portón','⏱️ Dame 5 minutos','💰 Ya tengo el efectivo listo','🔔 Tocá el timbre al llegar','🙏 Ya lo recibí, gracias'];
+    var rb=document.getElementById('chat-rapidas');
+    if(rb&&!rb.innerHTML)rb.innerHTML=RAP_CLIENTE.map(function(q){return '<button style="border:1px solid var(--linea);border-radius:20px;padding:6px 10px;background:#fff;font-size:12px;cursor:pointer" onclick="rapidaCliente(\''+q+'\')">'+q+'</button>'}).join('');
     var ci=document.getElementById('chat-in');var cv=ci?ci.value:'';var foc=!!ci&&document.activeElement===ci;
     document.getElementById('chat-list').innerHTML=(o.chat||[]).map(function(m){var qui=m.de==='cliente'?'🧑 Vos':m.de==='local'?'🏪 '+((o.local&&o.local.nombre)||'Local').split(' ')[0]:'🏍️ '+((o.piloto&&o.piloto.nombre)||'Piloto').split(' ')[0];return '<div style="margin:4px 0;font-size:13px"><b>'+qui+':</b> '+m.texto+'</div>'}).join('')||'<div class="mini">Escribile acá, ej: "dejalo en el portón"</div>';
     if(ci){ci.value=cv;if(foc)ci.focus();}
@@ -652,6 +656,14 @@ async function actualizar(){
   }catch(e){}
 }
 async function calificar(n){
+  if(n>=4){
+    var buenas=['⏱️ Llegó puntual','😊 Muy amable','🍔 Llegó todo caliente','⭐ Excelente servicio','🏆 Todo perfecto'];
+    document.getElementById('calif').innerHTML='<p class="mini" style="margin:0 0 6px;font-weight:800">¡Buenísimo! Decile al piloto qué hizo bien (1 toque):</p>'+
+      '<div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px">'+buenas.map(function(r){return '<button style="border:1px solid #ccc;border-radius:20px;padding:6px 10px;background:#fff;font-size:12px;cursor:pointer" onclick="enviarCalif('+n+',this.textContent)">'+r+'</button>'}).join('')+'</div>'+
+      '<textarea id="califInput" maxlength="160" placeholder="O escribile algo lindo (opcional)" style="width:100%;border:1px solid #ccc;border-radius:8px;padding:8px;font-size:13px;height:50px"></textarea>'+
+      '<div style="display:flex;gap:6px;margin-top:8px"><button style="background:#1a1a22;color:#f0b90b;border:none;border-radius:8px;padding:10px 18px;font-weight:800;cursor:pointer" onclick="enviarCalifTxt('+n+')">ENVIAR</button><button style="background:none;border:1px solid #ccc;border-radius:8px;padding:10px 14px;font-weight:700;cursor:pointer;color:#555" onclick="enviarCalif('+n+',\'\')">Solo estrellas ⭐</button></div>';
+    return;
+  }
   if(n<=3){
     var razones=['Tardó mucho','Trato grosero','Pedido dañado o frío','Cobró de más','Otra cosa'];
     document.getElementById('calif').innerHTML='<p class="mini" style="margin:0 0 6px;font-weight:800">Ayudanos a mejorar: ¿qué fue lo malo?</p>'+
@@ -664,6 +676,11 @@ async function calificar(n){
 }
 function motivoCalif(t){var e=document.getElementById('califInput');if(e)e.value=t;}
 async function enviarCalifTxt(n){var e=document.getElementById('califInput');await enviarCalif(n,e?e.value:'');}
+async function rapidaCliente(q){
+  try{await fetch(api('orders'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'msg',id:PID,de:'cliente',tel:ULT_TEL,texto:q})});}catch(e){}
+  var li=document.getElementById('chat-in');if(li)li.value='';
+  tick();
+}
 async function enviarCalif(n,txt){
   try{await fetch(api('orders'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'calificar',id:PID,quien:'cliente',tel:ULT_TEL,estrellas:n,texto:(txt||'').trim()})});}catch(e){}
   document.getElementById('calif').innerHTML='<p class="mini" style="margin:0;font-weight:800">¡Gracias por calificar!</p>';
