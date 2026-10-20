@@ -50,6 +50,7 @@ async function aviso(texto) {
   } catch (e) { }
 }
 const PCT_LOCAL = 0.10, GRACIA_LOCAL_MS = 90 * 864e5; // 10% al local tras 90 dias de operar la zona (intermedio vs las grandes)
+const CUENTA_LIQ = 'Banco Industrial, cuenta monetaria No. 7171286805, a nombre de Andrea Ester Perez Acosta';
 function comisionDe(tipo, envio) {
   const e = dinero(envio);
   if (tipo === 'comida') return dinero(e * 0.10);
@@ -139,7 +140,7 @@ module.exports = wrap(async (req, res) => {
     const califs = peds.filter(o => o.piloto && o.piloto.tel === tel && o.califCliente > 0);
     const calif = califs.length ? Math.round(califs.reduce((x, o) => x + o.califCliente, 0) / califs.length * 10) / 10 : null;
     const zonaF = zona.filter(o => !(o.rechazadoPor || []).includes(tel));
-    return res.status(200).json({ ok: true, piloto: { nombre: p.datos.nombre, zona: p.datos.zona, vehiculo: p.datos.vehiculo, marca: p.datos.marca || '', color: p.datos.color || '', placa: p.datos.placa || '', disponible: st.disponible, ganadoHoy: st.ganadoHoy || 0, ganadoSemana: st.ganadoSemana || 0, pedidosHoy: st.pedidosHoy || 0, racha: st.racha || 0, boletosExtra: st.boletosExtra || 0, compensa: st.compensa || 0, compensaN: st.compensaN || 0, calif: calif, pendiente: st.pendiente || null, pendienteActivo: debePend, avisoPendiente: debePend ? ('Tenés Q' + st.pendiente.monto + ' de comisiones por liquidar. Cuando puedas, transferilos a la cuenta del banco (el admin te la manda por WhatsApp) y avisale. En cuanto confirme volvés a recibir pedidos como si nada. Si tuviste un motivo del retraso, contáselo: puede devolverte la racha del pozo.') : null, retraso: !!st.retraso }, activo: mio[0] || null, zonaBuscando: zonaF });
+    return res.status(200).json({ ok: true, piloto: { nombre: p.datos.nombre, zona: p.datos.zona, vehiculo: p.datos.vehiculo, marca: p.datos.marca || '', color: p.datos.color || '', placa: p.datos.placa || '', disponible: st.disponible, ganadoHoy: st.ganadoHoy || 0, ganadoSemana: st.ganadoSemana || 0, pedidosHoy: st.pedidosHoy || 0, racha: st.racha || 0, boletosExtra: st.boletosExtra || 0, compensa: st.compensa || 0, compensaN: st.compensaN || 0, calif: calif, pendiente: st.pendiente || null, pendienteActivo: debePend, avisoPendiente: debePend ? ('Tenés Q' + st.pendiente.monto + ' de comisiones por liquidar. Depositá o transferí a: ' + CUENTA_LIQ + '. Después avisale al admin por WhatsApp con tu nombre. En cuanto confirme volvés a recibir pedidos como si nada. Si tuviste un motivo del retraso, contáselo: puede devolverte la racha del pozo.') : null, retraso: !!st.retraso }, activo: mio[0] || null, zonaBuscando: zonaF });
   }
 
   // ---- PILOTO: ponerse disponible / no disponible ----
