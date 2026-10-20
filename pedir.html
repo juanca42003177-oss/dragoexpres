@@ -652,7 +652,18 @@ async function actualizar(){
   }catch(e){}
 }
 async function calificar(n){
-  try{await fetch(api('orders'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'calificar',id:PID,quien:'cliente',tel:ULT_TEL,estrellas:n})});}catch(e){}
+  if(n<=3){
+    var razones=['Tardó mucho','Trato grosero','Pedido dañado o frío','Cobró de más','Otra cosa'];
+    document.getElementById('calif').innerHTML='<p class="mini" style="margin:0 0 6px;font-weight:800">Ayudanos a mejorar: ¿qué fue lo malo?</p>'+
+      '<div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px">'+razones.map(function(r){return '<button style="border:1px solid #ccc;border-radius:20px;padding:6px 10px;background:#fff;font-size:12px;cursor:pointer" onclick="document.getElementById('califInput').value=this.textContent">'+r+'</button>'}).join('')+'</div>'+
+      '<textarea id="califInput" maxlength="160" placeholder="Contanos qué pasó (opcional)" style="width:100%;border:1px solid #ccc;border-radius:8px;padding:8px;font-size:13px;height:60px"></textarea>'+
+      '<button style="margin-top:8px;background:#1a1a22;color:#f0b90b;border:none;border-radius:8px;padding:10px 18px;font-weight:800;cursor:pointer" onclick="enviarCalif('+n+',document.getElementById('califInput').value)">ENVIAR</button>';
+    return;
+  }
+  await enviarCalif(n,'');
+}
+async function enviarCalif(n,txt){
+  try{await fetch(api('orders'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'calificar',id:PID,quien:'cliente',tel:ULT_TEL,estrellas:n,texto:(txt||'').trim()})});}catch(e){}
   document.getElementById('calif').innerHTML='<p class="mini" style="margin:0;font-weight:800">¡Gracias por calificar!</p>';
 }
 

@@ -172,6 +172,14 @@ async function verBilletera(){
   if(j.pendienteActivo)h+='<div class="s" style="color:#ffd479">⏳ Hasta ponerte al día no te llegan pedidos nuevos.</div>';
   if(j.retraso)h+='<div class="s" style="color:#ffd479">🐉 Por el retraso perdiste tu racha del pozo. Si tuviste un motivo, escribile al admin por WhatsApp: te la puede devolver.</div>';
   if(j.historial&&j.historial.length){h+='<div class="card"><div class="mini">ÚLTIMOS VIAJES</div>'+j.historial.map(function(x){var f=new Date(x.ts-21600000).toISOString().slice(0,10);var ic={comida:'🍔',viaje:'🛺',repuesto:'🔧'}[x.tipo]||'📦';return '<div style="display:flex;justify-content:space-between;font-size:13px;margin:6px 0"><span>'+ic+' '+x.id+'</span><b style="color:#f0b90b">+Q'+x.ganado+'</b></div>'}).join('')+'</div>';}
+  if(j.resenas&&j.resenas.length){
+    h+='<div class="card"><div class="mini">MIS RESEÑAS ('+(j.calif||'—')+'★ promedio)</div>'+j.resenas.map(function(x){
+      var mala=x.estrellas<=3;
+      return '<div style="font-size:13px;margin:8px 0;padding:6px 8px;border-left:3px solid '+(mala?'#c0392b':'#3f7a3f')+';background:'+(mala?'#1a1212':'#141a14')+';border-radius:6px"><b style="color:'+(mala?'#ff8f8f':'#8fe28f')+'">'+'⭐'.repeat(x.estrellas)+'</b>'+(x.texto?' <i>"'+x.texto+'"</i>':'')+'</div>';
+    }).join('')+'</div>';
+    var malas=j.resenas.filter(function(x){return x.estrellas<=3}).length;
+    if(malas)h+='<div class="card" style="border-color:#8a3a3a"><div class="mini">🐉 Tenés '+malas+' reseña(s) baja(s). Leé los comentarios arriba: son la ruta exacta para subir tus estrellas y ganar más. ¡Vos podés!</div></div>';
+  }
   document.getElementById('billetera').innerHTML=h;
   }catch(e){document.getElementById('billetera').innerHTML='<div class="card">Revisá tu internet y volvé a abrir.</div>'}
 }

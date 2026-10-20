@@ -103,7 +103,7 @@ module.exports = wrap(async (req, res) => {
           pedidosSemana: entSem.length, ventasSemana: Math.round(entSem.reduce((x, o) => x + (o.compra || 0), 0) * 10) / 10 };
       }),
       resenas: peds.filter(o => (o.califCliente > 0 && o.califCliente <= 2) || (o.califPiloto > 0 && o.califPiloto <= 2)).slice(-12).reverse()
-        .map(o => ({ id: o.id, cliente: (o.cliente || {}).nombre || '', piloto: (o.piloto || {}).nombre || '', califCliente: o.califCliente || 0, califPiloto: o.califPiloto || 0, detalle: String(o.detalle || '').slice(0, 60) }))
+        .map(o => ({ id: o.id, cliente: (o.cliente || {}).nombre || '', piloto: (o.piloto || {}).nombre || '', pilotoTel: String((o.piloto || {}).tel || '').replace(/\D/g, ''), califCliente: o.califCliente || 0, califPiloto: o.califPiloto || 0, texto: String(o.califClienteTxt || o.califPilotoTxt || '').slice(0, 160), detalle: String(o.detalle || '').slice(0, 60) }))
     } });
   }
   if (action === 'rachaOk') {

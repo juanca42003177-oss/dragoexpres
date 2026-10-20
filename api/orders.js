@@ -391,7 +391,8 @@ module.exports = wrap(async (req, res) => {
     const fp = await ghGet('pilots.json');
     const st = (fp ? fp.data : []).find(x => String(x.tel).replace(/\D/g, '') === tel) || {};
     const historial = mios.slice(-15).reverse().map(x => ({ id: x.id, tipo: x.tipo, ganado: dinero(x.envio - x.comision + (x.propina || 0)), envio: x.envio, propina: x.propina || 0, ts: x.tsEntregado || x.ts }));
-    return res.status(200).json({ ok: true, entregas: mios.length, ganado, comisiones: dinero(comisiones - (st.bonosAplicados || 0)), calif, bonosPend: dinero(st.bonosPend || 0), bonoBienvenida: st.bonoBienvenida || null, pendiente: st.pendiente || null, pendienteActivo: !!(st.pendiente && !st.pendiente.pagado), retraso: !!st.retraso, meta: { hechas: semana, faltan: Math.max(0, 20 - semana) }, historial });
+    const resenas = califs.slice(-10).reverse().map(x => ({ id: x.id, estrellas: x.califCliente, texto: String(x.califClienteTxt || ''), ts: x.tsEntregado || x.ts }));
+    return res.status(200).json({ ok: true, entregas: mios.length, resenas, ganado, comisiones: dinero(comisiones - (st.bonosAplicados || 0)), calif, bonosPend: dinero(st.bonosPend || 0), bonoBienvenida: st.bonoBienvenida || null, pendiente: st.pendiente || null, pendienteActivo: !!(st.pendiente && !st.pendiente.pagado), retraso: !!st.retraso, meta: { hechas: semana, faltan: Math.max(0, 20 - semana) }, historial });
   }
 
   // ---- consultar estado (usuario o pantalla) ----
@@ -748,7 +749,8 @@ module.exports = wrap(async (req, res) => {
     if (o.estado !== 'entregado') return res.status(200).json({ ok: false, error: 'Se califica al entregar.' });
     if (quien === 'cliente' && o.califCliente) return res.status(200).json({ ok: false, error: 'Ya calificaste.' });
     if (quien === 'piloto' && o.califPiloto) return res.status(200).json({ ok: false, error: 'Ya calificaste.' });
-    if (quien === 'cliente') o.califCliente = estrellas; else o.califPiloto = estrellas;
+    const texto = String(b.texto || '').trim().slice(0, 160);
+    if (quien === 'cliente') { o.califCliente = estrellas; if (texto) o.califClienteTxt = texto; } else { o.califPiloto = estrellas; if (texto) o.califPilotoTxt = texto; }
     await ghPut('pedidos.json', fpd.sha, peds, 'calificacion ' + id);
     return res.status(200).json({ ok: true });
   }
