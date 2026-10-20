@@ -190,7 +190,7 @@ function pintar(j){
 function pedidoHTML(o){
   var tipo={comida:'🍔 Comida',viaje:'🛺 Viaje',repuesto:'🔧 Repuesto'}[o.tipo];
   var est=ESTADOS[o.estado]||o.estado;
-  var wa='https://wa.me/502'+String(o.cliente.tel).replace(/\D/g,'').replace(/^502/,'')+'?text='+encodeURIComponent('Hola '+o.cliente.nombre+', soy '+o.piloto.nombre+', tu piloto de DragoExpres (pedido '+o.id+').');
+  var pl=o.piloto||{nombre:'el piloto',tel:''};var wa='https://wa.me/502'+String(pl.tel||o.cliente.tel).replace(/\D/g,'').replace(/^502/,'')+'?text='+encodeURIComponent('Hola '+o.cliente.nombre+', soy '+pl.nombre+', tu piloto de DragoExpres (pedido '+o.id+').');
   var botones='';
   if(o.estado==='asignado')botones='<button class="btn bA" onclick="hacer(\'aceptar\',\''+o.id+'\')">✅ ACEPTAR PEDIDO</button><button class="btn bR" onclick="hacer(\'rechazar\',\''+o.id+'\')">Rechazar</button>';
   if(o.estado==='aceptado')botones='<button class="btn bV" onclick="hacer(\'avanzar\',\''+o.id+'\')">🛺 YA VOY EN CAMINO</button><button class="btn bR" onclick="hacer(\'rechazar\',\''+o.id+'\')">No puedo</button>';
