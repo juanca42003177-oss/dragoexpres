@@ -181,7 +181,7 @@ function pintar(j){
   document.getElementById('g-ped').textContent=p.pedidosHoy||0;
   document.getElementById('g-cal').textContent=p.calif?p.calif+'★':'—';
   var av=document.getElementById('deuda');
-  if(p.pendiente){av.style.display='block';av.innerHTML='💰 Debés <b>Q'+p.pendiente.monto+'</b> de comisiones de la semana. Transferí a la cuenta del banco (te la manda el admin por WhatsApp) antes de la próxima liquidación y quedás al día.';}
+  if(p.pendiente){av.style.display='block';av.innerHTML='💰 Tenés <b>Q'+p.pendiente.monto+'</b> de comisiones por liquidar. Cuando puedas, pasalos a la cuenta del banco (el admin te la manda por WhatsApp) y avisale 😊'+(p.pendienteActivo?'<br><span style="font-size:12px">⏳ Hasta ponerte al día no te llegan pedidos nuevos. Al confirmar tu pago, todo vuelve a la normalidad como si nada.</span>':'')+(p.retraso?'<br><span style="font-size:12px">🐉 Por el retraso perdiste tu racha del pozo del domingo. Si tuviste un motivo, escribile al admin por WhatsApp: te la puede devolver.</span>':'');}
   else{av.style.display='none'}
   var sw=document.getElementById('sw');sw.className='sw'+(p.disponible?' on':'');
   document.getElementById('dis-txt').textContent=p.disponible?'DISPONIBLE 🟢':'NO DISPONIBLE';
