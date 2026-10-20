@@ -1,112 +1,395 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="theme-color" content="#0a0a0f">
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#d1121f">
 <title>DragoExpres — Pedí ya</title>
 <link rel="icon" href="img/icono.png">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <style>
-body{background:#0a0a0f;color:#f2f4f8;font-family:system-ui,sans-serif;margin:0;padding:0 0 80px}
-.w{max-width:560px;margin:0 auto;padding:14px}
-h1{font-size:20px;margin:10px 0 2px}h1 span{color:#f0b90b}
-input,select,textarea{width:100%;box-sizing:border-box;background:#14151c;border:1px solid #2a2b38;border-radius:10px;color:#fff;padding:11px;font-size:15px;margin:5px 0}
-textarea{min-height:64px}
-label{font-size:12px;color:#9aa3b5;display:block;margin-top:9px}
-.btn{border:0;border-radius:10px;padding:13px;font-weight:900;font-size:14px;cursor:pointer;width:100%;margin-top:14px}
-.bA{background:linear-gradient(90deg,#f0b90b,#ffd44d);color:#111}
-.tabs{display:flex;gap:6px;margin:12px 0}
-.tab{flex:1;background:#14151c;border:1px solid #2a2b38;border-radius:10px;color:#9aa3b5;padding:10px 0;text-align:center;font-size:13px;font-weight:800;cursor:pointer}
-.tab.on{border-color:#f0b90b;color:#f0b90b;background:#241a05}
-.card{background:#14151c;border:1px solid #2a2b38;border-radius:14px;padding:14px;margin:10px 0}
-.st{font-size:12px;font-weight:900;padding:6px 12px;border-radius:8px;display:inline-block}
-.sBus{background:#241a05;color:#ffe08a}.sAsig{background:#0d2030;color:#7ec8ff}.sCam{background:#0d2015;color:#7ee2a8}.sEnt{background:#12340f;color:#a5ff8f}
-.mini{font-size:12px;color:#9aa3b5;line-height:1.6}
-.big{font-size:26px;font-weight:900;color:#f0b90b;text-align:center}
-.cuenta{background:#1c1f2a;border:1px solid #2a2b38;border-radius:8px;padding:8px 12px;font-size:15px;margin:4px 0;color:#ffe08a}
-.wa{background:#0d2015;border:1px solid #2f5c46;color:#7ee2a8;text-align:center;text-decoration:none;display:block;padding:11px;border-radius:10px;font-weight:800;margin-top:10px}
+:root{--rojo:#d1121f;--rojo2:#8f0d16;--oro:#f0b90b;--tinta:#1a1a22;--gris:#71717f;--fondo:#f6f6f8;--card:#ffffff;--linea:#ececf0;--ok:#1f9d55;--borde:16px}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{margin:0;background:var(--fondo);color:var(--tinta);font-family:system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;padding-bottom:72px}
+.w{max-width:520px;margin:0 auto}
+/* header rojo */
+.hdr{background:linear-gradient(160deg,var(--rojo),var(--rojo2));padding:14px 16px 22px;border-radius:0 0 26px 26px;color:#fff;position:sticky;top:0;z-index:20}
+.hdr .row{display:flex;align-items:center;gap:10px}
+.hdr img{width:34px;height:34px;border-radius:9px}
+.hdr b{font-size:19px;letter-spacing:.2px}
+.hdr .zona{margin-left:auto;display:flex;align-items:center;gap:6px;background:rgba(255,255,255,.16);padding:7px 12px;border-radius:20px;font-size:12.5px;font-weight:700;max-width:52%;white-space:nowrap;overflow:hidden}
+.buscador{display:flex;gap:8px;margin-top:14px}
+.buscador input{flex:1;border:0;background:#fff;border-radius:24px;padding:12px 16px;font-size:14px;color:var(--tinta);outline:none;box-shadow:0 3px 10px rgba(0,0,0,.14)}
+.buscador .lupa{width:46px;height:46px;background:var(--oro);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:19px;cursor:pointer;box-shadow:0 3px 8px rgba(240,185,11,.5)}
+/* secciones */
+.sec{padding:16px}
+h2{font-size:17px;margin:2px 0 10px;font-weight:800}
+.sub{font-size:12.5px;color:var(--gris);margin:-6px 0 10px}
+/* banners */
+.banners{display:flex;gap:10px;overflow-x:auto;padding:0 16px;margin-top:-26px;scrollbar-width:none}
+.banners::-webkit-scrollbar{display:none}
+.bn{min-width:84%;border-radius:var(--borde);padding:16px;color:#fff;position:relative;overflow:hidden;box-shadow:0 6px 16px rgba(0,0,0,.15)}
+.bn b{font-size:16px;display:block}
+.bn span{font-size:12.5px;opacity:.92}
+.bn .em{position:absolute;right:10px;top:12px;font-size:44px;opacity:.9}
+.bn1{background:linear-gradient(120deg,#d1121f,#7a0a12)}
+.bn2{background:linear-gradient(120deg,#b8860b,#6b4a00)}
+/* categorias */
+.cats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.cat{background:var(--card);border-radius:var(--borde);padding:16px 8px;text-align:center;cursor:pointer;border:1px solid var(--linea);box-shadow:0 2px 8px rgba(0,0,0,.05)}
+.cat .ic{font-size:30px}
+.cat b{display:block;font-size:13.5px;margin-top:8px}
+.cat span{font-size:11px;color:var(--gris)}
+/* locales */
+.loc{display:flex;gap:12px;align-items:center;background:var(--card);border:1px solid var(--linea);border-radius:var(--borde);padding:12px;margin-bottom:10px;box-shadow:0 2px 8px rgba(0,0,0,.05)}
+.avatar{width:52px;height:52px;border-radius:14px;background:linear-gradient(135deg,var(--rojo),#4d0009);color:#ffd24d;font-weight:900;font-size:22px;display:flex;align-items:center;justify-content:center;flex:none}
+.loc .info{flex:1;min-width:0}
+.loc .info b{display:block;font-size:14.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.loc .info span{font-size:12px;color:var(--gris)}
+.chip{display:inline-block;background:#fdeeee;color:var(--rojo);font-size:10.5px;font-weight:800;padding:3px 9px;border-radius:10px;margin-right:6px}
+.btnS{background:linear-gradient(90deg,var(--oro),#ffd44d);color:#231a00;border:0;border-radius:22px;padding:10px 14px;font-weight:900;font-size:12.5px;cursor:pointer;white-space:nowrap}
+.btnW{background:#e7f8ee;color:var(--ok);border:0;border-radius:22px;padding:10px 14px;font-weight:800;font-size:12.5px;cursor:pointer;white-space:nowrap}
+/* pasos */
+.pasos{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;text-align:center}
+.paso{background:var(--card);border:1px solid var(--linea);border-radius:var(--borde);padding:12px 6px;font-size:11.5px;color:var(--gris)}
+.paso b{display:block;font-size:12.5px;color:var(--tinta);margin-top:6px}
+.paso .n{display:inline-block;width:22px;height:22px;border-radius:50%;background:var(--rojo);color:#fff;font-weight:900;line-height:22px;font-size:12px}
+/* pedidos */
+.ped{background:var(--card);border:1px solid var(--linea);border-radius:var(--borde);padding:13px;margin-bottom:11px;box-shadow:0 2px 8px rgba(0,0,0,.05)}
+.ped .top{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--gris)}
+.st{font-weight:900;padding:3px 10px;border-radius:10px;font-size:11px}
+.sBus{background:#fff3cd;color:#9a7b00}.sAsig,.sAce{background:#e0efff;color:#0b5cad}.sCam{background:#e5f6ec;color:var(--ok)}.sEnt{background:#e5f6ec;color:var(--ok)}.sCan{background:#fde3e3;color:#b02a2a}
+.ped b.det{display:block;font-size:14px;margin:7px 0 3px}
+.ped .fila{display:flex;gap:8px;margin-top:11px;flex-wrap:wrap}
+.ped .fecha{font-size:11px;color:var(--gris)}
+.mini{font-size:12px;color:var(--gris);line-height:1.55}
+/* perfil */
+.pcard{background:var(--card);border:1px solid var(--linea);border-radius:var(--borde);padding:15px;margin-bottom:12px;box-shadow:0 2px 8px rgba(0,0,0,.05)}
+.item{display:flex;align-items:center;gap:12px;padding:13px 2px;border-bottom:1px solid var(--linea);cursor:pointer;font-size:14.5px;font-weight:600}
+.item:last-child{border-bottom:0}
+.item .ic{width:36px;height:36px;background:#f2f2f5;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:16px;flex:none}
+.item .flecha{margin-left:auto;color:#c2c2cc;font-weight:900}
+.pavatar{width:64px;height:64px;border-radius:50%;background:linear-gradient(135deg,var(--rojo),#4d0009);color:#ffd24d;font-weight:900;font-size:26px;display:flex;align-items:center;justify-content:center}
+input,select,textarea{width:100%;background:#fff;border:1px solid #d9d9e0;border-radius:12px;color:var(--tinta);padding:12px;font-size:14px;margin:5px 0;outline:none;font-family:inherit}
+input:focus,textarea:focus{border-color:var(--rojo)}
+textarea{min-height:70px;resize:vertical}
+label{font-size:11.5px;color:var(--gris);display:block;margin-top:10px;font-weight:700}
+.btn{border:0;border-radius:14px;padding:14px;font-weight:900;font-size:14.5px;cursor:pointer;width:100%;margin-top:14px}
+.bA{background:linear-gradient(90deg,var(--rojo),#e5352f);color:#fff;box-shadow:0 4px 12px rgba(209,18,31,.35)}
+/* sheet modal */
+.veil{position:fixed;inset:0;background:rgba(10,10,16,.55);z-index:40;display:none}
+.sheet{position:fixed;left:0;right:0;bottom:0;max-height:88%;overflow-y:auto;background:var(--fondo);border-radius:22px 22px 0 0;z-index:41;display:none;padding:8px 16px 26px}
+.sheet .asa{width:44px;height:5px;border-radius:3px;background:#d5d5dd;margin:6px auto 12px}
+.pills{display:flex;gap:8px;margin:6px 0 4px}
+.pill{flex:1;text-align:center;padding:10px 0;border-radius:12px;background:#fff;border:1.5px solid var(--linea);font-size:13px;font-weight:800;cursor:pointer;color:var(--gris)}
+.pill.on{border-color:var(--rojo);color:var(--rojo);background:#fff5f5}
+.dirchip{display:inline-block;background:#eef4ff;color:#0b5cad;font-size:12px;font-weight:700;padding:7px 12px;border-radius:16px;margin:4px 6px 0 0;cursor:pointer}
+/* tracker */
+.trk{position:fixed;inset:0;background:var(--fondo);z-index:50;display:none;overflow-y:auto}
+.trk .th{background:linear-gradient(160deg,var(--rojo),var(--rojo2));color:#fff;padding:16px;position:sticky;top:0;display:flex;align-items:center;gap:10px}
+.trk .th b{font-size:17px}
+.trk .th .x{margin-left:auto;font-size:20px;cursor:pointer;background:rgba(255,255,255,.2);width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center}
+.big{font-size:24px;font-weight:900;color:var(--rojo);text-align:center}
+.wa{background:#0d2015;color:#128c4b;text-align:center;text-decoration:none;display:block;padding:12px;border-radius:12px;font-weight:800;margin-top:12px;border:1px solid #bfe8cf}
+#mapa{height:230px;border-radius:14px;margin-top:12px;display:none;border:1px solid var(--linea)}
+/* nav inferior */
+nav{position:fixed;left:0;right:0;bottom:0;background:#fff;border-top:1px solid var(--linea);display:flex;z-index:30;padding:6px 0 max(6px,env(safe-area-inset-bottom))}
+nav div{flex:1;text-align:center;font-size:10.5px;color:#9a9aa8;font-weight:700;cursor:pointer}
+nav div .i{font-size:21px;display:block}
+nav div.on{color:var(--rojo)}
+.vista{display:none}.vista.on{display:block}
+.empty{text-align:center;padding:34px 16px;color:var(--gris);font-size:13.5px}
 </style>
 </head>
 <body>
-<div class="w">
-  <h1>🐉 Drago<span>Expres</span> — Pedí ya</h1>
-  <p class="mini">Pagás en efectivo directo al piloto. Tu pedido se asigna solo al piloto disponible de tu zona.</p>
-  <div class="tabs">
-    <div class="tab on" id="t-comida" onclick="tt('comida')">🍔 Comida</div>
-    <div class="tab" id="t-viaje" onclick="tt('viaje')">🛺 Viaje</div>
-    <div class="tab" id="t-repuesto" onclick="tt('repuesto')">🔧 Repuesto</div>
-  </div>
 
-  <div id="form">
-    <label>Tu nombre</label><input id="f-nombre" placeholder="Ej: María López">
-    <label>Tu WhatsApp</label><input id="f-tel" type="tel" placeholder="Ej: 55501234">
-    <label>Zona</label><select id="f-zona"><option value="">Cargando zonas activas...</option></select>
-    <div id="extra"></div>
-    <p class="mini" style="margin:10px 0 0">💵 <b>Pagás en efectivo directo al piloto</b> al recibir tu pedido (la compra va al local, el envío al piloto). Tarjeta y transferencia: próximamente.</p>
-    <button class="btn bA" onclick="enviar()">ENVIAR PEDIDO 🐉</button>
-    <p class="mini" style="margin-top:8px">Si tu zona no aparece, todavía no está activa. Registrite como usuario y te avisamos cuando el dragón llegue a tu área.</p>
+<!-- ============ INICIO ============ -->
+<div class="vista on" id="v-inicio">
+  <div class="hdr">
+    <div class="row"><img src="img/icono.png" alt="logo"><b>DragoExpres</b>
+      <div class="zona" onclick="tab('perfil')">📍 <span id="zonaTag">Elegí tu zona</span></div>
+    </div>
+    <div class="buscador"><input id="q" placeholder="Locales, platos y productos" oninput="pintarLocales()"><div class="lupa">🔍</div></div>
   </div>
+  <div class="banners">
+    <div class="bn bn1"><span class="em">🐉</span><b>Tu comida, viajes y repuestos</b><span>A tu puerta, pagando en efectivo al recibir.</span></div>
+    <div class="bn bn2"><span class="em">💰</span><b>El envío lo ponés vos</b><span>Ofrecé lo justo y el dragón lo trae volando.</span></div>
+  </div>
+  <div class="sec">
+    <h2>¿Qué querés hoy?</h2>
+    <div class="cats">
+      <div class="cat" onclick="abrirPedido('comida')"><div class="ic">🍜</div><b>Comida</b><span>De tu local favorito</span></div>
+      <div class="cat" onclick="abrirPedido('viaje')"><div class="ic">🛺</div><b>Viaje</b><span>Movete a donde sea</span></div>
+      <div class="cat" onclick="abrirPedido('repuesto')"><div class="ic">🔧</div><b>Repuesto</b><span>De moto o carro</span></div>
+    </div>
+  </div>
+  <div class="sec" style="padding-top:0">
+    <h2>Locales de tu zona</h2>
+    <p class="sub">Locales verificados con el dragón. Tocá "Pedir aquí" y armá tu orden.</p>
+    <div id="lista-locales"></div>
+  </div>
+  <div class="sec" style="padding-top:0">
+    <h2>¿Cómo funciona?</h2>
+    <div class="pasos">
+      <div class="paso"><span class="n">1</span><b>Pedís</b>Elegí qué querés y pagás después</div>
+      <div class="paso"><span class="n">2</span><b>Vuela el dragón</b>Un piloto de tu zona lo trae</div>
+      <div class="paso"><span class="n">3</span><b>Pagás en efectivo</b>Al recibir: compra al local, envío al piloto</div>
+    </div>
+  </div>
+</div>
 
-  <div id="siguiendo" style="display:none">
-    <div class="card">
-      <p class="mini" style="margin:0 0 6px">TU PEDIDO</p>
+<!-- ============ PROMOS ============ -->
+<div class="vista" id="v-promos">
+  <div class="hdr"><div class="row"><img src="img/icono.png"><b>Promociones</b></div></div>
+  <div class="sec">
+    <div class="bn bn1" style="margin-bottom:12px;min-width:100%"><span class="em">🎁</span><b>Tu primer envío, GRATIS</b><span>Registrate como usuario y tu primer pedido en tu zona vuela sin costo de envío cuando el dragón llegue a tu área.</span></div>
+    <div class="pcard"><b>🏍️ Repartí con DragoExpres</b><p class="mini">Trabajá con tu bici, moto o carro en tu propia zona. Pagos semanales + pozo dominical para los que más entregan.</p><button class="btn bA" onclick="location.href='index.html'">Quiero ser piloto</button></div>
+    <div class="pcard"><b>🏪 Poné tu local</b><p class="mini">Tu local visto por toda tu zona. Vos ponés precios y promos. Registro gratis y sin comisión los primeros meses.</p><button class="btn bA" onclick="location.href='index.html'">Registrar mi local</button></div>
+    <div class="pcard"><b>💵 Pagás en efectivo, sin vueltas</b><p class="mini">La compra se la pagás al piloto para el local, y el envío al piloto. Sin tarjeta, sin registro de pago.</p></div>
+  </div>
+</div>
+
+<!-- ============ PEDIDOS ============ -->
+<div class="vista" id="v-pedidos">
+  <div class="hdr"><div class="row"><img src="img/icono.png"><b>Mis pedidos</b></div></div>
+  <div class="sec">
+    <div id="pedidos-box"><p class="mini">Cargando tus pedidos...</p></div>
+    <div id="ped-tel" class="pcard" style="display:none">
+      <b>Decinos tu WhatsApp</b>
+      <p class="mini">Para ver tus pedidos, ingresa el número con el que pedís.</p>
+      <input id="p-tel" type="tel" placeholder="Ej: 55501234">
+      <button class="btn bA" onclick="guardarTel()">Ver mis pedidos</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============ PERFIL ============ -->
+<div class="vista" id="v-perfil">
+  <div class="hdr"><div class="row"><img src="img/icono.png"><b>Mi perfil</b></div></div>
+  <div class="sec">
+    <div class="pcard" style="display:flex;gap:14px;align-items:center">
+      <div class="pavatar" id="pavatar">🐉</div>
+      <div><b id="p-nombre" style="font-size:17px">¡Hola!</b><p class="mini" id="p-datos" style="margin:3px 0 0">Iniciá tus datos para pedir más rápido</p></div>
+    </div>
+    <div class="pcard">
+      <b style="font-size:15px">Mi información</b>
+      <label>Nombre</label><input id="mi-nombre" placeholder="Ej: María López">
+      <label>WhatsApp</label><input id="mi-tel" type="tel" placeholder="Ej: 55501234">
+      <label>Mi zona</label><select id="mi-zona"><option value="">Cargando zonas...</option></select>
+      <button class="btn bA" onclick="guardarPerfil()">Guardar</button>
+    </div>
+    <div class="pcard">
+      <b style="font-size:15px">Mis direcciones</b>
+      <div id="dir-list"></div>
+      <label>Nueva dirección</label><input id="dir-nueva" placeholder="Calle, número, colonia">
+      <button class="btn bA" style="margin-top:10px" onclick="agregarDir()">Agregar dirección</button>
+    </div>
+    <div class="pcard">
+      <b style="font-size:15px">Cuentas</b>
+      <div class="item" onclick="location.href='piloto.html'"><div class="ic">🏍️</div>Soy piloto<div class="flecha">›</div></div>
+      <div class="item" onclick="location.href='flotista.html'"><div class="ic">🚚</div>Tengo vehículos (flotista)<div class="flecha">›</div></div>
+      <div class="item" onclick="location.href='index.html'"><div class="ic">🏪</div>Quiero poner mi local<div class="flecha">›</div></div>
+      <div class="item" onclick="cerrarSesion()"><div class="ic">🚪</div>Cerrar sesión<div class="flecha">›</div></div>
+    </div>
+    <p class="mini" style="text-align:center;padding:6px 0 18px">🐉 DragoExpres · Dragon Trade Labs · Guatemala</p>
+  </div>
+</div>
+
+<!-- ============ SHEET DE PEDIDO ============ -->
+<div class="veil" id="veil" onclick="cerrarSheet()"></div>
+<div class="sheet" id="sheet">
+  <div class="asa"></div>
+  <h2 style="font-size:18px">Armá tu pedido 🐉</h2>
+  <div class="pills">
+    <div class="pill on" id="pill-comida" onclick="setTipo('comida')">🍜 Comida</div>
+    <div class="pill" id="pill-viaje" onclick="setTipo('viaje')">🛺 Viaje</div>
+    <div class="pill" id="pill-repuesto" onclick="setTipo('repuesto')">🔧 Repuesto</div>
+  </div>
+  <label>Tu nombre</label><input id="f-nombre" placeholder="Ej: María López">
+  <label>Tu WhatsApp</label><input id="f-tel" type="tel" placeholder="Ej: 55501234">
+  <label>Zona</label><select id="f-zona"><option value="">Cargando zonas activas...</option></select>
+  <div id="dirs-guardadas"></div>
+  <div id="extra"></div>
+  <p class="mini" style="margin-top:12px">💵 <b>Pagás en efectivo al piloto</b>: la compra al local + el envío al piloto. Tarjeta: próximamente.</p>
+  <button class="btn bA" onclick="enviar()">ENVIAR PEDIDO 🐉</button>
+</div>
+
+<!-- ============ TRACKER ============ -->
+<div class="trk" id="trk">
+  <div class="th"><b>🐉 Siguiendo tu pedido</b><div class="x" onclick="cerrarTrk()">✕</div></div>
+  <div class="sec">
+    <div class="pcard" style="text-align:center">
+      <p class="mini" style="margin:0">TU PEDIDO</p>
       <div class="big" id="oid"></div>
-      <div style="text-align:center;margin:10px 0"><span class="st sBus" id="oestado">Buscando piloto...</span></div>
-      <p class="mini" id="oinfo" style="text-align:center"></p>
-      <a class="wa" id="owa" style="display:none" href="#" target="_blank">💬 Escribille al piloto</a>
-      <div id="chatBox" style="display:none;text-align:left;margin-top:10px">
-        <p class="mini" style="margin:0 0 6px">💬 CHAT CON TU PILOTO (le llega al instante)</p>
-        <div id="chat-list" style="max-height:180px;overflow-y:auto;background:#14161d;border:1px solid #2a2b38;border-radius:10px;padding:8px"></div>
+      <div style="margin:12px 0"><span class="st sBus" id="oestado">Buscando piloto...</span></div>
+      <p class="mini" id="oinfo"></p>
+      <a class="wa" id="owa" style="display:none" href="#" target="_blank">💬 Escribille al piloto por WhatsApp</a>
+      <div id="chatBox" style="display:none;text-align:left;margin-top:12px">
+        <p class="mini" style="margin:0 0 6px;font-weight:800">💬 CHAT CON TU PILOTO</p>
+        <div id="chat-list" style="max-height:190px;overflow-y:auto;background:#fff;border:1px solid var(--linea);border-radius:12px;padding:9px"></div>
         <div style="display:flex;gap:6px;margin-top:8px">
-          <input id="chat-in" placeholder="Escribí tu mensaje..." style="flex:1">
-          <button class="btn bA" style="padding:9px 14px" onclick="enviarMsg()">➤</button>
+          <input id="chat-in" placeholder="Escribí tu mensaje..." style="flex:1;margin:0">
+          <button class="btn bA" style="width:auto;margin:0;padding:10px 16px" onclick="enviarMsg()">➤</button>
         </div>
       </div>
-      <div id="mapa" style="display:none;height:220px;border-radius:12px;margin-top:10px;border:1px solid #2a2b38"></div>
-      <div id="calif" style="display:none;text-align:center;margin-top:10px">
-        <p class="mini" style="margin:0 0 6px">¿Cómo te fue con tu piloto?</p>
+      <div id="mapa"></div>
+      <div id="calif" style="display:none;margin-top:12px">
+        <p class="mini" style="font-weight:800">¿Cómo te fue con tu piloto?</p>
         <div id="estrellas"></div>
       </div>
     </div>
-    <button class="btn bA" onclick="volver()">Hacer otro pedido</button>
+    <button class="btn bA" onclick="cerrarTrk()">Volver a la app</button>
   </div>
 </div>
+
+<nav>
+  <div class="on" id="nv-inicio" onclick="tab('inicio')"><span class="i">🏠</span>Inicio</div>
+  <div id="nv-promos" onclick="tab('promos')"><span class="i">🎁</span>Promos</div>
+  <div id="nv-pedidos" onclick="tab('pedidos')"><span class="i">📋</span>Pedidos</div>
+  <div id="nv-perfil" onclick="tab('perfil')"><span class="i">👤</span>Mi perfil</div>
+</nav>
+
 <script>
-var TIPO='comida';
-function tt(t){TIPO=t;['comida','viaje','repuesto'].forEach(function(x){document.getElementById('t-'+x).className='tab'+(x===t?' on':'')});extra()}
+/* ---------- perfil local ---------- */
+function LS(){try{return JSON.parse(localStorage.getItem('dx_user')||'{}')}catch(e){return{}}}
+function SS(u){localStorage.setItem('dx_user',JSON.stringify(u))}
+function api(fn){return (location.hostname.includes('vercel.app')?'/api':'https://dragoexpres.vercel.app/api')+'/'+fn}
+
+/* ---------- navegacion ---------- */
+function tab(v){
+  ['inicio','promos','pedidos','perfil'].forEach(function(x){
+    document.getElementById('v-'+x).className='vista'+(x===v?' on':'');
+    document.getElementById('nv-'+x).className=(x===v?'on':'');
+  });
+  window.scrollTo(0,0);
+  if(v==='pedidos')cargarMisPedidos();
+  if(v==='perfil')pintarPerfil();
+}
+
+/* ---------- zonas y locales ---------- */
+var ZONAS=[],LOCALES=[];
+async function cargarZonas(){
+  try{var r=await fetch(api('orders?action=zonas'));var j=await r.json();
+  ZONAS=j.zonas||[];
+  var z=document.getElementById('f-zona');z.innerHTML='';
+  if(!ZONAS.length){z.innerHTML='<option value="">Tu zona se activa pronto — registrite abajo</option>';}
+  else{z.innerHTML=ZONAS.map(function(x){return '<option>'+x+'</option>'}).join('');}
+  var mz=document.getElementById('mi-zona');
+  mz.innerHTML=(ZONAS.length?ZONAS:['Sin zona aún']).map(function(x){return '<option>'+x+'</option>'}).join('');
+  var u=LS();if(u.zona&&ZONAS.includes(u.zona)){z.value=u.zona;mz.value=u.zona;document.getElementById('zonaTag').textContent=u.zona;}
+  }catch(e){}
+}
+async function cargarLocales(){
+  try{var r=await fetch(api('orders?action=locales'));var j=await r.json();LOCALES=j.locales||[];}catch(e){LOCALES=[]}
+  pintarLocales();
+}
+function pintarLocales(){
+  var q=(document.getElementById('q').value||'').toLowerCase();
+  var u=LS();
+  var loc=LOCALES.filter(function(l){
+    if(q&&(l.nombre+' '+l.rubro).toLowerCase().indexOf(q)<0)return false;
+    if(u.zona&&l.zona&&l.zona!==u.zona)return false;
+    return true;
+  });
+  var h='';
+  if(!loc.length){h='<div class="empty">Aún no hay locales mostrándose acá.<br><b>Recomendá tu local favorito</b> para que se registre 🐉<br><br><button class="btn bA" style="width:auto;padding:11px 18px;display:inline-block" onclick="location.href=\'index.html\'">Recomendar un local</button></div>';}
+  loc.forEach(function(l){
+    var ini=(l.nombre||'?').trim().charAt(0).toUpperCase();
+    var wa='https://wa.me/502'+String(l.tel).replace(/\D/g,'').replace(/^502/,'');
+    h+='<div class="loc"><div class="avatar">'+ini+'</div>'
+      +'<div class="info"><b>'+l.nombre+'</b><span><span class="chip">'+(l.rubro||'Local')+'</span>✅ Verificado · '+(l.zona||'')+'</span></div>'
+      +'<button class="btnW" onclick="window.open(\''+wa+'\',\'_blank\')">💬</button>'
+      +'<button class="btnS" onclick="abrirPedido(\'comida\',\''+String(l.nombre).replace(/'/g,"")+'\')">Pedir aquí</button></div>';
+  });
+  document.getElementById('lista-locales').innerHTML=h;
+}
+
+/* ---------- perfil ---------- */
+function pintarPerfil(){
+  var u=LS();
+  document.getElementById('p-nombre').textContent=u.nombre?('¡Hola, '+u.nombre.split(' ')[0]+'!'):'¡Hola!';
+  document.getElementById('p-datos').textContent=(u.tel?('WhatsApp: '+u.tel):'Iniciá tus datos para pedir más rápido')+(u.zona?(' · Zona: '+u.zona):'');
+  document.getElementById('pavatar').textContent=u.nombre?u.nombre.trim().charAt(0).toUpperCase():'🐉';
+  document.getElementById('mi-nombre').value=u.nombre||'';
+  document.getElementById('mi-tel').value=u.tel||'';
+  pintarDirs();
+}
+function guardarPerfil(){
+  var u=LS();
+  u.nombre=document.getElementById('mi-nombre').value.trim();
+  u.tel=document.getElementById('mi-tel').value.trim();
+  u.zona=document.getElementById('mi-zona').value;
+  SS(u);
+  document.getElementById('zonaTag').textContent=u.zona||'Elegí tu zona';
+  var z=document.getElementById('f-zona');if(u.zona&&ZONAS.includes(u.zona)){z.value=u.zona;}
+  pintarPerfil();pintarLocales();
+  alert('¡Guardado! 🐉');
+}
+function pintarDirs(){
+  var u=LS();u.dires=u.dires||[];
+  var h='';
+  u.dires.forEach(function(d,i){h+='<div class="item" onclick="borrarDir('+i+')"><div class="ic">📍</div>'+d+'<div class="flecha">🗑️</div></div>';});
+  document.getElementById('dir-list').innerHTML=h||'<p class="mini">Todavía no tenés direcciones guardadas.</p>';
+}
+function agregarDir(){
+  var d=document.getElementById('dir-nueva').value.trim();if(!d)return;
+  var u=LS();u.dires=u.dires||[];u.dires.push(d);SS(u);document.getElementById('dir-nueva').value='';pintarDirs();
+}
+function borrarDir(i){var u=LS();u.dires.splice(i,1);SS(u);pintarDirs();}
+function cerrarSesion(){if(confirm('¿Borrar tus datos de este celular?')){localStorage.removeItem('dx_user');location.reload();}}
+
+/* ---------- sheet de pedido ---------- */
+var TIPO='comida',LOCAL_PRE='';
+function abrirPedido(tipo,local){
+  var u=LS();
+  document.getElementById('f-nombre').value=u.nombre||'';
+  document.getElementById('f-tel').value=u.tel||'';
+  if(u.zona&&ZONAS.includes(u.zona)){document.getElementById('f-zona').value=u.zona;}
+  setTipo(tipo||'comida');
+  LOCAL_PRE=local||'';
+  document.getElementById('veil').style.display='block';
+  document.getElementById('sheet').style.display='block';
+  var dg=document.getElementById('dirs-guardadas');
+  dg.innerHTML=(u.dires&&u.dires.length)?'<label>Direcciones guardadas</label>'+u.dires.map(function(d){return '<span class="dirchip" onclick="usarDir(this.textContent)">'+d+'</span>'}).join(''):'';
+}
+function usarDir(d){document.getElementById('f-dir').value=d;}
+function cerrarSheet(){document.getElementById('veil').style.display='none';document.getElementById('sheet').style.display='none';}
+function setTipo(t){
+  TIPO=t;['comida','viaje','repuesto'].forEach(function(x){document.getElementById('pill-'+x).className='pill'+(x===t?' on':'')});extra();
+}
 function extra(){
   var h='';
-  if(TIPO==='comida')h='<label>Dirección de entrega</label><input id="f-dir" placeholder="Calle, número, colonia"><label>Referencia (opcional)</label><input id="f-ref" placeholder="Casa azul, portón negro..."><label>¿Qué querés y de dónde?</label><textarea id="f-det" placeholder="Ej: 2 pizzas grandes de la pizzería El Horno, Mixco Centro"></textarea><label>Precio estimado de tu orden (Q) — se lo pagás al local</label><input id="f-compra" type="number" inputmode="decimal" placeholder="Ej: 120"><label>Envío que ofrecés (Q)</label><input id="f-envio" type="number" inputmode="decimal" value="15">';
+  var pre=LOCAL_PRE?' (ej: de '+LOCAL_PRE+')':'';
+  if(TIPO==='comida')h='<label>Dirección de entrega</label><input id="f-dir" placeholder="Calle, número, colonia"><label>Referencia (opcional)</label><input id="f-ref" placeholder="Casa azul, portón negro..."><label>¿Qué querés y de dónde?'+pre+'</label><textarea id="f-det" placeholder="Ej: 2 pizzas grandes de la pizzería El Horno"></textarea><label>Precio estimado de tu orden (Q) — se lo pagás al local</label><input id="f-compra" type="number" inputmode="decimal" placeholder="Ej: 120"><label>Envío que ofrecés (Q)</label><input id="f-envio" type="number" inputmode="decimal" value="15">';
   if(TIPO==='viaje')h='<label>Dirección de recogida</label><input id="f-dir" placeholder="¿De dónde te recogemos?"><label>Referencia (opcional)</label><input id="f-ref" placeholder="Frente al parque..."><label>¿A dónde vas?</label><textarea id="f-det" placeholder="Ej: De Mixco Centro a Oakland Mall"></textarea><label>Precio que ofrecés por el viaje (Q)</label><input id="f-envio" type="number" inputmode="decimal" value="25">';
   if(TIPO==='repuesto')h='<label>Dirección de entrega</label><input id="f-dir" placeholder="Calle, número, colonia"><label>Referencia (opcional)</label><input id="f-ref" placeholder="Taller La Bendición..."><label>¿Qué repuesto necesitás y para qué vehículo?</label><textarea id="f-det" placeholder="Ej: Pastillas de freno para Honda Wave 110"></textarea><label>Precio estimado del repuesto (Q) — se lo pagás al local</label><input id="f-compra" type="number" inputmode="decimal" placeholder="Ej: 180"><label>Envío que ofrecés (Q)</label><input id="f-envio" type="number" inputmode="decimal" value="20">';
   document.getElementById('extra').innerHTML=h;
 }
-function api(fn){return (location.hostname.includes('vercel.app')?'/api':'https://dragoexpres.vercel.app/api')+'/'+fn}
-async function cargarZonas(){
-  try{var r=await fetch(api('orders?action=zonas'));var j=await r.json();
-  var z=document.getElementById('f-zona');z.innerHTML='';
-  if(!j.zonas||!j.zonas.length){z.innerHTML='<option value="">Tu zona se activa pronto — registrite abajo</option>';return}
-  z.innerHTML=j.zonas.map(function(x){return '<option>'+x+'</option>'}).join('');
-  }catch(e){document.getElementById('f-zona').innerHTML='<option value="">Error cargando zonas, revisá internet</option>'}
-}
 var ULT_TEL='';
 async function enviar(){
   var v=function(id){var e=document.getElementById(id);return e?e.value.trim():''};
-  var d={action:'crear',tipo:TIPO,nombre:v('f-nombre'),tel:v('f-tel'),zona:v('f-zona'),direccion:v('f-dir'),referencia:v('f-ref'),detalle:v('f-det'),compra:v('f-compra')||0,envio:v('f-envio')||0};
+  var u=LS();
+  var d={action:'crear',tipo:TIPO,nombre:v('f-nombre')||u.nombre,tel:v('f-tel')||u.tel,zona:v('f-zona'),direccion:v('f-dir'),referencia:v('f-ref'),detalle:v('f-det'),compra:v('f-compra')||0,envio:v('f-envio')||0};
   if(!d.nombre||!d.tel||!d.zona||!d.direccion||!d.detalle){alert('Completá tu nombre, WhatsApp, zona, dirección y qué pedís.');return}
-  var b=document.querySelector('.btn');b.disabled=true;b.textContent='Enviando...';
+  // guardar perfil para la proxima
+  u.nombre=d.nombre;u.tel=d.tel;u.zona=d.zona;u.dires=u.dires||[];
+  if(u.dires.indexOf(d.direccion)<0&&u.dires.length<6){u.dires.push(d.direccion);}
+  SS(u);
+  var b=document.querySelector('#sheet .btn');b.disabled=true;b.textContent='Enviando...';
   var r=await fetch(api('orders'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(d)});
   var j=await r.json();b.disabled=false;b.textContent='ENVIAR PEDIDO 🐉';
   if(!j.ok){alert(j.error||'No se pudo crear el pedido.');return}
-  document.getElementById('form').style.display='none';
-  document.getElementById('siguiendo').style.display='block';
+  cerrarSheet();
+  document.getElementById('trk').style.display='block';
   document.getElementById('oid').textContent=j.pedido.id;
   ULT_TEL=d.tel;
   seguir(j.pedido.id);
 }
+
+/* ---------- tracker (chat, mapa, calificacion) ---------- */
 var PID=null;
-function seguir(id){PID=id;actualizar();setInterval(actualizar,12000)}
+function cerrarTrk(){document.getElementById('trk').style.display='none';if(PID){clearInterval(window.TINT);PID=null}cargarMisPedidos()}
+function seguir(id){PID=id;actualizar();window.TINT=setInterval(actualizar,12000)}
 async function enviarMsg(){
   var inp=document.getElementById('chat-in');if(!inp)return;var t=inp.value.trim();if(!t||!PID)return;
   try{await fetch(api('orders'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'msg',id:PID,de:'cliente',tel:ULT_TEL,texto:t})});inp.value='';actualizar();}catch(e){}
@@ -118,17 +401,16 @@ async function actualizar(){
   var e=document.getElementById('oestado'),i=document.getElementById('oinfo');
   if(o.estado==='buscando'){e.className='st sBus';e.textContent='Buscando piloto...';i.textContent='Encontrando al piloto disponible de tu zona'}
   if(o.estado==='asignado'){e.className='st sAsig';e.textContent='Piloto asignado';i.textContent=o.piloto.nombre+' va a aceptar tu pedido'}
-  if(o.estado==='aceptado'){e.className='st sAsig';e.textContent='Aceptado ✅';i.textContent=o.piloto.nombre+' aceptó tu pedido'}
+  if(o.estado==='aceptado'){e.className='st sAce';e.textContent='Aceptado ✅';i.textContent=o.piloto.nombre+' aceptó tu pedido'}
   if(o.estado==='en_camino'){e.className='st sCam';e.textContent='En camino 🛺';i.textContent=o.piloto.nombre+' va en camino. Tenés el efectivo listo: Q'+o.compra+' (compra) + Q'+o.envio+' (envío)'}
   if(o.estado==='entregado'){e.className='st sEnt';e.textContent='Entregado ✅';i.textContent='¡Listo! El dragón entregó tu pedido'}
-  // mapa vivo del piloto
+  if(o.estado==='cancelado'){e.className='st sCan';e.textContent='Cancelado';i.textContent='Este pedido fue cancelado'}
   var mapa=document.getElementById('mapa');
   if(j.gps&&j.gps.lat){
     mapa.style.display='block';
-    if(!window.LMAP){window.LMAP=L.map('mapa').setView([j.gps.lat,j.gps.lng],15);L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'© OpenStreetMap'}).addTo(window.LMAP);window.LMK=L.circleMarker([j.gps.lat,j.gps.lng],{radius:10,color:'#f0b90b',fillColor:'#f0b90b',fillOpacity:.9}).addTo(window.LMAP).bindPopup('🐉 Tu piloto');}
+    if(!window.LMAP){window.LMAP=L.map('mapa').setView([j.gps.lat,j.gps.lng],15);L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'© OpenStreetMap'}).addTo(window.LMAP);window.LMK=L.circleMarker([j.gps.lat,j.gps.lng],{radius:10,color:'#d1121f',fillColor:'#f0b90b',fillOpacity:.9}).addTo(window.LMAP).bindPopup('🐉 Tu piloto');}
     else{window.LMK.setLatLng([j.gps.lat,j.gps.lng]);window.LMAP.setView([j.gps.lat,j.gps.lng]);}
   }else{mapa.style.display='none'}
-  // calificar al piloto al entregar
   var cf=document.getElementById('calif');
   if(o.estado==='entregado'&&!o.califCliente){
     cf.style.display='block';
@@ -142,17 +424,68 @@ async function actualizar(){
   if(o.piloto&&!['entregado','cancelado'].includes(o.estado)){
     cb.style.display='block';
     var ci=document.getElementById('chat-in');var cv=ci?ci.value:'';var foc=!!ci&&document.activeElement===ci;
-    document.getElementById('chat-list').innerHTML=(o.chat||[]).map(function(m){return '<div style="margin:4px 0;font-size:13px"><b>'+(m.de==='piloto'?'🏍️ '+o.piloto.nombre.split(' ')[0]:'🧑 Vos')+':</b> '+m.texto+'</div>'}).join('')||'<div class="mini" style="color:#8a93a6">Escribile acá, ej: "dejalo en el portón"</div>';
+    document.getElementById('chat-list').innerHTML=(o.chat||[]).map(function(m){return '<div style="margin:4px 0;font-size:13px"><b>'+(m.de==='piloto'?'🏍️ '+o.piloto.nombre.split(' ')[0]:'🧑 Vos')+':</b> '+m.texto+'</div>'}).join('')||'<div class="mini">Escribile acá, ej: "dejalo en el portón"</div>';
     if(ci){ci.value=cv;if(foc)ci.focus();}
   }else{cb.style.display='none'}
   }catch(e){}
 }
 async function calificar(n){
   try{await fetch(api('orders'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'calificar',id:PID,quien:'cliente',tel:ULT_TEL,estrellas:n})});}catch(e){}
-  document.getElementById('calif').innerHTML='<p class="mini" style="margin:0">¡Gracias por calificar! 🐉</p>';
+  document.getElementById('calif').innerHTML='<p class="mini" style="margin:0;font-weight:800">¡Gracias por calificar! 🐉</p>';
 }
-function volver(){location.reload()}
-cargarZonas();extra();
+
+/* ---------- mis pedidos ---------- */
+async function cargarMisPedidos(){
+  var u=LS();
+  var box=document.getElementById('pedidos-box'),telc=document.getElementById('ped-tel');
+  if(!u.tel){box.style.display='none';telc.style.display='block';return}
+  telc.style.display='none';box.style.display='block';box.innerHTML='<p class="mini">Cargando...</p>';
+  try{var r=await fetch(api('orders'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'misp',tel:u.tel})});
+  var j=await r.json();
+  var peds=j.ok?j.pedidos:[];
+  if(!peds.length){box.innerHTML='<div class="empty">Todavía no tenés pedidos.<br>¡Pedí algo rico! 🐉<br><br><button class="btn bA" style="width:auto;padding:11px 18px;display:inline-block" onclick="tab(\'inicio\')">Hacer mi primer pedido</button></div>';return}
+  var EMA={buscando:'Buscando piloto',asignado:'Asignado',aceptado:'Aceptado',en_camino:'En camino',entregado:'Entregado',cancelado:'Cancelado'};
+  var CLS={buscando:'sBus',asignado:'sAsig',aceptado:'sAce',en_camino:'sCam',entregado:'sEnt',cancelado:'sCan'};
+  var IC={comida:'🍜',viaje:'🛺',repuesto:'🔧'};
+  box.innerHTML=peds.map(function(o){
+    var fecha=o.ts?new Date(o.ts).toLocaleDateString('es-GT',{weekday:'short',day:'numeric',month:'short'}):'';
+    var act=['buscando','asignado','aceptado','en_camino'].includes(o.estado);
+    var h='<div class="ped"><div class="top">'+(IC[o.tipo]||'🐉')+' <b style="color:var(--tinta)">'+(EMA[o.estado]||o.estado)+'</b><span class="st '+(CLS[o.estado]||'sBus')+'">'+(EMA[o.estado]||o.estado)+'</span><span class="fecha" style="margin-left:auto">'+fecha+'</span></div>';
+    h+='<b class="det">'+String(o.detalle||'').slice(0,80)+'</b>';
+    h+='<p class="mini" style="margin:2px 0 0">Total: Q'+(+o.compra+ +o.envio)+' (compra Q'+o.compra+' + envío Q'+o.envio+')</p>';
+    h+='<div class="fila">';
+    if(act)h+='<button class="btnS" onclick="seguirTrk(\''+o.id+'\',\''+u.tel+'\')">Seguir</button>';
+    h+='<button class="btnW" onclick="repetir(\''+encodeURIComponent(JSON.stringify({tipo:o.tipo,detalle:o.detalle,direccion:o.direccion,compra:o.compra,envio:o.envio})).replace(/'/g,'%27')+'\')">Repetir</button>';
+    if(o.estado==='entregado'&&!o.califCliente)h+='<button class="btnW" onclick="seguirTrk(\''+o.id+'\',\''+u.tel+'\')">Calificar ⭐</button>';
+    h+='</div></div>';
+    return h;
+  }).join('');
+  }catch(e){box.innerHTML='<p class="mini">No pudimos cargar tus pedidos. Revisá internet.</p>'}
+}
+function guardarTel(){
+  var t=document.getElementById('p-tel').value.trim();if(!t){alert('Escribí tu número de WhatsApp.');return}
+  var u=LS();u.tel=t;SS(u);cargarMisPedidos();
+}
+function seguirTrk(id,tel){
+  ULT_TEL=tel;document.getElementById('trk').style.display='block';document.getElementById('oid').textContent=id;seguir(id);
+}
+function repetir(j){
+  try{var o=JSON.parse(decodeURIComponent(j));}catch(e){return}
+  abrirPedido(o.tipo);
+  setTimeout(function(){
+    document.getElementById('f-det').value=o.detalle||'';
+    document.getElementById('f-dir').value=o.direccion||'';
+    var c=document.getElementById('f-compra');if(c)c.value=o.compra||'';
+    var en=document.getElementById('f-envio');if(en)en.value=o.envio||'';
+  },80);
+}
+
+/* ---------- arranque ---------- */
+(function(){
+  var u=LS();
+  if(u.zona)document.getElementById('zonaTag').textContent=u.zona;
+  cargarZonas();cargarLocales();extra();
+})();
 </script>
 </body>
 </html>

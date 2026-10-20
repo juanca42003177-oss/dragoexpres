@@ -211,6 +211,27 @@ module.exports = wrap(async (req, res) => {
     return res.status(200).json({ ok: false, error: 'Dinos el id o tu WhatsApp.' });
   }
 
+  // locales aprobados para el listado del consumidor (pantalla Inicio)
+  if (action === 'locales') {
+    const fr = await ghGet('registros.json'); const regs = fr ? fr.data : [];
+    const loc = regs.filter(r => r.tipo === 'local' && r.estado === 'aprobado').map(r => ({
+      nombre: (r.datos && r.datos.nombre) || r.nombre || 'Local',
+      zona: (r.datos && r.datos.zona) || r.zona || '',
+      tel: String((r.datos && (r.datos.whatsapp || r.datos.tel)) || '').replace(/\D/g, ''),
+      rubro: (r.datos && (r.datos.rubro || r.datos.tipo)) || 'Comida',
+    }));
+    return res.status(200).json({ ok: true, locales: loc });
+  }
+
+  // historial de pedidos del cliente (hasta 30, mas recientes primero)
+  if (action === 'misp') {
+    const tel = String(b.tel || '').replace(/\D/g, '');
+    if (!tel) return res.status(200).json({ ok: false, error: 'Decinos tu numero.' });
+    const fpd = await ghGet('pedidos.json'); const peds = fpd ? fpd.data : [];
+    const mios = peds.filter(x => String(x.cliente && x.cliente.tel || '').replace(/\D/g, '') === tel).slice(-30).reverse();
+    return res.status(200).json({ ok: true, pedidos: mios });
+  }
+
   // ---- acciones del piloto sobre el pedido ----
   if (['aceptar', 'rechazar', 'avanzar'].includes(action)) {
     const tel = String(b.tel || '').trim(), id = String(b.id || '').trim();
