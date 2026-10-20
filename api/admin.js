@@ -122,7 +122,8 @@ module.exports = wrap(async (req, res) => {
   }
   if (action === 'detalle') {
     const tel = String(d.tel || '').replace(/\D/g, '');
-    const reg = f.data.find(r => String((r.datos || {}).tel || '').replace(/\D/g, '') === tel) || null;
+    const tel8 = tel.slice(-8);
+    const reg = f.data.find(r => { const t = String((r.datos || {}).tel || '').replace(/\D/g, ''); return t === tel || (tel8.length === 8 && t.slice(-8) === tel8); }) || null;
     if (!reg) return res.status(200).json({ ok: false, error: 'No encontrado.' });
     const H2 = () => ({ Authorization: 'Bearer ' + TOKEN(), Accept: 'application/vnd.github+json' });
     const r2 = await fetch(`https://api.github.com/repos/${REPO}/contents/pedidos.json?ref=${BRANCH}`, { headers: H2() });

@@ -172,10 +172,10 @@ async function cargarVivo(){
     var v=j.vivo,el=document.getElementById('vivoCard');if(!el)return;
     var filasP=(v.pilotosList||[]).map(function(p){
       var dot=p.enRuta?'🔵 en ruta':(p.disponible?'🟢 disponible':'⚪ fuera de línea');
-      return '<div class="s" style="margin:4px 0;padding:6px 8px;border:1px solid #2a2b38;border-radius:8px;cursor:pointer" onclick="verDetalle(\''+waLink(p.tel)+'\')">'+dot+' <b>'+p.nombre+'</b> · '+(p.zona||'—')+' · ⭐ '+(p.calif!==null?p.calif:'sin calif')+' · '+p.entregasHoy+' hoy'+(p.racha?' · 🔥 '+p.racha:'')+(p.malas?' · <b style="color:#ff8f8f">⚠️ '+p.malas+' malas reseñas</b>':'')+(p.deuda?' · <b style="color:#ffd479">💸 Q'+p.deuda+' por liquidar</b>':'')+' <span style="opacity:.6">📄 ver expediente</span></div>';
+      return '<div class="s" style="margin:4px 0;padding:6px 8px;border:1px solid #2a2b38;border-radius:8px;cursor:pointer" onclick="verDetalle(\''+p.tel+'\')">'+dot+' <b>'+p.nombre+'</b> · '+(p.zona||'—')+' · ⭐ '+(p.calif!==null?p.calif:'sin calif')+' · '+p.entregasHoy+' hoy'+(p.racha?' · 🔥 '+p.racha:'')+(p.malas?' · <b style="color:#ff8f8f">⚠️ '+p.malas+' malas reseñas</b>':'')+(p.deuda?' · <b style="color:#ffd479">💸 Q'+p.deuda+' por liquidar</b>':'')+' <span style="opacity:.6">📄 ver expediente</span></div>';
     }).join('')||'<div class="s" style="opacity:.7">Aún no hay pilotos aprobados — se llenan solos cuando la gente se registre.</div>';
     var filasL=(v.localesList||[]).map(function(l){
-      return '<div class="s" style="margin:4px 0;padding:6px 8px;border:1px solid #2a2b38;border-radius:8px;cursor:pointer" onclick="verDetalle(\''+waLink(l.tel)+'\')">🏪 <b>'+l.nombre+'</b> · '+(l.zona||'—')+' · Q'+l.ventasSemana+' vendidos esta semana · '+l.pedidosSemana+' pedidos · '+l.pedidosHoy+' hoy <span style="opacity:.6">📄 ver expediente</span></div>';
+      return '<div class="s" style="margin:4px 0;padding:6px 8px;border:1px solid #2a2b38;border-radius:8px;cursor:pointer" onclick="verDetalle(\''+l.tel+'\')">🏪 <b>'+l.nombre+'</b> · '+(l.zona||'—')+' · Q'+l.ventasSemana+' vendidos esta semana · '+l.pedidosSemana+' pedidos · '+l.pedidosHoy+' hoy <span style="opacity:.6">📄 ver expediente</span></div>';
     }).join('')||'<div class="s" style="opacity:.7">Aún no hay locales aprobados.</div>';
     var filasR=(v.resenas||[]).map(function(r2){
       return '<div class="s" style="margin:4px 0;padding:6px 8px;border:1px solid #4a2020;border-radius:8px">⚠️ '+r2.id+' — '+(r2.califCliente?'el cliente '+r2.cliente+' calificó ⭐'+r2.califCliente+' al piloto '+r2.piloto:'el piloto calificó ⭐'+r2.califPiloto+' al cliente '+r2.cliente)+(r2.detalle?' — '+r2.detalle:'')+'</div>';
@@ -253,7 +253,7 @@ function pintar(regs){
       (d.tipo?' · '+d.tipo:'')+
       (d.h24?' · <b style="color:#f0b90b">24hrs</b>':'')+(d.propio?' · <b style="color:#f0b90b">🛺 dueño</b>':'')+(d.licenciaEnTramite?' · <b style="color:#ffd479">📜 licencia en TRÁMITE (dale tu OK)</b>':'')+(d.equipo!==undefined?' · '+(d.equipo?'🪖 equipo OK':'<b style="color:#ff8f8f">SIN equipo</b>'):'')+'</div></div>'+
       '<div><a class="btn bW" style="background:#1d5a35;color:#a8f0c6;text-decoration:none" href="https://wa.me/'+waLink(d.tel)+'">💬</a>'+
-      '<button class="btn bW" onclick="verDetalle(\''+waLink(d.tel)+'\')">📄</button>'+
+      '<button class="btn bW" onclick="verDetalle(\''+String(d.tel||'').replace(/[^0-9]/g,'')+'\')">📄</button>'+
       (r.tipo==='piloto'?'<button class="btn bW" style="background:#0d3d63;color:#a8dcf0" onclick="waResumen(\''+waLink(d.tel)+'\')">📲</button>':'')+
       (r.tipo!=='usuario'?'<button class="btn bA" onclick="estado(\''+r.ts+'\',\'aprobar\')">✓</button><button class="btn bR" onclick="estado(\''+r.ts+'\',\'rechazar\')">✕</button></div>':'')+
       '</div>';
