@@ -429,10 +429,12 @@ function onbUbicacion(){
   navigator.geolocation.getCurrentPosition(function(p){var u=LS();u.gps={lat:p.coords.latitude,lng:p.coords.longitude};SS(u);document.getElementById('onb-dir').value='Mi ubicación GPS ('+p.coords.latitude.toFixed(4)+', '+p.coords.longitude.toFixed(4)+')';},function(){alert('No pudimos detectarla. Escribí tu dirección abajo.')},{timeout:9000});
 }
 function onbZonas(){
-  var z=document.getElementById('onb-zona');var zs=ZONAS.length?ZONAS:['Sin zona aún'];
-  z.innerHTML=zs.map(function(x){return '<option>'+x+'</option>'}).join('');
-  var u=LS();if(u.zona&&zs.indexOf(u.zona)>=0)z.value=u.zona;
-  var sv=document.getElementById('onb-saved'),h='';var u2=LS();(u2.dires||[]).forEach(function(d,i){h+='<div class="dirRow" onclick="onbElegirDir('+i+')"><span style="font-size:20px">⭐</span><div><b>'+d.label+'</b><span>'+d.dir+'</span></div></div>'});
+  var z=document.getElementById('onb-zona');
+  pintarZonasSel(z,ZONAS,false);
+  z.insertAdjacentHTML('afterbegin','<option value="">Elegí tu zona</option>');
+  var u=LS();
+  if(u.zona){for(var i=0;i<z.options.length;i++){if(z.options[i].value===u.zona){z.value=u.zona;break}}}
+  var sv=document.getElementById('onb-saved'),h='';(u.dires||[]).forEach(function(d,i){h+='<div class="dirRow" onclick="onbElegirDir('+i+')"><span style="font-size:20px">⭐</span><div><b>'+d.label+'</b><span>'+d.dir+'</span></div></div>'});
   sv.innerHTML=h;
 }
 function onbElegirDir(i){var u=LS();var d=(u.dires||[])[i];if(d){u.dire=d.dir;SS(u);document.getElementById('onb-dir').value=d.dir;var z=document.getElementById('onb-zona');if(u.zona)z.value=u.zona;}}
@@ -441,7 +443,7 @@ function onbFin(guest){
   if(!guest){
     var dir=document.getElementById('onb-dir').value.trim();
     if(!dir){alert('Poné una dirección o tocá "Usar mi ubicación actual".');return}
-    var z=document.getElementById('onb-zona').value;
+    var z=document.getElementById('onb-zona').value||u.zona||'';
     u.dire=dir;u.zona=z;u.dires=u.dires||[];var ya=u.dires.some(function(d){return d.dir===dir});
     if(!ya)u.dires.unshift({label:'Casa',dir:dir});
   }else{u.guest=true}
@@ -461,7 +463,8 @@ function abrirDirecciones(){
   var u=LS();var l=document.getElementById('shDir-list'),h='';
   (u.dires||[]).forEach(function(d,i){h+='<div class="dirRow" onclick="shDirUse('+i+')"><span style="font-size:20px">'+(d.label==='Casa'?'🏠':d.label==='Trabajo'?'🏢':'⭐')+'</span><div style="flex:1"><b>'+d.label+'</b><span>'+d.dir+'</span></div>'+(u.dire===d.dir?'<span style="color:var(--ok);font-weight:900">✓</span>':'')+'</div>'});
   l.innerHTML=h||'<p class="mini">Todavía no tenés direcciones guardadas. Agregá la primera abajo.</p>';
-  var zz=document.getElementById('shDir-zona');if(zz.options.length<=1){ZONAS.forEach(function(x){zz.innerHTML+='<option>'+x+'</option>'});if(u.zona)zz.value=u.zona}
+  var zz=document.getElementById('shDir-zona');
+  if(zz.options.length<=1){pintarZonasSel(zz,ZONAS,false);zz.insertAdjacentHTML('afterbegin','<option value="">Zona...</option>');zz.value='';if(u.zona){for(var i=0;i<zz.options.length;i++){if(zz.options[i].value===u.zona){zz.value=u.zona;break}}}}
   document.getElementById('shDir').className='sheet on';
 }
 function shDirUse(i){var u=LS();var d=u.dires[i];u.dire=d.dir;SS(u);pintarDirHeader();cerrarSheets()}
@@ -492,6 +495,26 @@ function LS(){try{return JSON.parse(localStorage.getItem('dx_user')||'{}')}catch
 function SS(u){localStorage.setItem('dx_user',JSON.stringify(u))}
 function api(fn){return (location.hostname.includes('vercel.app')?'/api':'https://dragoexpres.vercel.app/api')+'/'+fn}
 
+/* ---------- zonas de TODA Guatemala (no solo donde hay pilotos) ---------- */
+var ZGT=[
+ {g:'Ciudad de Guatemala',z:['Zona 1','Zona 2','Zona 3','Zona 4','Zona 5','Zona 6','Zona 7','Zona 8','Zona 9','Zona 10','Zona 11','Zona 12','Zona 13','Zona 14','Zona 15','Zona 16','Zona 17','Zona 18','Zona 19','Zona 20','Zona 21','Zona 22','Zona 23','Zona 24','Zona 25']},
+ {g:'Área metropolitana',z:['Mixco','Villa Nueva','Villa Canales','Chinautla','San Miguel Petapa','Amatitlán','Fraijanes','Palencia','San José Pinula','San Juan Sacatepéquez','San Pedro Ayampuc','San Raymundo','San José El Golfo','Petapa']},
+ {g:'Occidente',z:['Antigua Guatemala','Chimaltenango','San Lucas Sacatepéquez','Escuintla','Santa Lucía Cotzumalguapa','Puerto San José','Mazatenango','Retalhuleu','Quetzaltenango','Coatepeque','Totonicapán','Huehuetenango','San Marcos']},
+ {g:'Norte y Oriente',z:['Salamá','Cobán','Flores','San Benito','Poptún','Puerto Barrios','Los Amates','Morales','Zacapa','Chiquimula','Esquipulas','Jalapa','Monjas','Jutiapa','Chiquimulilla','Cuilapa','Guastatoya','Sanarate','El Progreso','Sansare']}
+];
+function pintarZonasSel(sel,zonasActivas,conOtra){
+  var h='';
+  ZGT.forEach(function(g){
+    h+='<optgroup label="'+g.g+'">';
+    g.z.forEach(function(x){var act=zonasActivas.indexOf(x)>=0;h+='<option value="'+x+'">'+x+(act?' — ya tiene pilotos 🐉':'')+'</option>'});
+    h+='</optgroup>';
+  });
+  var extra=(zonasActivas||[]).filter(function(x){return !ZGT.some(function(g){return g.z.indexOf(x)>=0})});
+  if(extra.length){h+='<optgroup label="Zonas activas de tu equipo">';extra.forEach(function(x){h+='<option value="'+x+'">'+x+' — ya tiene pilotos 🐉</option>'});h+='</optgroup>'}
+  if(conOtra)h+='<option value="__otra">Otra (escribo mi zona)</option>';
+  sel.innerHTML=h;
+}
+
 /* ---------- navegacion ---------- */
 function tab(v){
   ['inicio','promos','pedidos','perfil'].forEach(function(x){
@@ -508,12 +531,14 @@ var ZONAS=[],LOCALES=[];
 async function cargarZonas(){
   try{var r=await fetch(api('orders?action=zonas'));var j=await r.json();
   ZONAS=j.zonas||[];
-  var z=document.getElementById('f-zona');z.innerHTML='<option value="">Elegí o escribí tu zona</option>';
-  ZONAS.forEach(function(x){z.innerHTML+='<option>'+x+'</option>'});
-  z.innerHTML+='<option value="__otra">Otra (escribo mi zona)</option>';
+  var z=document.getElementById('f-zona');
+  var hOpt='<option value="">Elegí o escribí tu zona</option>';
+  z.innerHTML=hOpt;pintarZonasSel(z,ZONAS,true);z.insertAdjacentHTML('afterbegin',hOpt);z.value='';
   var mz=document.getElementById('mi-zona');
-  mz.innerHTML=(ZONAS.length?ZONAS:['Sin zona aún']).map(function(x){return '<option>'+x+'</option>'}).join('');
-  var u=LS();if(u.zona&&ZONAS.includes(u.zona)){z.value=u.zona;mz.value=u.zona;}
+  mz.innerHTML='';pintarZonasSel(mz,ZONAS,false);mz.insertAdjacentHTML('afterbegin','<option value="">Elegí tu zona</option>');mz.value='';
+  var u=LS();
+  if(u.zona){var okZ=false;[z,mz].forEach(function(s){for(var i=0;i<s.options.length;i++){if(s.options[i].value===u.zona){s.value=u.zona;okZ=true;break}}})}
+  if(!okZ&&u.zona){z.value='__otra';document.getElementById('f-zona-libre').value=u.zona;document.getElementById('f-zona-libre').style.display='block';zonaCambia();}
   pintarDirHeader();onbArranca();
   }catch(e){}
 }
