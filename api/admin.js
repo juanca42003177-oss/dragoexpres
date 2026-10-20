@@ -58,7 +58,7 @@ module.exports = wrap(async (req, res) => {
     return res.status(200).json({ ok: true, pendientes: arr.filter(x => x.pendiente).map(x => ({ tel: x.tel, nombre: x.nombre || x.tel, monto: x.pendiente.monto, desde: x.pendiente.desde, susp: !!x.susp })) });
   }
   if (action === 'liqOk') {
-    const tel = String(b.tel || '').trim();
+    const tel = String(d.tel || '').trim();
     const fp = await ghGet('pilots.json');
     const arr = fp ? fp.data : [];
     const st = arr.find(x => x.tel === tel);
