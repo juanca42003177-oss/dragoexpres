@@ -65,11 +65,10 @@ function entrar(){
   fetch(apiBase()+'/admin',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({pass:PASS,action:'check'})})
   .then(r=>r.json()).then(j=>{
     if(j&&j.ok){MODO_DEMO=false;try{localStorage.setItem('dx_admin',PASS)}catch(e){}abrir();}
-    else{try{localStorage.removeItem('dx_admin')}catch(e){}document.getElementById('err').textContent='No pudimos conectar con el servidor (quizá estaba reiniciando). Esperá unos segundos y probá de nuevo.';}
-    else{document.getElementById('err').textContent='Contraseña incorrecta';}
+    else{try{localStorage.removeItem('dx_admin')}catch(e){}document.getElementById('err').textContent='Contraseña incorrecta.';}
   }).catch(e=>{
-    if(PASS==='dragon2026'){MODO_DEMO=true;abrir();}
-    else{document.getElementById('err').textContent='Contraseña incorrecta. (La API real despierta al importar el repo a Vercel con ADMIN_PASS)';}
+    try{localStorage.removeItem('dx_admin')}catch(e2){}
+    document.getElementById('err').textContent='No pudimos conectar con el servidor (quizá estaba reiniciando). Esperá 10 segundos y probá de nuevo.';
   });
 }
 function salir(){try{localStorage.removeItem('dx_admin')}catch(e){}location.reload();}
