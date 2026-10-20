@@ -81,6 +81,29 @@ function vehInfo(d) {
 }
 const ESTADOS = ['buscando', 'asignado', 'aceptado', 'en_camino', 'entregado', 'cancelado'];
 
+// ---- CONTRAOFERTA DE VIAJES (estilo InDrive): el piloto pide mas, el cliente decide en 30s (60s si hay pocos pilotos) ----
+async function candidatosViaje(zona, excluir) {
+  const fp = await ghGet('pilots.json'); const pilots = fp ? fp.data : [];
+  const fr = await ghGet('registros.json'); const reg = fr ? fr.data : [];
+  const aprobados = new Set(reg.filter(r => r.tipo === 'piloto' && r.estado === 'aprobado').map(r => String(r.datos.tel).trim()));
+  const fpd = await ghGet('pedidos.json');
+  const ocupados = new Set((fpd ? fpd.data : []).filter(o => o.piloto && ['asignado', 'aceptado', 'en_camino', 'contraoferta'].includes(o.estado)).map(o => o.piloto.tel));
+  return pilots.filter(x => x.disponible && !(x.pendiente && !x.pendiente.pagado) && aprobados.has(x.tel) && !ocupados.has(x.tel) && !excluir.includes(x.tel))
+    .filter(x => { const r = reg.find(y => y.tipo === 'piloto' && String(y.datos.tel).trim() === x.tel); return r && r.datos.zona === zona; });
+}
+
+async function redispatchViaje(o, peds, sha) {
+  const ex = (o.rechazadoPor || []).concat(o.contraRechazos || []);
+  const cand = await candidatosViaje(o.zona, ex);
+  if (cand.length) {
+    const fr = await ghGet('registros.json'); const reg = fr ? fr.data : [];
+    const r = reg.find(y => y.tipo === 'piloto' && String(y.datos.tel).trim() === cand[0].tel);
+    o.estado = 'asignado'; o.tsAsignado = Date.now(); o.piloto = Object.assign({ tel: cand[0].tel, nombre: r.datos.nombre }, vehInfo(r.datos));
+  } else { o.estado = 'buscando'; o.piloto = null; }
+  o.contra = null;
+  await ghPut('pedidos.json', sha, peds, 'viaje vuelve a busqueda ' + o.id);
+}
+
 module.exports = wrap(async (req, res) => {
   const b = req.body || {};
   const action = b.action || (req.query && req.query.action) || '';
@@ -357,8 +380,13 @@ module.exports = wrap(async (req, res) => {
     const fpd = await ghGet('pedidos.json'); const peds = fpd ? fpd.data : [];
     await expirarAsignados(peds, fpd ? fpd.sha : null);
     if (b.id) {
-      const o = peds.find(x => x.id === String(b.id).trim());
+      let o = peds.find(x => x.id === String(b.id).trim());
       if (!o) return res.status(200).json({ ok: false, error: 'Pedido no encontrado.' });
+      if (o.estado === 'contraoferta' && o.contra && Date.now() > o.contra.expira) {
+        o.contraRechazos = (o.contraRechazos || []).concat([o.piloto.tel]); o.contraExpiro = Date.now();
+        await redispatchViaje(o, peds, fpd.sha);
+        o = peds.find(x => x.id === String(b.id).trim());
+      }
       let gps = null;
       if (o.piloto) {
         const fp = await ghGet('pilots.json');
@@ -477,6 +505,63 @@ module.exports = wrap(async (req, res) => {
     return res.status(200).json({ ok: true, pedido: o });
   }
   }
+  // ---- piloto pide mas por un VIAJE (contraoferta estilo InDrive) ----
+  if (action === 'pedirMas') {
+    const tel = String(b.tel || '').trim(), id = String(b.id || '').trim();
+    const monto = dinero(b.monto || 0);
+    if (!tel || !id) return res.status(200).json({ ok: false, error: 'Faltan datos.' });
+    if (monto <= 0 || monto > 150) return res.status(200).json({ ok: false, error: 'Pedí un monto entre Q1 y Q150.' });
+    const fpd = await ghGet('pedidos.json'); const peds = fpd ? fpd.data : [];
+    const o = peds.find(x => x.id === id);
+    if (!o) return res.status(200).json({ ok: false, error: 'Pedido no encontrado.' });
+    if (o.tipo !== 'viaje') return res.status(200).json({ ok: false, error: 'El regateo solo es para viajes. Comida y repuestos van con tarifa fija.' });
+    if (o.estado === 'contraoferta') return res.status(200).json({ ok: false, error: 'Ya pediste más. Esperá la respuesta del cliente.' });
+    if (!['asignado', 'buscando'].includes(o.estado)) return res.status(200).json({ ok: false, error: 'Este pedido ya no está disponible.' });
+    if (o.estado === 'asignado' && (!o.piloto || o.piloto.tel !== tel)) return res.status(200).json({ ok: false, error: 'Este pedido es de otro piloto.' });
+    if ((o.contraRechazos || []).includes(tel)) return res.status(200).json({ ok: false, error: 'El cliente ya rechazó tu precio para este viaje.' });
+    const fr = await ghGet('registros.json'); const reg = fr ? fr.data : [];
+    const p = reg.find(r => r.tipo === 'piloto' && r.estado === 'aprobado' && String(r.datos.tel).trim() === tel);
+    if (!p) return res.status(200).json({ ok: false, error: 'No sos piloto aprobado.' });
+    const fps = await ghGet('pilots.json'); const stP = (fps ? fps.data : []).find(x => x.tel === tel) || {};
+    if (stP.pendiente && !stP.pendiente.pagado) return res.status(200).json({ ok: false, error: 'Ponete al día con tus comisiones primero 😊' });
+    if (monto <= o.envio) return res.status(200).json({ ok: false, error: 'Tu precio tiene que ser MAYOR que la tarifa fija (Q' + o.envio + ').' });
+    // pocos pilotos en la zona => el cliente obtiene 60s en vez de 30s
+    const otros = await candidatosViaje(o.zona, [tel]);
+    const pocos = otros.length < 1;
+    const segundos = pocos ? 60 : 30;
+    if (o.estado === 'buscando') { o.piloto = Object.assign({ tel, nombre: p.datos.nombre }, vehInfo(p.datos)); o.tsAsignado = now; }
+    o.estado = 'contraoferta';
+    o.contra = { monto, ts: now, expira: now + segundos * 1000, pocos, segundos };
+    await ghPut('pedidos.json', fpd.sha, peds, 'contraoferta ' + id);
+    await aviso(`🚀 DRAGOEXPRES — VIAJE ${id}\n🛺 ${p.datos.nombre} PIDE MÁS: Q${monto} (tarifa fija Q${o.envio})\n⏱️ El cliente tiene ${segundos}s para aceptar${pocos ? ' (60s porque hay POCOS PILOTOS en ' + o.zona + ')' : ''}\nCliente: ${o.cliente.nombre} (${o.cliente.tel})`);
+    return res.status(200).json({ ok: true, pedido: o });
+  }
+
+  // ---- cliente acepta o rechaza la contraoferta del piloto ----
+  if (action === 'contraOk' || action === 'contraNo') {
+    const tel = String(b.tel || '').replace(/\D/g, ''), id = String(b.id || '').trim();
+    const fpd = await ghGet('pedidos.json'); const peds = fpd ? fpd.data : [];
+    const o = peds.find(x => x.id === id);
+    if (!o || o.estado !== 'contraoferta') return res.status(200).json({ ok: false, error: 'Esta oferta ya no está activa.' });
+    if (String(o.cliente.tel).replace(/\D/g, '') !== tel) return res.status(200).json({ ok: false, error: 'No es tu pedido.' });
+    if (action === 'contraOk') {
+      if (o.contra && Date.now() > o.contra.expira) {
+        o.contraRechazos = (o.contraRechazos || []).concat([o.piloto.tel]); o.contraExpiro = Date.now();
+        await redispatchViaje(o, peds, fpd.sha);
+        return res.status(200).json({ ok: false, error: 'Se te pasó el tiempo. El viaje volvió a búsqueda con la tarifa fija.' });
+      }
+      o.envio = o.contra.monto; o.comision = comisionDe('viaje', o.envio); o.contra = null;
+      o.estado = 'aceptado'; o.tsAceptado = now; o.contraAceptado = now;
+      await ghPut('pedidos.json', fpd.sha, peds, 'cliente acepto aumento ' + id);
+      await aviso(`🚀 DRAGOEXPRES — VIAJE ${id}\n✅ ${o.cliente.nombre} ACEPTÓ el aumento del piloto: ahora el envío es Q${o.envio}\n🛺 Piloto: ${o.piloto.nombre} · Tu comisión: Q${o.comision}`);
+      return res.status(200).json({ ok: true, pedido: o });
+    }
+    o.contraRechazos = (o.contraRechazos || []).concat([o.piloto.tel]);
+    await redispatchViaje(o, peds, fpd.sha);
+    await aviso(`🚀 DRAGOEXPRES — VIAJE ${id}\n❌ ${o.cliente.nombre} RECHAZÓ el aumento de ${o.piloto.nombre}. El viaje volvió a búsqueda con tarifa fija Q${o.envio}.`);
+    return res.status(200).json({ ok: true, pedido: o });
+  }
+
   if (['aceptar', 'rechazar', 'avanzar'].includes(action)) {
     const tel = String(b.tel || '').trim(), id = String(b.id || '').trim();
     const fpd = await ghGet('pedidos.json'); const peds = fpd ? fpd.data : [];
@@ -490,6 +575,7 @@ module.exports = wrap(async (req, res) => {
       if (!p) return res.status(200).json({ ok: false, error: 'No sos piloto aprobado.' });
       const fps = await ghGet('pilots.json'); const stP = (fps ? fps.data : []).find(x => x.tel === tel) || {};
       if (stP.pendiente && !stP.pendiente.pagado) return res.status(200).json({ ok: false, error: 'Primero ponete al día con tus comisiones (Q' + stP.pendiente.monto + '): transferilas a la cuenta del banco y avisale al admin por WhatsApp. En cuanto confirme, volvés a recibir pedidos como si nada 😊' });
+      if (o.estado === 'contraoferta') return res.status(200).json({ ok: false, error: 'Esperá: le ofreciste un aumento al cliente. Si acepta, el viaje es tuyo.' });
       if (o.estado === 'asignado' && (!o.piloto || o.piloto.tel !== tel)) return res.status(200).json({ ok: false, error: 'Este pedido es de otro piloto.' });
       if ((o.rechazadoPor || []).includes(tel)) return res.status(200).json({ ok: false, error: 'Rechazaste este pedido, se lo dejamos a otro piloto.' });
       if (!['asignado', 'buscando'].includes(o.estado)) return res.status(200).json({ ok: false, error: 'Este pedido ya no está disponible.' });

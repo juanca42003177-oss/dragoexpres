@@ -84,7 +84,7 @@ label{font-size:12px;color:#9aa3b5;display:block;margin-top:10px}
   </div>
 </div>
 <script>
-var PILOTO=null,POLL=null,PCALIF=null,ESTADOS={asignado:'NUEVO PEDIDO — ACEPTALO',aceptado:'PEDIDO ACEPTADO — marcá CUANDO SALGAS',en_camino:'EN CAMINO — marcá ENTREGADO al llegar'};
+var PILOTO=null,POLL=null,PCALIF=null,ESTADOS={asignado:'NUEVO PEDIDO — ACEPTALO',aceptado:'PEDIDO ACEPTADO — marcá CUANDO SALGAS',en_camino:'EN CAMINO — marcá ENTREGADO al llegar',contraoferta:'ESPERANDO AL CLIENTE — decidís con tu precio'};
 
 var OF=null,OFINT=null;
 function cerrarOferta(){document.getElementById('oferta').style.display='none';if(OFINT){clearInterval(OFINT);OFINT=null}OF=null}
@@ -201,7 +201,8 @@ function pedidoHTML(o){
   var est=ESTADOS[o.estado]||o.estado;
   var pl=o.piloto||{nombre:'el piloto',tel:''};var wa='https://wa.me/502'+String(pl.tel||o.cliente.tel).replace(/\D/g,'').replace(/^502/,'')+'?text='+encodeURIComponent('Hola '+o.cliente.nombre+', soy '+pl.nombre+', tu piloto de DragoExpres (pedido '+o.id+').');
   var botones='';
-  if(o.estado==='asignado')botones='<button class="btn bA" onclick="hacer(\'aceptar\',\''+o.id+'\')">✅ ACEPTAR PEDIDO</button><button class="btn bR" onclick="hacer(\'rechazar\',\''+o.id+'\')">Rechazar</button>';
+  if(o.estado==='asignado')botones='<button class="btn bA" onclick="hacer(\'aceptar\',\''+o.id+'\')">✅ ACEPTAR PEDIDO</button><button class="btn bR" onclick="hacer(\'rechazar\',\''+o.id+'\')">Rechazar</button>'+(o.tipo==='viaje'?'<button class="btn" style="background:#7a0a12" onclick="pedirMas(\''+o.id+'\','+o.envio+')">💰 PEDIR MÁS (viaje)</button>':'');
+  if(o.estado==='contraoferta')botones='<div class="mini" style="background:#241a05;border-radius:10px;padding:10px">⏱️ Le pediste <b>Q'+o.contra.monto+'</b> al cliente. Tiene '+o.contra.segundos+' segundos para decidir. Si rechaza, el viaje pasa a otro piloto.</div>';
   if(o.estado==='aceptado')botones='<button class="btn bV" onclick="hacer(\'avanzar\',\''+o.id+'\')">🛺 YA VOY EN CAMINO</button><button class="btn bR" onclick="hacer(\'rechazar\',\''+o.id+'\')">No puedo</button>';
   if(o.estado==='en_camino')botones=(o.noResponde?'<button class="btn bR" onclick="cerrarNR()">⏱️ YA ESPERÉ 10 MIN — CERRAR</button>':'<button class="btn bR" onclick="noResponde()">🚫 Cliente no responde</button>')+'<button class="btn bA" onclick="hacer(\'avanzar\',\''+o.id+'\')">📦 ENTREGADO</button>';
   return '<div class="pedido'+(o.estado==='asignado'?' flash':'')+'"><h3>'+tipo+' · '+o.id+'</h3><div class="mini">'+est+'</div>'+
@@ -219,7 +220,20 @@ function pedidoHTML(o){
  '<div style="display:flex;gap:6px;margin-top:6px"><input id="chat-in" placeholder="Escribí tu mensaje..." style="flex:1"><button class="btn bA" style="padding:9px 12px" onclick="enviarMsg()">➤</button></div></div>'+botones+'</div>';
 }
 function pedidoPequeno(o){
-  return '<div class="card" style="padding:10px;margin:8px 0"><b>'+({comida:'🍔',viaje:'🛺',repuesto:'🔧'}[o.tipo])+' '+o.id+'</b> · '+o.cliente.zona+'<div class="mini">'+String(o.detalle).slice(0,80)+' · Envío Q'+o.envio+((o.propina||0)>0?' + propina Q'+o.propina:'')+'</div><button class="btn bV" style="margin-top:8px;padding:9px" onclick="hacer(\'aceptar\',\''+o.id+'\')">TOMARLO</button></div>';
+  return '<div class="card" style="padding:10px;margin:8px 0"><b>'+({comida:'🍔',viaje:'🛺',repuesto:'🔧'}[o.tipo])+' '+o.id+'</b> · '+o.cliente.zona+'<div class="mini">'+String(o.detalle).slice(0,80)+' · Envío Q'+o.envio+((o.propina||0)>0?' + propina Q'+o.propina:'')+'</div><button class="btn bV" style="margin-top:8px;padding:9px" onclick="hacer(\'aceptar\',\''+o.id+'\')">TOMARLO</button>'+(o.tipo==='viaje'?'<button class="btn" style="margin-top:6px;padding:9px;background:#7a0a12" onclick="pedirMas(\''+o.id+'\','+o.envio+')">💰 PEDIR MÁS</button>':'')+'</div>';
+}
+async function pedirMas(id,tarifa){
+  if(DEMO){alert('Vista previa: los cambios no se guardan.');return}
+  var v=prompt('Viaje con tarifa fija Q'+tarifa+'.\n¿Cuánto querés por este viaje? (más de Q'+tarifa+', hasta Q150)','');
+  if(v===null)return;
+  v=parseFloat(v);
+  if(!v||isNaN(v)||v<=tarifa){alert('Tenés que pedir MÁS de Q'+tarifa+'.');return}
+  var r=await fetch(api('orders'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'pedirMas',id:id,tel:PILOTO.tel,monto:v})});
+  var j=await r.json();
+  if(!j.ok){alert(j.error);return}
+  cerrarOferta();
+  alert('Pedido enviado ✅ Pedís Q'+v+'. El cliente tiene '+j.pedido.contra.segundos+' segundos para aceptar.'+(j.pedido.contra.pocos?' (Le dimos más tiempo porque hay pocos pilotos en la zona.)':''));
+  tick();
 }
 async function hacer(accion,id){
   if(DEMO){alert('Vista previa: los cambios no se guardan.');return}

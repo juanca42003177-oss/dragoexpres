@@ -37,7 +37,9 @@ h2{font-size:17px;margin:2px 0 10px;font-weight:800}
 .chip{flex:1;text-align:center;padding:10px 0;border-radius:10px;border:1.5px solid var(--linea);font-weight:700;cursor:pointer;background:var(--card)}
 .chip.on{background:var(--rojo);color:#fff;border-color:var(--rojo)}
 .bn .dimg{position:absolute;right:10px;top:50%;transform:translateY(-50%);width:76px;height:76px;object-fit:contain;border-radius:12px;filter:drop-shadow(0 4px 10px rgba(0,0,0,.35))}
-.bn1{background:linear-gradient(120deg,#d1121f,#7a0a12)}
+.bn1{background:linear-gradient(120deg,#d1121f,#7a0a12);flex-direction:row;align-items:center;gap:14px;padding-right:16px}
+.bn1 .btxt{min-width:0}
+.bn1 .dimg{position:static;transform:none;flex:0 0 92px;width:92px;height:92px;object-fit:contain;box-sizing:border-box;padding:9px;background:rgba(0,0,0,.38);border-radius:16px}
 .bn2{background:linear-gradient(120deg,#b8860b,#6b4a00)}
 /* categorias */
 .cats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
@@ -120,7 +122,7 @@ nav div.on{color:var(--rojo)}
     <div class="buscador"><input id="q" placeholder="Locales, platos y productos" oninput="pintarLocales()"><div class="lupa">🔍</div></div>
   </div>
   <div class="banners">
-    <div class="bn bn1"><img class="dimg" src="img/dragon-paquete.webp" alt="Dragón DragoExpres"><b>Comida, viajes y repuestos a tu puerta</b><span>Pagás en efectivo al recibir.</span></div>
+    <div class="bn bn1"><img class="dimg" src="img/dragon-paquete.webp" alt="Dragón DragoExpres"><div class="btxt"><b>Comida, viajes y repuestos a tu puerta</b><span>Pagás en efectivo al recibir.</span></div></div>
     <div class="bn bn2"><span class="em">💰</span><b>Envío con tarifa fija</b><span>Sin regatear. Le das propina al piloto solo si querés.</span></div>
   </div>
   <div class="sec">
@@ -519,13 +521,37 @@ async function enviarMsg(){
   var inp=document.getElementById('chat-in');if(!inp)return;var t=inp.value.trim();if(!t||!PID)return;
   try{await fetch(api('orders'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'msg',id:PID,de:'cliente',tel:ULT_TEL,texto:t})});inp.value='';actualizar();}catch(e){}
 }
+async function contraResp(ok){
+  if(!PID)return;
+  var t=ULT_TEL||(LS()||{}).tel||'';
+  var r=await fetch(api('orders'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:ok?'contraOk':'contraNo',id:PID,tel:t})});
+  var j=await r.json();
+  if(!j.ok){alert(j.error||'No se pudo responder.');actualizar();return}
+  if(window.CFINT){clearInterval(window.CFINT);window.CFINT=null}
+  actualizar();
+}
 async function actualizar(){
   if(!PID)return;
   try{var r=await fetch(api('orders'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'estado',id:PID})});
   var j=await r.json();if(!j.ok)return;var o=j.pedido;
   ULT=o;
   var e=document.getElementById('oestado'),i=document.getElementById('oinfo');var nr=document.getElementById('nrBox');if(nr)nr.remove();if(o.noResponde){var nb=document.createElement('div');nb.id='nrBox';nb.style.cssText='background:#fff3cd;border:2px solid #c1121f;color:#7a0c15;font-weight:900;border-radius:12px;padding:10px;margin:8px 0';nb.innerHTML='🚫 Tu piloto te espera afuera y no le respondés. Tenés 10 minutos o cierra el pedido. Respondé acá abajo 👇';var box2=document.getElementById('chatBox');if(box2)box2.parentNode.insertBefore(nb,box2);}
-  if(o.estado==='buscando'){e.className='st sBus';e.textContent='Buscando piloto...';i.textContent='Encontrando al piloto disponible de tu zona'}
+  var cfb=document.getElementById('cfBox');if(cfb)cfb.remove();
+  if(window.CFINT){clearInterval(window.CFINT);window.CFINT=null}
+  if(o.estado==='contraoferta'&&o.contra){
+    e.className='st sAsig';e.textContent='El piloto pide más 🛺';
+    i.textContent='Tarifa fija Q'+o.envio+' · '+o.piloto.nombre+' pide Q'+o.contra.monto+(o.contra.pocos?' · OJO: hay POCOS PILOTOS en tu zona':'');
+    var cbx2=document.getElementById('oestado');
+    var cf=document.createElement('div');cf.id='cfBox';cf.style.cssText='background:#fff8e1;border:2px solid #b8860b;border-radius:12px;padding:12px;margin:8px 0';
+    cf.innerHTML='<b>¿Aceptás el aumento a Q'+o.contra.monto+'?</b><div class="mini" style="margin-top:4px">'+(o.contra.pocos?'Con propina o precio justo los pilotos vuelan más rápido, y en tu zona hay pocos. ':'')+'Tenés <b id="cfSeg" style="font-size:18px">'+o.contra.segundos+'</b> segundos para decidir.</div><div style="display:flex;gap:8px;margin-top:10px"><button id="cfOk" style="flex:1;background:#16a34a;color:#fff;font-weight:900;border:0;border-radius:10px;padding:12px;font-size:15px;cursor:pointer">✅ ACEPTAR Q'+o.contra.monto+'</button><button id="cfNo" style="flex:1;background:#fff;color:#7a0a12;font-weight:900;border:2px solid #7a0a12;border-radius:10px;padding:12px;font-size:15px;cursor:pointer">✕ RECHAZAR</button></div>';
+    cbx2.parentNode.insertBefore(cf,cbx2.nextSibling);
+    var seg=o.contra.segundos;
+    if(window.CFINT)clearInterval(window.CFINT);
+    window.CFINT=setInterval(function(){seg--;var el=document.getElementById('cfSeg');if(!el){if(window.CFINT)clearInterval(window.CFINT);window.CFINT=null;return}if(seg<=0){el.textContent='0';if(window.CFINT)clearInterval(window.CFINT);window.CFINT=null;actualizar();return}el.textContent=seg;},1000);
+    document.getElementById('cfOk').onclick=function(){contraResp(true)};
+    document.getElementById('cfNo').onclick=function(){contraResp(false)};
+  }
+  if(o.estado==='buscando'){e.className='st sBus';e.textContent='Buscando piloto...';i.textContent='Encontrando al piloto disponible de tu zona'+((o.contraRechazos||[]).length?' (descartaste '+o.contraRechazos.length+' aumento(s), seguimos con la tarifa fija Q'+o.envio+')':'')}
   if(o.estado==='asignado'){e.className='st sAsig';e.textContent='Piloto asignado';i.textContent=o.piloto.nombre+' va a aceptar tu pedido'}
   if(o.estado==='aceptado'){e.className='st sAce';e.textContent='Aceptado ✅';i.textContent=o.piloto.nombre+' aceptó tu pedido'}
   if(o.estado==='en_camino'){e.className='st sCam';e.textContent='En camino 🛺';i.textContent=o.piloto.nombre+' va en camino. Tenés el efectivo listo: Q'+o.compra+' (compra) + Q'+o.envio+' (envío)'+((o.propina||0)>0?' + Q'+o.propina+' propina':'')}
@@ -536,7 +562,7 @@ async function actualizar(){
     var porQ={local:'🏪 El local no pudo preparar tu pedido'+(o.canceladoRazon?' ('+o.canceladoRazon+')':'')+'. No te cobramos nada.',sin_piloto:'⛔ No encontramos piloto para tu pedido. No te cobramos nada. Probá de nuevo más tarde.',cliente:'Cancelaste este pedido'};
     i.textContent=porQ[o.canceladoPor||'cliente']||'Este pedido fue cancelado. Nadie te cobró nada.'}
   var cbx=document.getElementById('cancelBox');if(cbx)cbx.remove();
-  if(['buscando','asignado','aceptado','en_camino'].includes(o.estado)){
+  if(['buscando','asignado','aceptado','en_camino','contraoferta'].includes(o.estado)){
     var conViaje=['asignado','aceptado','en_camino'].includes(o.estado);
     var cbn=document.createElement('button');cbn.id='cancelBox';
     cbn.style.cssText='width:100%;background:#fff;color:#c1121f;border:2px solid #c1121f;font-weight:900;border-radius:12px;padding:11px;margin-top:10px;font-size:14px;cursor:pointer';
