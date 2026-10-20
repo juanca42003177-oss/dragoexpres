@@ -55,7 +55,35 @@ module.exports = wrap(async (req, res) => {
   if (action === 'liquidaciones') {
     const fp = await ghGet('pilots.json');
     const arr = fp ? fp.data : [];
-    return res.status(200).json({ ok: true, pendientes: arr.filter(x => x.pendiente).map(x => ({ tel: x.tel, nombre: x.nombre || x.tel, monto: x.pendiente.monto, desde: x.pendiente.desde, susp: !!x.susp })) });
+    return res.status(200).json({ ok: true, pendientes: arr.filter(x => x.pendiente).map(x => ({ tel: x.tel, nombre: x.nombre || x.tel, monto: x.pendiente.monto, desde: x.pendiente.desde, retraso: !!x.retraso, rachaRespaldo: !!x.rachaRespaldo })), rachasPerdidas: arr.filter(x => x.rachaRespaldo).map(x => ({ tel: x.tel, nombre: x.nombre || x.tel, racha: x.rachaRespaldo.racha, boletos: x.rachaRespaldo.boletos })) });
+  }
+  if (action === 'vivo') {
+    const fp = await ghGet('pilots.json'); const arr = fp ? fp.data : [];
+    const fpd = await ghGet('pedidos.json'); const peds = fpd ? fpd.data : [];
+    const fpr = await ghGet('registros.json'); const regs = fpr ? fpr.data : [];
+    const activos = ['buscando', 'asignado', 'aceptado', 'en_camino'];
+    const porEstado = {}; activos.forEach(e2 => porEstado[e2] = 0);
+    peds.forEach(o => { if (activos.includes(o.estado)) porEstado[o.estado]++; });
+    return res.status(200).json({ ok: true, vivo: {
+      pilotosDisponibles: arr.filter(x => x.disponible && !(x.pendiente && !x.pendiente.pagado)).length,
+      pilotosOcupados: new Set(peds.filter(o => o.piloto && ['asignado','aceptado','en_camino'].includes(o.estado)).map(o => o.piloto.tel)).size,
+      pendientesPago: arr.filter(x => x.pendiente && !x.pendiente.pagado).length,
+      pedidos: porEstado,
+      entregadosHoy: peds.filter(o => o.estado === 'entregado' && new Date((o.tsEntregado||0) - 21600000).toISOString().slice(0,10) === new Date(Date.now() - 21600000).toISOString().slice(0,10)).length,
+      localesAprobados: regs.filter(r => r.tipo === 'local' && r.estado === 'aprobado').length,
+      pilotosAprobados: regs.filter(r => r.tipo === 'piloto' && r.estado === 'aprobado').length
+    } });
+  }
+  if (action === 'rachaOk') {
+    const tel = String(d.tel || '').trim();
+    const fp = await ghGet('pilots.json');
+    const arr = fp ? fp.data : [];
+    const st = arr.find(x => x.tel === tel);
+    if (!st || !st.rachaRespaldo) return res.status(200).json({ ok: false, error: 'No hay racha perdida que restaurar (o ya fue restaurada).' });
+    st.racha = st.rachaRespaldo.racha; st.boletosExtra = st.rachaRespaldo.boletos;
+    delete st.rachaRespaldo;
+    await ghPut('pilots.json', fp ? fp.sha : null, arr, 'racha restaurada ' + tel);
+    return res.status(200).json({ ok: true, racha: st.racha, boletos: st.boletosExtra });
   }
   if (action === 'liqOk') {
     const tel = String(d.tel || '').trim();
@@ -63,10 +91,12 @@ module.exports = wrap(async (req, res) => {
     const arr = fp ? fp.data : [];
     const st = arr.find(x => x.tel === tel);
     if (!st) return res.status(200).json({ ok: false, error: 'Piloto no encontrado.' });
+    let perdioRacha = false;
+    if (st.retraso) { st.rachaRespaldo = { racha: st.racha || 0, boletos: st.boletosExtra || 0 }; st.racha = 0; st.boletosExtra = 0; delete st.retraso; perdioRacha = true; }
     delete st.pendiente;
     delete st.susp;
     await ghPut('pilots.json', fp ? fp.sha : null, arr, 'liquidado ' + tel);
-    return res.status(200).json({ ok: true });
+    return res.status(200).json({ ok: true, perdioRacha, rachaRespaldo: st.rachaRespaldo || null });
   }
   if (action === 'detalle') {
     const tel = String(d.tel || '').replace(/\D/g, '');

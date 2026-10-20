@@ -75,7 +75,7 @@ module.exports = wrap(async (req, res) => {
     const fpr = await ghGet('pilots.json');
     const parr = fpr ? fpr.data : [];
     const sancionados = [];
-    parr.forEach(x => { if (x.pendiente && !x.pendiente.pagado) { if (!x.susp) { x.susp = true; } sancionados.push(x.nombre || x.tel); } });
+    parr.forEach(x => { if (x.pendiente && !x.pendiente.pagado) { x.retraso = true; sancionados.push(x.nombre || x.tel); } });
     pilotos.forEach(p => {
       let st = parr.find(x => x.tel === p.tel);
       if (!st) { st = { tel: p.tel }; parr.push(st); }
@@ -92,9 +92,9 @@ module.exports = wrap(async (req, res) => {
     await ghPut('pozo.json', fpz ? fpz.sha : null, pozo, 'ciclo liquidado ' + gt(now));
 
     const LINEAS = pilotos.length ? pilotos.map(p => `• ${p.nombre} (${p.tel}): ${p.entregas} entregas · comisiones Q${p.comisiones}${p.compAplicada ? ' − ⛽ comp Q' + p.compAplicada : ''} → TE TRANSFIERE Q${p.neto}`).join('\n') : 'Sin entregas este ciclo.';
-    const SANC = sancionados.length ? `\n\n⛔ SUSPENDIDOS por no liquidar el ciclo anterior (no reciben pedidos hasta pagar): ${sancionados.join(', ')}` : '';
+    const SANC = sancionados.length ? `\n\n⏳ PENDIENTES de liquidar el ciclo anterior (NO suspendidos: entran normal y ven un aviso amable para pagar; no les llegan pedidos nuevos hasta liquidar): ${sancionados.join(', ')}` : '';
     const prox = new Date(now + CICLO_MS - TZ).toISOString().replace('T', ' ').slice(0, 16);
-    await aviso(`🐉 DRAGOEXPRES — LIQUIDACIÓN DE CICLO (cada 72h)\nCiclo del ${gt(desde)} al ${gt(now)}\n\n💰 Cada piloto te transfiere su neto a tu Industrial 7171286805:\n${LINEAS}\n\n⏰ Próxima liquidación: ${prox} GT${SANC}\nEl que no liquida queda SUSPENDIDO al siguiente ciclo. Las compensaciones ⛽ salen de las comisiones del propio piloto (vos no pones nada).`);
+    await aviso(`🐉 DRAGOEXPRES — LIQUIDACIÓN DE CICLO (cada 72h)\nCiclo del ${gt(desde)} al ${gt(now)}\n\n💰 Cada piloto te transfiere su neto a tu Industrial 7171286805:\n${LINEAS}\n\n⏰ Próxima liquidación: ${prox} GT${SANC}\nAl pagar tarde pierden la racha del pozo del domingo (salvo que vos les des el chance con 🐉 Restaurar racha). Las compensaciones ⛽ salen de las comisiones del propio piloto (vos no pones nada).`);
 
     return res.status(200).json({ ok: true, ciclo: { desde, hasta: now }, pilotos, sancionados, proxima: now + CICLO_MS });
   }

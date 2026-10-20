@@ -135,7 +135,9 @@ async function verBilletera(){
     '<div class="stat"><div class="n">Q'+j.comisiones+'</div><div class="l">COMISIONES PAGADAS</div></div>'+
     '<div class="stat"><div class="n">'+(j.calif?j.calif+'★':'—')+'</div><div class="l">ESTRELLAS</div></div></div>';
   h+='<div class="card"><div class="mini">🎯 POZO SEMANAL: '+j.meta.hechas+'/20 entregas'+(j.meta.faltan?' · te faltan '+j.meta.faltan+' para el pozo 💰':' · ¡META CUMPLIDA! 🐉')+'</div><div style="background:#2a2b38;border-radius:8px;height:8px;margin-top:6px"><div style="background:#f0b90b;height:8px;border-radius:8px;width:'+Math.min(100,j.meta.hechas*5)+'%"></div></div></div>';
-  if(j.pendiente)h+='<div class="card">💰 Debés <b>Q'+j.pendiente.monto+'</b> de comisiones — se paga en la liquidación (cada 72h)</div>';
+  if(j.pendiente)h+='<div class="card" style="border-color:#8a6a2f">💰 Tenés <b>Q'+j.pendiente.monto+'</b> de comisiones por liquidar. Cuando puedas, pasalos a la cuenta del banco (te la manda el admin por WhatsApp) y avisale 😊 En cuanto confirme, volvés a recibir pedidos como si nada.</div>';
+  if(j.pendienteActivo)h+='<div class="s" style="color:#ffd479">⏳ Hasta ponerte al día no te llegan pedidos nuevos.</div>';
+  if(j.retraso)h+='<div class="s" style="color:#ffd479">🐉 Por el retraso perdiste tu racha del pozo. Si tuviste un motivo, escribile al admin por WhatsApp: te la puede devolver.</div>';
   if(j.historial&&j.historial.length){h+='<div class="card"><div class="mini">ÚLTIMOS VIAJES</div>'+j.historial.map(function(x){var f=new Date(x.ts-21600000).toISOString().slice(0,10);var ic={comida:'🍔',viaje:'🛺',repuesto:'🔧'}[x.tipo]||'📦';return '<div style="display:flex;justify-content:space-between;font-size:13px;margin:6px 0"><span>'+ic+' '+x.id+'</span><b style="color:#f0b90b">+Q'+x.ganado+'</b></div>'}).join('')+'</div>';}
   document.getElementById('billetera').innerHTML=h;
   }catch(e){document.getElementById('billetera').innerHTML='<div class="card">Revisá tu internet y volvé a abrir.</div>'}

@@ -73,7 +73,7 @@ module.exports = wrap(async (req, res) => {
   }
   const estadoReg = d.tipo === 'usuario' ? 'aprobado' : 'pendiente_verificacion';
   const firmaContrato = (d.tipo === 'piloto' || d.tipo === 'local') && d.contrato
-    ? { version: 'C-2026.1', aceptado: true, tsFirma: now, ip: (req.headers && (req.headers['x-forwarded-for'] || req.headers['x-real-ip'])) || null }
+    ? { version: 'C-2026.2', aceptado: true, tsFirma: now, ip: (req.headers && (req.headers['x-forwarded-for'] || req.headers['x-real-ip'])) || null }
     : null;
   data.push({ tipo: d.tipo, datos: d, estado: estadoReg, checks, ts: now, firmaContrato });
   await ghPut(f ? f.sha : null, data);

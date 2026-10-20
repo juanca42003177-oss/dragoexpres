@@ -49,7 +49,7 @@ async function aviso(texto) {
     await fetch(`https://api.telegram.org/bot${tok}/sendMessage`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ chat_id: chat, text: texto }) });
   } catch (e) { }
 }
-const PCT_LOCAL = 0.05, GRACIA_LOCAL_MS = 90 * 864e5; // 5% al local tras 3 meses de operar la zona
+const PCT_LOCAL = 0.10, GRACIA_LOCAL_MS = 90 * 864e5; // 10% al local tras 90 dias de operar la zona (intermedio vs las grandes)
 function comisionDe(tipo, envio) {
   const e = dinero(envio);
   if (tipo === 'comida') return dinero(e * 0.10);
@@ -130,7 +130,7 @@ module.exports = wrap(async (req, res) => {
     if (p.datos.placa && String(p.datos.placa).trim().toUpperCase() !== placa) return res.status(200).json({ ok: false, error: 'La placa no coincide.' });
     const fp = await ghGet('pilots.json');
     const st = (fp ? fp.data : []).find(x => x.tel === tel) || { tel, disponible: false };
-    if (st.susp) return res.status(200).json({ ok: false, suspendido: true, error: 'Suspendido por liquidación pendiente: Q' + (st.pendiente ? st.pendiente.monto : '?') + '. Pagá tus comisiones a la cuenta del banco y avisános por WhatsApp para reactivarte.' });
+    const debePend = !!(st.pendiente && !st.pendiente.pagado);
     const fpd = await ghGet('pedidos.json');
     const peds = fpd ? fpd.data : [];
     await expirarAsignados(peds, fpd ? fpd.sha : null);
@@ -139,7 +139,7 @@ module.exports = wrap(async (req, res) => {
     const califs = peds.filter(o => o.piloto && o.piloto.tel === tel && o.califCliente > 0);
     const calif = califs.length ? Math.round(califs.reduce((x, o) => x + o.califCliente, 0) / califs.length * 10) / 10 : null;
     const zonaF = zona.filter(o => !(o.rechazadoPor || []).includes(tel));
-    return res.status(200).json({ ok: true, piloto: { nombre: p.datos.nombre, zona: p.datos.zona, vehiculo: p.datos.vehiculo, marca: p.datos.marca || '', color: p.datos.color || '', placa: p.datos.placa || '', disponible: st.disponible, ganadoHoy: st.ganadoHoy || 0, ganadoSemana: st.ganadoSemana || 0, pedidosHoy: st.pedidosHoy || 0, racha: st.racha || 0, boletosExtra: st.boletosExtra || 0, compensa: st.compensa || 0, compensaN: st.compensaN || 0, calif: calif, pendiente: st.pendiente || null }, activo: mio[0] || null, zonaBuscando: zonaF });
+    return res.status(200).json({ ok: true, piloto: { nombre: p.datos.nombre, zona: p.datos.zona, vehiculo: p.datos.vehiculo, marca: p.datos.marca || '', color: p.datos.color || '', placa: p.datos.placa || '', disponible: st.disponible, ganadoHoy: st.ganadoHoy || 0, ganadoSemana: st.ganadoSemana || 0, pedidosHoy: st.pedidosHoy || 0, racha: st.racha || 0, boletosExtra: st.boletosExtra || 0, compensa: st.compensa || 0, compensaN: st.compensaN || 0, calif: calif, pendiente: st.pendiente || null, pendienteActivo: debePend, avisoPendiente: debePend ? ('Tenés Q' + st.pendiente.monto + ' de comisiones por liquidar. Cuando puedas, transferilos a la cuenta del banco (el admin te la manda por WhatsApp) y avisale. En cuanto confirme volvés a recibir pedidos como si nada. Si tuviste un motivo del retraso, contáselo: puede devolverte la racha del pozo.') : null, retraso: !!st.retraso }, activo: mio[0] || null, zonaBuscando: zonaF });
   }
 
   // ---- PILOTO: ponerse disponible / no disponible ----
@@ -199,7 +199,7 @@ module.exports = wrap(async (req, res) => {
     const aprobados = new Set(reg.filter(r => r.tipo === 'piloto' && r.estado === 'aprobado').map(r => String(r.datos.tel).trim()));
     const fpd = await ghGet('pedidos.json'); const peds = fpd ? fpd.data : [];
     const ocupados = new Set(peds.filter(o => o.piloto && ['asignado', 'aceptado', 'en_camino'].includes(o.estado)).map(o => o.piloto.tel));
-    const cand = pilots.filter(x => x.disponible && !x.susp && aprobados.has(x.tel) && !ocupados.has(x.tel))
+    const cand = pilots.filter(x => x.disponible && !(x.pendiente && !x.pendiente.pagado) && aprobados.has(x.tel) && !ocupados.has(x.tel))
       .filter(x => { const r = reg.find(y => y.tipo === 'piloto' && String(y.datos.tel).trim() === x.tel); return r && r.datos.zona === zona; })
       .sort((a, b2) => (a.desde || 0) - (b2.desde || 0));
     if (cand.length) {
@@ -346,7 +346,7 @@ module.exports = wrap(async (req, res) => {
     const fp = await ghGet('pilots.json');
     const st = (fp ? fp.data : []).find(x => String(x.tel).replace(/\D/g, '') === tel) || {};
     const historial = mios.slice(-15).reverse().map(x => ({ id: x.id, tipo: x.tipo, ganado: dinero(x.envio - x.comision), envio: x.envio, ts: x.tsEntregado || x.ts }));
-    return res.status(200).json({ ok: true, entregas: mios.length, ganado, comisiones, calif, pendiente: st.pendiente || null, meta: { hechas: semana, faltan: Math.max(0, 20 - semana) }, historial });
+    return res.status(200).json({ ok: true, entregas: mios.length, ganado, comisiones, calif, pendiente: st.pendiente || null, pendienteActivo: !!(st.pendiente && !st.pendiente.pagado), retraso: !!st.retraso, meta: { hechas: semana, faltan: Math.max(0, 20 - semana) }, historial });
   }
 
   // ---- consultar estado (usuario o pantalla) ----
@@ -485,6 +485,8 @@ module.exports = wrap(async (req, res) => {
       const fr = await ghGet('registros.json'); const reg = fr ? fr.data : [];
       const p = reg.find(r => r.tipo === 'piloto' && r.estado === 'aprobado' && String(r.datos.tel).trim() === tel);
       if (!p) return res.status(200).json({ ok: false, error: 'No sos piloto aprobado.' });
+      const fps = await ghGet('pilots.json'); const stP = (fps ? fps.data : []).find(x => x.tel === tel) || {};
+      if (stP.pendiente && !stP.pendiente.pagado) return res.status(200).json({ ok: false, error: 'Primero ponete al día con tus comisiones (Q' + stP.pendiente.monto + '): transferilas a la cuenta del banco y avisale al admin por WhatsApp. En cuanto confirme, volvés a recibir pedidos como si nada 😊' });
       if (o.estado === 'asignado' && (!o.piloto || o.piloto.tel !== tel)) return res.status(200).json({ ok: false, error: 'Este pedido es de otro piloto.' });
       if ((o.rechazadoPor || []).includes(tel)) return res.status(200).json({ ok: false, error: 'Rechazaste este pedido, se lo dejamos a otro piloto.' });
       if (!['asignado', 'buscando'].includes(o.estado)) return res.status(200).json({ ok: false, error: 'Este pedido ya no está disponible.' });

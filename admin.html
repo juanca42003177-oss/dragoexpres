@@ -116,7 +116,7 @@ function cargarPedidos(){
     fetch(apiBase()+'/admin',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({pass:PASS,action:'liquidaciones'})})
     .then(r2=>r2.json()).then(function(l){
       if(!l||!l.ok||!l.pendientes.length)return;
-      document.getElementById('liqCard').innerHTML='<div class="card"><div class="av">💰</div><div><b>Liquidaciones pendientes</b><div class="s">Pilotos que te deben comisiones. Cuando confirmes el depósito en tu banco, tocá ✅</div></div></div>'+l.pendientes.map(function(p){return '<div class="card"><div class="av">🏍️</div><div><b>'+p.nombre+' ('+p.tel+')</b><div class="s">Debe Q'+p.monto+(p.susp?' · ⛔ SUSPENDIDO':'')+'</div></div><button style="margin:auto 0 0 8px;background:#1c3a1c;border:1px solid #3f7a3f;color:#8fe28f;border-radius:8px;padding:8px 12px;cursor:pointer;font-weight:700" onclick="liqOk(\''+p.tel+'\')">✅ LIQUIDADO</button></div>'}).join('');
+      document.getElementById('liqCard').innerHTML='<div class="card"><div class="av">💰</div><div><b>Liquidaciones pendientes</b><div class="s">Pilotos que te deben comisiones. Cuando confirmes el depósito en tu banco, tocá ✅</div></div></div>'+(l.rachasPerdidas&&l.rachasPerdidas.length?'<div class="card"><div class="av">🐉</div><div><b>Rachas perdidas por pago tardío</b><div class="s">Si el piloto te explicó su motivo, dale el chance y devolvé su racha para el pozo del domingo</div></div></div>'+l.rachasPerdidas.map(function(p){return '<div class="card"><div class="av">🏍️</div><div><b>'+p.nombre+' ('+p.tel+')</b><div class="s">Racha guardada: '+p.racha+' entregas seguidas · '+p.boletos+' boletos</div></div><button style="margin:auto 0 0 8px;background:#3a2a1c;border:1px solid #8a6a2f;color:#ffd479;border-radius:8px;padding:8px 12px;cursor:pointer;font-weight:700" onclick="rachaOk(\''+p.tel+'\')">🐉 Devolver racha</button></div>'}).join(''):'')+l.pendientes.map(function(p){return '<div class="card"><div class="av">🏍️</div><div><b>'+p.nombre+' ('+p.tel+')</b><div class="s">Debe Q'+p.monto+(p.retraso?' · ⏳ pago tardío (perderá su racha al liquidar)':'')+'</div></div><button style="margin:auto 0 0 8px;background:#1c3a1c;border:1px solid #3f7a3f;color:#8fe28f;border-radius:8px;padding:8px 12px;cursor:pointer;font-weight:700" onclick="liqOk(\''+p.tel+'\')">✅ LIQUIDADO</button></div>'}).join('');
     });
     html+='<div id="pozoCard"></div><div id="liqCard"></div>';
     j.pedidos.forEach(function(o){
@@ -128,7 +128,12 @@ function cargarPedidos(){
 async function liqOk(tel){
   if(!confirm('¿Confirmás que este piloto ya te depositó sus comisiones?'))return;
   var r=await fetch(apiBase()+'/admin',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({pass:PASS,action:'liqOk',tel:tel})});
-  var j=await r.json();if(j.ok){cargar()}
+  var j=await r.json();if(j.ok){if(j.perdioRacha){alert('Liquidado ✅. Como pagó tarde, perdió su racha del pozo del domingo. Si te explicó el motivo, podés devolvérsela con el botón 🐉 de abajo (Rachas perdidas).');}cargar()}
+}
+async function rachaOk(tel){
+  if(!confirm('¿Le devolvés la racha perdida a este piloto (le dio una buena razón del retraso)?'))return;
+  var r=await fetch(apiBase()+'/admin',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({pass:PASS,action:'rachaOk',tel:tel})});
+  var j=await r.json();if(j.ok){alert('Racha restaurada ✅ ('+j.racha+' entregas seguidas, '+j.boletos+' boletos).');cargar()}else{alert(j.error||'No se pudo.')}
 }
 async function verDetalle(tel){
   var r=await fetch(apiBase()+'/admin',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({pass:PASS,action:'detalle',tel:tel})});
