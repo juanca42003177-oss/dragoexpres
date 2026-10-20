@@ -218,7 +218,9 @@ module.exports = wrap(async (req, res) => {
     const activos = mios.filter(x => !['entregado', 'cancelado'].includes(x.estado));
     const fl = await ghGet('locales.json');
     const pausa = (fl ? fl.data : []).find(x => x.tel === tel && x.hasta > now);
-    return res.status(200).json({ ok: true, local: { nombre: r.datos.nombre, zona: r.datos.zona, tel }, activos: activos.slice(-10).reverse(), totalEntregados: mios.filter(x => x.estado === 'entregado').length, pausa: pausa ? pausa.hasta : null });
+    const hoyStr = new Date(now - TZ).toISOString().slice(0, 10);
+    const cancelHoy = mios.filter(x => x.estado === 'cancelado' && new Date((x.canceladoTs || 0) - TZ).toISOString().slice(0, 10) === hoyStr).slice(-3);
+    return res.status(200).json({ ok: true, local: { nombre: r.datos.nombre, zona: r.datos.zona, tel }, activos: activos.slice(-10).reverse(), totalEntregados: mios.filter(x => x.estado === 'entregado').length, pausa: pausa ? pausa.hasta : null, cancelHoy });
   }
 
   // ---- LOCAL: confirmar pedido con tiempo de preparacion ----
@@ -400,10 +402,15 @@ module.exports = wrap(async (req, res) => {
     const o = peds.find(x => x.id === id);
     if (!o || ['entregado', 'cancelado'].includes(o.estado)) return res.status(200).json({ ok: false, error: 'Este pedido ya cerró.' });
     if (String(o.cliente.tel).replace(/\D/g, '') !== tel) return res.status(200).json({ ok: false, error: 'No es tu pedido.' });
-    if (o.estado !== 'buscando') return res.status(200).json({ ok: false, error: 'Ya hay un piloto en camino. Escribile por el chat para coordinar.' });
-    o.estado = 'cancelado'; o.canceladoPor = 'cliente'; o.canceladoTs = now;
+    const conViaje = !!(o.piloto && ['asignado', 'aceptado', 'en_camino'].includes(o.estado));
+    const cancelos = peds.filter(x => x.canceladoPor === 'cliente' && x.canceloConViaje && String(x.cliente.tel).replace(/\D/g, '') === tel).length;
+    if (conViaje && cancelos >= 2) return res.status(200).json({ ok: false, error: 'Cancelaste varios viajes con el piloto ya en camino. Escribí al chat de soporte para poder volver a pedir.' });
+    o.estado = 'cancelado'; o.canceladoPor = 'cliente'; o.canceladoTs = now; o.canceloConViaje = conViaje;
+    if (conViaje) { o.pilotoAlCancelar = o.piloto ? { nombre: o.piloto.nombre, tel: o.piloto.tel } : null; o.piloto = null; }
     await ghPut('pedidos.json', fpd.sha, peds, 'cliente cancela ' + id);
-    await aviso('🚀 DRAGOEXPRES — ' + id + '\n🧑 El cliente canceló mientras buscábamos piloto. Nadie pierde nada.');
+    await aviso(conViaje
+      ? '🚀 DRAGOEXPRES — ' + id + '\n🧑⚠️ El cliente canceló CON EL PILOTO EN CAMINO. El piloto quedó libre, su racha sigue viva. Cancelaciones de este cliente con viaje: ' + (cancelos + 1) + '.'
+      : '🚀 DRAGOEXPRES — ' + id + '\n🧑 El cliente canceló mientras buscábamos piloto. Nadie pierde nada.');
     return res.status(200).json({ ok: true, pedido: o });
   }
 
