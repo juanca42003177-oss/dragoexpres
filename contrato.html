@@ -26,6 +26,11 @@
   .badge{display:inline-block;background:#2a2113;color:#f5b942;border:1px solid #5a4a1a;font-size:11px;font-weight:700;border-radius:8px;padding:3px 10px;margin:8px auto 0;text-align:center}
   .center{text-align:center}
 </style>
+<style>
+/* Bloquear seleccion de texto: evita que Chrome tire la busqueda de Google al tocar texto */
+*{-webkit-user-select:none;-webkit-touch-callout:none;user-select:none}
+input,textarea,select{-webkit-user-select:text;user-select:text}
+</style>
 </head>
 <body>
 <div class="wrap">

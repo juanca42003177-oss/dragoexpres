@@ -110,6 +110,11 @@ nav div.on{color:var(--rojo)}
 .vista{display:none}.vista.on{display:block}
 .empty{text-align:center;padding:34px 16px;color:var(--gris);font-size:13.5px}
 </style>
+<style>
+/* Bloquear seleccion de texto: evita que Chrome tire la busqueda de Google al tocar texto */
+*{-webkit-user-select:none;-webkit-touch-callout:none;user-select:none}
+input,textarea,select{-webkit-user-select:text;user-select:text}
+</style>
 </head>
 <body>
 

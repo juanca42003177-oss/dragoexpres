@@ -31,6 +31,11 @@ label{font-size:12px;color:#9aa3b5;display:block;margin-top:10px}
 .wa{background:#0d2015;border:1px solid #2f5c46;color:#7ee2a8;text-align:center;text-decoration:none;display:block;padding:10px;border-radius:10px;font-weight:800;margin-top:8px;font-size:13px}
 .flash{animation:fl 1s infinite}@keyframes fl{50%{border-color:#ffd44d}}
 </style>
+<style>
+/* Bloquear seleccion de texto: evita que Chrome tire la busqueda de Google al tocar texto */
+*{-webkit-user-select:none;-webkit-touch-callout:none;user-select:none}
+input,textarea,select{-webkit-user-select:text;user-select:text}
+</style>
 </head>
 <body>
 <div id="oferta" style="display:none;position:fixed;inset:0;background:rgba(6,6,10,.96);z-index:90;padding:22px;overflow-y:auto">

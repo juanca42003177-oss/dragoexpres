@@ -31,6 +31,11 @@ input{width:100%;background:#0d0e14;border:1px solid #2a2b38;border-radius:10px;
 .zbar{height:8px;background:#0d0e14;border-radius:6px;overflow:hidden;margin-top:6px}
 .zbar div{height:100%;background:linear-gradient(90deg,#f0b90b,#ffd44d)}
 </style>
+<style>
+/* Bloquear seleccion de texto: evita que Chrome tire la busqueda de Google al tocar texto */
+*{-webkit-user-select:none;-webkit-touch-callout:none;user-select:none}
+input,textarea,select{-webkit-user-select:text;user-select:text}
+</style>
 </head>
 <body>
 <div id="login">
