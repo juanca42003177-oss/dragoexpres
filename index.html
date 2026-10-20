@@ -141,7 +141,7 @@ footer b{color:var(--oro)}
   </div>
 
   <div class="ok" id="okBox">
-    <div class="e">🐉</div>
+    <div class="e"><img src="img/dragon-fuego-pad.webp" alt="Dragón" style="width:44px;height:44px;object-fit:contain"></div>
     <h4 id="okT">¡Listo!</h4>
     <p id="okM"></p>
   </div>
@@ -155,7 +155,7 @@ footer b{color:var(--oro)}
 
   <footer>
   <p style="text-align:center;margin:6px 0"><a href="local.html" style="color:#f0b90b;font-size:13.5px;font-weight:700">🏪 ¿Ya registraste tu local? Entrá a tu panel acá</a></p>
-    <b>🐉 DRAGOEXPRES</b> · by Dragon Trade Labs<br>
+    <b>DRAGOEXPRES</b> · by Dragon Trade Labs<br>
     Tus datos solo se usan para DragoExpres. Nunca se comparten con nadie.
   
 <div class="sec" id="COMO_FUNCIONA">
@@ -274,7 +274,7 @@ function verDemo(cual){
         <div style="flex:1;background:#14151c;border:1px solid #2a2b38;border-radius:12px;padding:10px;text-align:center"><div style="color:#f0b90b;font-weight:900;font-size:18px">Q142</div><div style="font-size:10px;color:#9aa3b5">GANADO HOY</div></div>
         <div style="flex:1;background:#14151c;border:1px solid #2a2b38;border-radius:12px;padding:10px;text-align:center"><div style="color:#f0b90b;font-weight:900;font-size:18px">18/20</div><div style="font-size:10px;color:#9aa3b5">META SEMANAL</div></div>
       </div>
-      <div style="background:#241a05;border:1px solid #3d3208;border-radius:12px;padding:12px;margin-top:10px;font-size:12px;color:#ffe08a;line-height:1.5">🐉 Turno 24hrs activo: <b>+%15 por pedido</b> esta semana. Bono dominical mayor al cumplir tu meta.</div>
+      <div style="background:#241a05;border:1px solid #3d3208;border-radius:12px;padding:12px;margin-top:10px;font-size:12px;color:#ffe08a;line-height:1.5">Turno 24hrs activo: <b>+%15 por pedido</b> esta semana. Bono dominical mayor al cumplir tu meta.</div>
     </div>
     <div class="ds" id="dsLocal" style="display:none">
       <div style="font-weight:900;font-size:19px;margin:12px 0 2px">Panel del local 🔥</div>
@@ -404,7 +404,7 @@ function mostrarOk(t) {
     local:'Tu local quedó registrado. Te contactamos por WhatsApp para subir tu catálogo y tus promos.',
     flota:'Tu vehículo quedó registrado. Te contactamos por WhatsApp para asignarle un piloto verificado.'
   };
-  document.getElementById('okT').textContent = '¡Listo, quedaste registrado! 🐉';
+  document.getElementById('okT').textContent = '¡Listo, quedaste registrado!';
   document.getElementById('okM').textContent = m[t] || m.usuario;
   ['usuario','piloto','local','flota'].forEach(function(x){ document.getElementById('f'+x.charAt(0).toUpperCase()+x.slice(1)).classList.remove('on'); });
   document.getElementById('okBox').style.display='block';
@@ -417,7 +417,7 @@ function mostrarOkLocal(t) {
     local:'Quedaste en la fila de locales. Tu registro está guardado y se envía solo; te contactamos por WhatsApp.',
     flota:'Quedaste en la fila. Tu registro está guardado y se envía solo; te contactamos por WhatsApp.'
   };
-  document.getElementById('okT').textContent = '¡Quedaste en la fila de tu zona! 🐉';
+  document.getElementById('okT').textContent = '¡Quedaste en la fila de tu zona!';
   document.getElementById('okM').textContent = m[t] || m.usuario;
   ['usuario','piloto','local','flota'].forEach(function(x){ document.getElementById('f'+x.charAt(0).toUpperCase()+x.slice(1)).classList.remove('on'); });
   document.getElementById('okBox').style.display='block';
