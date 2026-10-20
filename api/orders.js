@@ -58,15 +58,13 @@ module.exports = wrap(async (req, res) => {
   const action = b.action || (req.query && req.query.action) || '';
   const now = Date.now();
 
-  // zonas activas (con pilotos o locales aprobados) para el formulario de pedido
+  // zonas conocidas (de cualquier registro, aprobado o pendiente) — el pedido funciona desde el día 1 en cualquier zona
   if (action === 'zonas') {
     const f = await ghGet('registros.json');
     const reg = f ? f.data : [];
-    const pil = new Set(), loc = new Set();
-    reg.filter(r => r.estado === 'aprobado').forEach(r => (r.tipo === 'piloto' ? pil : r.tipo === 'local' ? loc : null) && 0);
-    reg.filter(r => r.estado === 'aprobado' && r.tipo === 'piloto').forEach(r => pil.add(r.datos.zona));
-    reg.filter(r => r.estado === 'aprobado' && r.tipo === 'local').forEach(r => loc.add(r.datos.zona));
-    return res.status(200).json({ ok: true, zonas: [...pil].sort(), zonasLocales: [...loc].sort() });
+    const zonas = new Set();
+    reg.forEach(r => { const z = r.datos && r.datos.zona; if (z) zonas.add(z); });
+    return res.status(200).json({ ok: true, zonas: [...zonas].sort() });
   }
 
   // ---- PILOTO: login (tel + placa) ----

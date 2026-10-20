@@ -146,7 +146,7 @@ nav div.on{color:var(--rojo)}
 <div class="vista" id="v-promos">
   <div class="hdr"><div class="row"><img src="img/icono.png"><b>Promociones</b></div></div>
   <div class="sec">
-    <div class="bn bn1" style="margin-bottom:12px;min-width:100%"><span class="em">🎁</span><b>Tu primer envío, GRATIS</b><span>Registrate como usuario y tu primer pedido en tu zona vuela sin costo de envío cuando el dragón llegue a tu área.</span></div>
+    <div class="bn bn1" style="margin-bottom:12px;min-width:100%"><span class="em">🎁</span><b>Tu primer envío, GRATIS</b><span>Registrate como usuario y volá con el dragón desde tu primer pedido.</span></div>
     <div class="pcard"><b>🏍️ Repartí con DragoExpres</b><p class="mini">Trabajá con tu bici, moto o carro en tu propia zona. Pagos semanales + pozo dominical para los que más entregan.</p><button class="btn bA" onclick="location.href='index.html'">Quiero ser piloto</button></div>
     <div class="pcard"><b>🏪 Poné tu local</b><p class="mini">Tu local visto por toda tu zona. Vos ponés precios y promos. Registro gratis y sin comisión los primeros meses.</p><button class="btn bA" onclick="location.href='index.html'">Registrar mi local</button></div>
     <div class="pcard"><b>💵 Pagás en efectivo, sin vueltas</b><p class="mini">La compra se la pagás al piloto para el local, y el envío al piloto. Sin tarjeta, sin registro de pago.</p></div>
@@ -211,7 +211,8 @@ nav div.on{color:var(--rojo)}
   </div>
   <label>Tu nombre</label><input id="f-nombre" placeholder="Ej: María López">
   <label>Tu WhatsApp</label><input id="f-tel" type="tel" placeholder="Ej: 55501234">
-  <label>Zona</label><select id="f-zona"><option value="">Cargando zonas activas...</option></select>
+  <label>Zona</label><select id="f-zona" onchange="zonaCambia()"><option value="">Elegí o escribí tu zona</option></select>
+  <input id="f-zona-libre" placeholder="Escribí tu zona o colonia" style="display:none">
   <div id="dirs-guardadas"></div>
   <div id="extra"></div>
   <p class="mini" style="margin-top:12px">💵 <b>Pagás en efectivo al piloto</b>: la compra al local + el envío al piloto. Tarjeta: próximamente.</p>
@@ -276,9 +277,9 @@ var ZONAS=[],LOCALES=[];
 async function cargarZonas(){
   try{var r=await fetch(api('orders?action=zonas'));var j=await r.json();
   ZONAS=j.zonas||[];
-  var z=document.getElementById('f-zona');z.innerHTML='';
-  if(!ZONAS.length){z.innerHTML='<option value="">Tu zona se activa pronto — registrite abajo</option>';}
-  else{z.innerHTML=ZONAS.map(function(x){return '<option>'+x+'</option>'}).join('');}
+  var z=document.getElementById('f-zona');z.innerHTML='<option value="">Elegí o escribí tu zona</option>';
+  ZONAS.forEach(function(x){z.innerHTML+='<option>'+x+'</option>'});
+  z.innerHTML+='<option value="__otra">Otra (escribo mi zona)</option>';
   var mz=document.getElementById('mi-zona');
   mz.innerHTML=(ZONAS.length?ZONAS:['Sin zona aún']).map(function(x){return '<option>'+x+'</option>'}).join('');
   var u=LS();if(u.zona&&ZONAS.includes(u.zona)){z.value=u.zona;mz.value=u.zona;document.getElementById('zonaTag').textContent=u.zona;}
@@ -362,6 +363,15 @@ function cerrarSheet(){document.getElementById('veil').style.display='none';docu
 function setTipo(t){
   TIPO=t;['comida','viaje','repuesto'].forEach(function(x){document.getElementById('pill-'+x).className='pill'+(x===t?' on':'')});extra();
 }
+function zonaCambia(){
+  var z=document.getElementById('f-zona'),lib=document.getElementById('f-zona-libre');
+  lib.style.display=(z.value==='__otra')?'block':'none';
+}
+function zonaValor(){
+  var z=document.getElementById('f-zona'),lib=document.getElementById('f-zona-libre');
+  if(z.value==='__otra')return lib.value.trim();
+  return z.value||lib.value.trim();
+}
 function extra(){
   var h='';
   var pre=LOCAL_PRE?' (ej: de '+LOCAL_PRE+')':'';
@@ -374,7 +384,7 @@ var ULT_TEL='';
 async function enviar(){
   var v=function(id){var e=document.getElementById(id);return e?e.value.trim():''};
   var u=LS();
-  var d={action:'crear',tipo:TIPO,nombre:v('f-nombre')||u.nombre,tel:v('f-tel')||u.tel,zona:v('f-zona'),direccion:v('f-dir'),referencia:v('f-ref'),detalle:v('f-det'),compra:v('f-compra')||0,envio:v('f-envio')||0};
+  var d={action:'crear',tipo:TIPO,nombre:v('f-nombre')||u.nombre,tel:v('f-tel')||u.tel,zona:zonaValor(),direccion:v('f-dir'),referencia:v('f-ref'),detalle:v('f-det'),compra:v('f-compra')||0,envio:v('f-envio')||0};
   if(!d.nombre||!d.tel||!d.zona||!d.direccion||!d.detalle){alert('Completá tu nombre, WhatsApp, zona, dirección y qué pedís.');return}
   // guardar perfil para la proxima
   u.nombre=d.nombre;u.tel=d.tel;u.zona=d.zona;u.dires=u.dires||[];

@@ -178,26 +178,26 @@ function pintar(regs){
     regs.forEach(function(r){n[r.tipo]=(n[r.tipo]||0)+1;if(r.estado==='aprobado')n.apro++;if(r.estado==='pendiente')n.pen++;});
     var zz={};
     regs.forEach(function(r){var k=(r.datos&&r.datos.zona)||'—';if(!zz[k])zz[k]={p:0,l:0};if(r.tipo==='piloto'&&r.estado==='aprobado')zz[k].p++;if(r.tipo==='local'&&r.estado==='aprobado')zz[k].l++;});
-    var mejor=null,falta=999;
-    Object.keys(zz).forEach(function(k){var f2=(25-zz[k].p)+(25-zz[k].l);if(f2<falta){falta=f2;mejor=k;}});
+    var mejor=null,falta=-1;
+    Object.keys(zz).forEach(function(k){var t2=zz[k].p+zz[k].l;if(t2>falta){falta=t2;mejor=k;}});
     document.getElementById('resumen').innerHTML='<div class="stats">'+
       '<div class="stat"><div class="n">'+(n.piloto||0)+'</div><div class="l">PILOTOS</div></div>'+
       '<div class="stat"><div class="n">'+(n.local||0)+'</div><div class="l">LOCALES</div></div>'+
       '<div class="stat"><div class="n">'+(n.flota||0)+'</div><div class="l">VEHÍCULOS</div></div>'+
       '<div class="stat"><div class="n">'+(n.usuario||0)+'</div><div class="l">USUARIOS</div></div></div>'+
       '<div class="card"><div class="av">⏳</div><div><b>'+n.pen+' pendientes de tu aprobación</b><div class="s">Revisá la pestaña de cada rol y aprobá con 1 botón</div></div></div>'+
-      '<div class="card"><div class="av">✅</div><div><b>'+n.apro+' aprobados</b><div class="s">Los aprobados suman para activar su zona</div></div></div>'+
-      (mejor&&falta>0?'<div class="card"><div class="av">📍</div><div><b>Zona más cercana a activarse: '+mejor+'</b><div class="s">Faltan '+falta+' verificaciones para encender el servicio ahí</div></div></div>':'')+
+      '<div class="card"><div class="av">✅</div><div><b>'+n.apro+' aprobados</b><div class="s">El servicio funciona desde el día 1 en todas las zonas</div></div></div>'+
+      (mejor?'<div class="card"><div class="av">📍</div><div><b>Zona con más equipo: '+mejor+'</b><div class="s">Pilotos y locales aprobados en esa zona</div></div></div>':'')+
       '<div class="card"><div class="av">💰</div><div><b>Tus comisiones activas</b><div class="s">Comida 10% · Repuestos 8% · Viajes Q2–Q5 · 3 meses sin comisión al lanzar cada zona</div></div></div>';
   }
   if(TAB==='zonas'){
     var z={};
     regs.forEach(function(r){var k=(r.datos&&r.datos.zona)||'Sin área';if(!z[k])z[k]={p:0,l:0};if(r.tipo==='piloto'&&r.estado==='aprobado')z[k].p++;if(r.tipo==='local'&&r.estado==='aprobado')z[k].l++;});
     var html='';
-    Object.keys(z).forEach(function(k){var v=z[k];var pr=Math.round(Math.min(v.p,25)/25*100),lr=Math.round(Math.min(v.l,25)/25*100);
-      html+='<div class="card" style="display:block"><b>📍 '+k+'</b>'+(v.p>=25&&v.l>=25?' <span class="pill apro">LISTA PARA ACTIVAR 🚀</span>':'')+
-      '<div class="s">Pilotos verificados: '+v.p+'/25</div><div class="zbar"><div style="width:'+pr+'%"></div></div>'+
-      '<div class="s">Locales verificados: '+v.l+'/25</div><div class="zbar"><div style="width:'+lr+'%"></div></div></div>';});
+    Object.keys(z).forEach(function(k){var v=z[k];var v2=v;
+      html+='<div class="card" style="display:block"><b>📍 '+k+'</b>'+(v2.p>0&&v2.l>0?' <span class="pill apro">OPERANDO 🚀</span>':'')+
+      '<div class="s">Pilotos verificados: '+v.p+'</div>'+
+      '<div class="s">Locales verificados: '+v.l+'</div></div>';});
     document.getElementById('zonas').innerHTML=html||'<div class="card">Sin registros aún.</div>';
   }
   var ic={piloto:'🏍️',local:'🔥',flota:'🚗',usuario:'🍜'};
