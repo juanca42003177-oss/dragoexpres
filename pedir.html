@@ -571,7 +571,7 @@ async function actualizar(){
 }
 async function calificar(n){
   try{await fetch(api('orders'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'calificar',id:PID,quien:'cliente',tel:ULT_TEL,estrellas:n})});}catch(e){}
-  document.getElementById('calif').innerHTML='<p class="mini" style="margin:0;font-weight:800">¡Gracias por calificar! 🐉</p>';
+  document.getElementById('calif').innerHTML='<p class="mini" style="margin:0;font-weight:800">¡Gracias por calificar!</p>';
 }
 
 /* ---------- mis pedidos ---------- */
@@ -583,14 +583,14 @@ async function cargarMisPedidos(){
   try{var r=await fetch(api('orders'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'misp',tel:u.tel})});
   var j=await r.json();
   var peds=j.ok?j.pedidos:[];
-  if(!peds.length){box.innerHTML='<div class="empty">Todavía no tenés pedidos.<br>¡Pedí algo rico! 🐉<br><br><button class="btn bA" style="width:auto;padding:11px 18px;display:inline-block" onclick="tab(\'inicio\')">Hacer mi primer pedido</button></div>';return}
+  if(!peds.length){box.innerHTML='<div class="empty">Todavía no tenés pedidos.<br>¡Pedí algo rico!<br><br><button class="btn bA" style="width:auto;padding:11px 18px;display:inline-block" onclick="tab(\'inicio\')">Hacer mi primer pedido</button></div>';return}
   var EMA={buscando:'Buscando piloto',asignado:'Asignado',aceptado:'Aceptado',en_camino:'En camino',entregado:'Entregado',cancelado:'Cancelado'};
   var CLS={buscando:'sBus',asignado:'sAsig',aceptado:'sAce',en_camino:'sCam',entregado:'sEnt',cancelado:'sCan'};
   var IC={comida:'🍜',viaje:'🛺',repuesto:'🔧'};
   box.innerHTML=peds.map(function(o){
     var fecha=o.ts?new Date(o.ts).toLocaleDateString('es-GT',{weekday:'short',day:'numeric',month:'short'}):'';
     var act=['buscando','asignado','aceptado','en_camino'].includes(o.estado);
-    var h='<div class="ped"><div class="top">'+(IC[o.tipo]||'🐉')+' <b style="color:var(--tinta)">'+(EMA[o.estado]||o.estado)+'</b><span class="st '+(CLS[o.estado]||'sBus')+'">'+(EMA[o.estado]||o.estado)+'</span><span class="fecha" style="margin-left:auto">'+fecha+'</span></div>';
+    var h='<div class="ped"><div class="top">'+(IC[o.tipo]||'📦')+' <b style="color:var(--tinta)">'+(EMA[o.estado]||o.estado)+'</b><span class="st '+(CLS[o.estado]||'sBus')+'">'+(EMA[o.estado]||o.estado)+'</span><span class="fecha" style="margin-left:auto">'+fecha+'</span></div>';
     h+='<b class="det">'+String(o.detalle||'').slice(0,80)+'</b>';
     h+='<p class="mini" style="margin:2px 0 0">Total: Q'+(+o.compra+ +o.envio)+' (compra Q'+o.compra+' + envío Q'+o.envio+')</p>';
     h+='<div class="fila">';
