@@ -121,6 +121,7 @@ footer b{color:var(--oro)}
     <select id="lTipo"><option value="comida">Comida</option><option value="repuestos">Repuestos de moto/carro</option><option value="tienda">Tienda</option><option value="taller">Taller</option></select>
     <label>WhatsApp del local</label><input id="lTel" type="tel" placeholder="WhatsApp de contacto">
     <label>Área del local</label><input id="lZona" placeholder="Ej: Zona 11, Mixco...">
+    <label style="display:flex;gap:8px;align-items:flex-start;margin-top:8px;font-size:12px;border:1px solid #f5b942;border-radius:10px;padding:10px;background:#16130a"><input type="checkbox" id="lContrato" style="width:auto;margin-top:2px"> He leído y acepto el <a href="contrato.html" target="_blank"><b>Contrato Comercial DragoExpres</b></a> (5% comida, promo 0% los primeros 90 días de la zona)</label>
     <button class="btn" onclick="enviar('local')">Registrar mi local</button>
   </div>
 
@@ -311,8 +312,8 @@ function verVeh() {
 function campos(t) {
   var v = function(id){ return (document.getElementById(id).value||'').trim(); };
   if (t==='usuario') return { nombre:v('uNombre'), tel:v('uTel'), zona:v('uZona') };
-  if (t==='piloto') return { nombre:v('pNombre'), tel:v('pTel'), vehiculo:v('pVeh'), marca:v('pMarca'), color:v('pColor'), placa:v('pPlaca'), dpi:v('pDpi'), zona:v('pZona'), equipo: document.getElementById('pEquipo').checked, h24: document.getElementById('p24').checked };
-  if (t==='local') return { nombre:v('lNombre'), tipo:v('lTipo'), tel:v('lTel'), zona:v('lZona') };
+  if (t==='piloto') return { nombre:v('pNombre'), tel:v('pTel'), vehiculo:v('pVeh'), marca:v('pMarca'), color:v('pColor'), placa:v('pPlaca'), dpi:v('pDpi'), zona:v('pZona'), equipo: document.getElementById('pEquipo').checked, h24: document.getElementById('p24').checked, contrato: document.getElementById('pContrato').checked };
+  if (t==='local') return { nombre:v('lNombre'), tipo:v('lTipo'), tel:v('lTel'), zona:v('lZona'), contrato: document.getElementById('lContrato').checked };
   return { nombre:v('flNombre'), tel:v('flTel'), vehiculo:v('flVeh'), marca:v('flMarca'), color:v('flColor'), placa:v('flPlaca'), zona:v('flZona') };
 }
 function validar(t,d) {
@@ -321,6 +322,7 @@ function validar(t,d) {
   if (!d.zona) return 'Decinos tu área';
   if (t==='piloto' && d.vehiculo==='bicicleta' && !d.equipo) return 'Para bicicleta necesitás confirmar que trabajás con casco y rodilleras';
   if (t==='piloto' && String(d.dpi||'').replace(/\D/g,'').length!==13) return 'Poné el número de tu DPI completo (13 dígitos, sin espacios)';
+  if ((t==='piloto'||t==='local') && !d.contrato) return 'Para registrarte tenés que leer y aceptar el Contrato Digital de DragoExpres';
   return null;
 }
 // cola local: si la API no responde (aun no esta montada), el registro se guarda

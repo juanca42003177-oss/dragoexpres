@@ -71,9 +71,12 @@ module.exports = wrap(async (req, res) => {
     checks.push({ k: 'SELFIE', ok: selfOk, txt: selfOk ? 'Selfie de verificación recibida' : 'Sin selfie' });
   }
   const estadoReg = d.tipo === 'usuario' ? 'aprobado' : 'pendiente_verificacion';
-  data.push({ tipo: d.tipo, datos: d, estado: estadoReg, checks, ts: now });
+  const firmaContrato = (d.tipo === 'piloto' || d.tipo === 'local') && d.contrato
+    ? { version: 'C-2026.1', aceptado: true, tsFirma: now, ip: (req.headers && (req.headers['x-forwarded-for'] || req.headers['x-real-ip'])) || null }
+    : null;
+  data.push({ tipo: d.tipo, datos: d, estado: estadoReg, checks, ts: now, firmaContrato });
   await ghPut(f ? f.sha : null, data);
   const icono = { piloto: '🏍️', local: '🏪', flota: '🚚', usuario: '👤' }[d.tipo] || '📋';
-  await aviso(`🚀 DRAGOEXPRES — Registro nuevo\n${icono} ${d.tipo.toUpperCase()}: ${d.nombre}\nWhatsApp: ${d.tel}\nZona: ${d.zona}${d.vehiculo ? '\nVehículo: ' + d.vehiculo + (d.placa ? ' (' + d.placa + ')' : '') : ''}${d.rubro ? '\nRubro: ' + d.rubro : ''}${d.tipo === 'piloto' ? '\nVerificación: ' + checks.map(c => (c.ok ? '✅' : '❌') + c.k).join(' ') : ''}${d.tipo === 'usuario' ? '\n✅ Auto-verificado (selfie + WhatsApp) — ya puede pedir' : ''}\n→ ${d.tipo === 'usuario' ? 'Visible en pestaña Usuarios' : 'Revisalo en el panel admin (pendiente de aprobar)'}`);
+  await aviso(`🚀 DRAGOEXPRES — Registro nuevo\n${icono} ${d.tipo.toUpperCase()}: ${d.nombre}\nWhatsApp: ${d.tel}\nZona: ${d.zona}${d.vehiculo ? '\nVehículo: ' + d.vehiculo + (d.placa ? ' (' + d.placa + ')' : '') : ''}${d.rubro ? '\nRubro: ' + d.rubro : ''}${d.tipo === 'piloto' ? '\nVerificación: ' + checks.map(c => (c.ok ? '✅' : '❌') + c.k).join(' ') : ''}${firmaContrato ? '\n✍️ Contrato ' + firmaContrato.version + ' aceptado digitalmente' : ''}${d.tipo === 'usuario' ? '\n✅ Auto-verificado (selfie + WhatsApp) — ya puede pedir' : ''}\n→ ${d.tipo === 'usuario' ? 'Visible en pestaña Usuarios' : 'Revisalo en el panel admin (pendiente de aprobar)'}`);
   return res.status(200).json({ ok: true, mensaje: 'Registro recibido' });
 });
