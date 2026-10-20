@@ -59,6 +59,7 @@ label{font-size:12px;color:#9aa3b5;display:block;margin-top:10px}
     <h1>🐉 Hola, <span id="p-nombre"></span></h1>
     <p class="mini" id="p-zona"></p>
     <div id="deuda" style="display:none;background:#2a230f;border:1px solid #6b5a10;color:#ffe08a;font-size:13px;padding:10px 12px;border-radius:10px;margin:10px 0"></div>
+    <button id="sosBtn" style="width:100%;background:#7f1010;border:2px solid #ff4d4d;color:#fff;font-weight:900;border-radius:14px;padding:14px;font-size:15px;cursor:pointer;margin-bottom:10px" onpointerdown="sosDown()" onpointerup="sosUp()" onpointerleave="sosUp()">🚨 SOS EMERGENCIA — mantené presionado 3 segundos</button>
     <div class="card" style="display:flex;justify-content:space-between;align-items:center;cursor:pointer" onclick="verBilletera()"><div><b>💰 Mi billetera</b><div class="mini">Tus viajes, pedidos y comisiones — control total</div></div><div id="bArrow">▾</div></div>
     <div id="billetera" style="display:none"></div>
     <div class="stats">
@@ -123,6 +124,29 @@ async function enviarMsg(){
   try{await fetch(api('orders'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'msg',id:AID,de:'piloto',tel:PILOTO.tel,texto:t})});inp.value='';}catch(e){}
 }
 var BW=false;
+var SOS_T=null;
+function sosUp(){if(SOS_T){clearInterval(SOS_T);SOS_T=null;var b=document.getElementById('sosBtn');if(b){b.textContent='🚨 SOS EMERGENCIA — mantené presionado 3 segundos';b.style.background='#7f1010'}}}
+function sosDown(){
+  var b=document.getElementById('sosBtn');if(!b)return;var n=3;b.style.background='#b31b1b';
+  SOS_T=setInterval(function(){
+    n--;b.textContent='🚨 ENVIANDO SOS EN '+n+'s — mantené presionado';
+    if(n<=0){sosUp();enviarSOS()}
+  },1000);
+  b.textContent='🚨 ENVIANDO SOS EN 3s — mantené presionado';
+}
+async function enviarSOS(){
+  if(DEMO){alert('Vista previa: el SOS no se envía.');return}
+  function enviar(lat,lng){
+    fetch(api('orders'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'sos',tel:PILOTO.tel,lat:lat,lng:lng})})
+    .then(function(r){return r.json()}).then(function(j){
+      var b=document.getElementById('sosBtn');
+      if(j.ok){if(b){b.textContent='✅ SOS ENVIADO — el admin ya tiene tu ubicación';b.style.background='#1c3a1c'}alert('SOS ENVIADO ✅\nEl administrador ya recibió tu ubicación exacta y te va a contactar. Si estás en peligro llamá también al 120 (bomberos) o 110 (policía).');}
+      else{if(b){b.textContent='🚨 SOS EMERGENCIA — mantené presionado 3 segundos';b.style.background='#7f1010'}alert(j.error||'No se pudo enviar, llamá al 110/120 directo.');}
+    });
+  }
+  if(!navigator.geolocation){enviar(14.6349,-90.5069);return}
+  navigator.geolocation.getCurrentPosition(function(pos){enviar(pos.coords.latitude,pos.coords.longitude)},function(){enviar(14.6349,-90.5069)},{enableHighAccuracy:true,timeout:8000});
+}
 async function verBilletera(){
   BW=!BW;document.getElementById('billetera').style.display=BW?'block':'none';document.getElementById('bArrow').textContent=BW?'▴':'▾';
   if(!BW)return;
@@ -135,6 +159,7 @@ async function verBilletera(){
     '<div class="stat"><div class="n">Q'+j.comisiones+'</div><div class="l">COMISIONES PAGADAS</div></div>'+
     '<div class="stat"><div class="n">'+(j.calif?j.calif+'★':'—')+'</div><div class="l">ESTRELLAS</div></div></div>';
   h+='<div class="card"><div class="mini">🎯 POZO SEMANAL: '+j.meta.hechas+'/20 entregas'+(j.meta.faltan?' · te faltan '+j.meta.faltan+' para el pozo 💰':' · ¡META CUMPLIDA! 🐉')+'</div><div style="background:#2a2b38;border-radius:8px;height:8px;margin-top:6px"><div style="background:#f0b90b;height:8px;border-radius:8px;width:'+Math.min(100,j.meta.hechas*5)+'%"></div></div></div>';
+  if(j.bonosPend>0)h+='<div class="card" style="border-color:#3f7a3f;background:#16211a">🎁 ¡GANASTE BONOS! <b style="color:#8fe28f;font-size:20px">Q'+j.bonosPend+'</b> 🐉'+(j.bonoBienvenida?'<div class="mini" style="margin-top:4px">Incluye tu <b>bono de bienvenida</b> por tus 10 primeras entregas 🎉</div>':'')+'<div class="mini" style="margin-top:4px">Premios del dragón por tu trabajo. Se acreditan solos, no tenés que hacer nada.</div></div>';
   if(j.pendiente)h+='<div class="card" style="border-color:#8a6a2f">💰 Tenés <b>Q'+j.pendiente.monto+'</b> de comisiones por liquidar. Depositá o transferí a: <br><b>Banco Industrial · No. 7171286805 · Andrea Ester Perez Acosta</b><br>Después avisale al admin por WhatsApp. En cuanto confirme, volvés a recibir pedidos como si nada 😊</div>';
   if(j.pendienteActivo)h+='<div class="s" style="color:#ffd479">⏳ Hasta ponerte al día no te llegan pedidos nuevos.</div>';
   if(j.retraso)h+='<div class="s" style="color:#ffd479">🐉 Por el retraso perdiste tu racha del pozo. Si tuviste un motivo, escribile al admin por WhatsApp: te la puede devolver.</div>';

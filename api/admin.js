@@ -147,8 +147,9 @@ module.exports = wrap(async (req, res) => {
     const entregados = pedidos.filter(o => o.estado === 'entregado' && (o.tsEntregado || o.ts) >= lunes);
     const comisiones = entregados.reduce((s, o) => s + (o.comision || 0) + (o.comisionLocal || 0), 0);
     const por = {};
-    entregados.forEach(o => { if (o.piloto) { const k = o.piloto.nombre; por[k] = (por[k] || 0) + 1; } });
-    return res.status(200).json({ ok: true, meta: 20, comisiones, pozo: Math.round(comisiones * 25) / 100, pilotos: Object.entries(por).map(([nombre, entregas]) => ({ nombre, entregas })).sort((x, y) => y.entregas - x.entregas) });
+    entregados.forEach(o => { if (o.piloto) { const k = o.piloto.nombre; if (!por[k]) por[k] = { nombre: k, entregas: 0, comisiones: 0 }; por[k].entregas++; por[k].comisiones += (o.comision || 0) + (o.comisionLocal || 0); } });
+    const pilotos = Object.values(por).map(x => ({ nombre: x.nombre, entregas: x.entregas, premio: Math.round(x.comisiones * 25) / 100 })).sort((x, y) => y.entregas - x.entregas);
+    return res.status(200).json({ ok: true, meta: 20, comisiones, pozo: Math.round(pilotos.filter(p => p.entregas >= 20).reduce((s, p) => s + p.premio, 0) * 100) / 100, modo: 'individual', pilotos });
   }
   return res.status(200).json({ ok: false, error: 'Acción desconocida' });
 });

@@ -554,6 +554,7 @@ async function actualizar(){
   if(o.estado==='buscando'){e.className='st sBus';e.textContent='Buscando piloto...';i.textContent='Encontrando al piloto disponible de tu zona'+((o.contraRechazos||[]).length?' (descartaste '+o.contraRechazos.length+' aumento(s), seguimos con la tarifa fija Q'+o.envio+')':'')}
   if(o.estado==='asignado'){e.className='st sAsig';e.textContent='Piloto asignado';i.textContent=o.piloto.nombre+' va a aceptar tu pedido'}
   if(o.estado==='aceptado'){e.className='st sAce';e.textContent='Aceptado ✅';i.textContent=o.piloto.nombre+' aceptó tu pedido'}
+  if(['buscando','asignado','aceptado'].includes(o.estado)&&o.etaMin){i.textContent=i.textContent+' · ⏱️ llega en ~'+o.etaMin+' min'}
   if(o.estado==='en_camino'){e.className='st sCam';e.textContent='En camino 🛺';i.textContent=o.piloto.nombre+' va en camino. Tenés el efectivo listo: Q'+o.compra+' (compra) + Q'+o.envio+' (envío)'+((o.propina||0)>0?' + Q'+o.propina+' propina':'')}
   if(o.estado==='entregado'){e.className='st sEnt';e.textContent='Entregado ✅';i.textContent='¡Listo! El dragón entregó tu pedido'}
   if(o.prep&&['asignado','aceptado','en_camino'].includes(o.estado)){i.textContent=i.textContent+' — El local confirmó: listo en ~'+o.prep.min+' min ⏱️'}

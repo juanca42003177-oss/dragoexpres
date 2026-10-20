@@ -236,6 +236,7 @@ module.exports = wrap(async (req, res) => {
       const st = pilots.find(x => x.tel === cand[0].tel);
       // el piloto asignado queda "ocupado" hasta entregar/rechazar
     }
+    pedido.etaMin = { comida: 35, repuesto: 50, viaje: 25 }[tipo] || 40; // tiempo estimado (lo ve el cliente en el tracker)
     peds.push(pedido);
     await ghPut('pedidos.json', fpd ? fpd.sha : null, peds, 'pedido nuevo ' + id);
     const ic = { comida: '🍔', viaje: '🛺', repuesto: '🔧' }[tipo];
@@ -259,7 +260,10 @@ module.exports = wrap(async (req, res) => {
     const pausa = (fl ? fl.data : []).find(x => x.tel === tel && x.hasta > now);
     const hoyStr = new Date(now - TZ).toISOString().slice(0, 10);
     const cancelHoy = mios.filter(x => x.estado === 'cancelado' && new Date((x.canceladoTs || 0) - TZ).toISOString().slice(0, 10) === hoyStr).slice(-3);
-    return res.status(200).json({ ok: true, local: { nombre: r.datos.nombre, zona: r.datos.zona, tel }, activos: activos.slice(-10).reverse(), totalEntregados: mios.filter(x => x.estado === 'entregado').length, pausa: pausa ? pausa.hasta : null, cancelHoy });
+    const gL = new Date(now - 21600000); const lunesL = new Date(gL); lunesL.setUTCDate(gL.getUTCDate() - ((gL.getUTCDay() + 6) % 7)); lunesL.setUTCHours(0, 0, 0, 0); const iniSemL = lunesL.getTime() + 21600000;
+    const entSem = mios.filter(x => x.estado === 'entregado' && (x.tsEntregado || x.ts) >= iniSemL);
+    const ventasSemana = dinero(entSem.reduce((s2, x) => s2 + (+x.compra || 0), 0));
+    return res.status(200).json({ ok: true, local: { nombre: r.datos.nombre, zona: r.datos.zona, tel }, activos: activos.slice(-10).reverse(), totalEntregados: mios.filter(x => x.estado === 'entregado').length, ventasSemana, entregasSemana: entSem.length, pausa: pausa ? pausa.hasta : null, cancelHoy });
   }
 
   // ---- LOCAL: confirmar pedido con tiempo de preparacion ----
@@ -372,7 +376,7 @@ module.exports = wrap(async (req, res) => {
     const fp = await ghGet('pilots.json');
     const st = (fp ? fp.data : []).find(x => String(x.tel).replace(/\D/g, '') === tel) || {};
     const historial = mios.slice(-15).reverse().map(x => ({ id: x.id, tipo: x.tipo, ganado: dinero(x.envio - x.comision + (x.propina || 0)), envio: x.envio, propina: x.propina || 0, ts: x.tsEntregado || x.ts }));
-    return res.status(200).json({ ok: true, entregas: mios.length, ganado, comisiones, calif, pendiente: st.pendiente || null, pendienteActivo: !!(st.pendiente && !st.pendiente.pagado), retraso: !!st.retraso, meta: { hechas: semana, faltan: Math.max(0, 20 - semana) }, historial });
+    return res.status(200).json({ ok: true, entregas: mios.length, ganado, comisiones, calif, bonosPend: dinero(st.bonosPend || 0), bonoBienvenida: st.bonoBienvenida || null, pendiente: st.pendiente || null, pendienteActivo: !!(st.pendiente && !st.pendiente.pagado), retraso: !!st.retraso, meta: { hechas: semana, faltan: Math.max(0, 20 - semana) }, historial });
   }
 
   // ---- consultar estado (usuario o pantalla) ----
@@ -633,13 +637,42 @@ module.exports = wrap(async (req, res) => {
         st.ganadoSemana = dinero((st.ganadoSemana || 0) + gananciaPiloto);
         st.pedidosHoy = (st.pedidosHoy || 0) + 1;
         st.disponible = true; st.desde = now;
+        // 🎁 BONO DE BIENVENIDA: a la 10ma entrega vuelven Q100 de SUS PROPIAS comisiones (Juan comparte su parte, nunca pierde)
+        const entregasTotales = peds.filter(x => x.piloto && x.piloto.tel === tel && x.estado === 'entregado').length;
+        let bonoTxt = '';
+        if (entregasTotales === 10 && !st.bonoBienvenida) {
+          st.bonoBienvenida = { total: 100, ts: now };
+          st.bonosPend = dinero((st.bonosPend || 0) + 100);
+          bonoTxt = '\n🎁 BONO DE BIENVENIDA: cumplió 10 entregas → Q100 de SUS PROPIAS comisiones vuelven a él en la próxima liquidación (no lo pagás vos, no perdés nada).';
+        }
         await ghPut('pilots.json', fp ? fp.sha : null, arr, 'entregado ' + id);
-        await aviso(`🚀 DRAGOEXPRES — Pedido ${id} ENTREGADO ✅\n${o.piloto.nombre} completó ${o.tipo}\nEnvío Q${o.envio}${o.propina ? ' + propina Q' + o.propina : ''} → piloto gana Q${gananciaPiloto} · Comisión DragoExpres: Q${dinero(o.comision + (o.comisionLocal || 0))}${o.comisionLocal ? ' (envío Q' + o.comision + ' + local Q' + o.comisionLocal + ')' : ''}${flotaTxt}\nCliente: ${o.cliente.nombre}`);
+        await aviso(`🚀 DRAGOEXPRES — Pedido ${id} ENTREGADO ✅\n${o.piloto.nombre} completó ${o.tipo}\nEnvío Q${o.envio}${o.propina ? ' + propina Q' + o.propina : ''} → piloto gana Q${gananciaPiloto} · Comisión DragoExpres: Q${dinero(o.comision + (o.comisionLocal || 0))}${o.comisionLocal ? ' (envío Q' + o.comision + ' + local Q' + o.comisionLocal + ')' : ''}${flotaTxt}\nCliente: ${o.cliente.nombre}${bonoTxt}`);
         return res.status(200).json({ ok: true, pedido: o, ganadoHoy: st.ganadoHoy, ganadoSemana: st.ganadoSemana });
       } else return res.status(200).json({ ok: false, error: 'Estado inválido.' });
       await ghPut('pedidos.json', fpd.sha, peds, o.estado + ' ' + id);
       return res.status(200).json({ ok: true, pedido: o });
     }
+  }
+
+  // ---- PILOTO: BOTÓN SOS (emergencia: manda su ubicación exacta al admin por Telegram) ----
+  if (action === 'sos') {
+    const tel = String(b.tel || '').trim();
+    const lat = +b.lat, lng = +b.lng;
+    if (!tel || !isFinite(lat) || !isFinite(lng)) return res.status(200).json({ ok: false, error: 'No pudimos leer tu ubicación. Activá el GPS e intentá de nuevo.' });
+    const fp = await ghGet('pilots.json'); const arr = fp ? fp.data : [];
+    let st = arr.find(x => x.tel === tel);
+    if (!st) { st = { tel, disponible: false }; arr.push(st); }
+    st.sos = { ts: now, lat, lng };
+    await ghPut('pilots.json', fp ? fp.sha : null, arr, 'sos ' + tel);
+    let nombre = tel, zona = '?', placa = '';
+    try {
+      const fr = await ghGet('registros.json'); const reg = fr ? fr.data : [];
+      const p = reg.find(r => r.tipo === 'piloto' && String(r.datos.tel).trim() === tel);
+      if (p) { nombre = p.datos.nombre; zona = p.datos.zona; placa = p.datos.placa || ''; }
+    } catch (e) { }
+    const maps = 'https://maps.google.com/?q=' + lat + ',' + lng;
+    await aviso(`🚨🚨🚨 DRAGOEXPRES — SOS DE PILOTO 🚨🚨🚨\n${nombre} (${tel}) marcó EMERGENCIA\nZona: ${zona}${placa ? ' · Placa: ' + placa : ''}\n📍 UBICACIÓN EXACTA: ${maps}\nEscribile y verificá que esté bien. La ubicación es del momento en que tocó el botón.`);
+    return res.status(200).json({ ok: true, maps });
   }
 
   // ---- PILOTO: publica su GPS (para el mapa vivo del cliente) ----
