@@ -14,6 +14,11 @@ const { REPO, BRANCH, H, ensureBranch } = require('./_dx');
 const TZ = 6 * 3600 * 1000;
 const dinero = (q) => Math.max(0, Math.round(+q * 100) / 100);
 const META = 20, PCT_POZO = 0.25;
+// Meta dinamica (regla de Juan 2026-10-20, estilo dificultad de cripto):
+// - Base 20. Cumplir 4 domingos SEGUIDOS suma +2 a la meta personal (progresion).
+// - Tope global auto-ajustado por demanda: 75% del promedio de entregas por piloto activo.
+// - Piso 10 y techo 40 para no humillar ni explotar a nadie. Objetivo: que al menos el 75% llegue.
+const META_BASE = 20, SUBIDA_META = 2, SEMANAS_PARA_SUBIR = 4, META_MIN = 10, META_MAX = 40, TARGET = 0.75;
 
 function lunesGT() {
   const g = new Date(Date.now() - TZ);
@@ -50,6 +55,7 @@ async function estado() {
   const pz = await ghGet('pozo.json');
   const pozo = pz ? pz.data : {};
   pozo.acumuladoPor = pozo.acumuladoPor || {};
+  const metaGlobal = pozo.metaGlobal || META_BASE;
   const porPiloto = {};
   peds.forEach(o => {
     if (!o.piloto) return;
@@ -61,13 +67,13 @@ async function estado() {
   const pilotos = Object.values(porPiloto).sort((a, b) => b.entregas - a.entregas);
   try {
     const fpl = await ghGet('pilots.json');
-    (fpl ? fpl.data : []).forEach(st => { const pp = porPiloto[st.tel]; if (pp) { pp.boletos = st.boletosExtra || 0; pp.compensa = st.compensa || 0; } });
+    (fpl ? fpl.data : []).forEach(st => { const pp = porPiloto[st.tel]; if (pp) { pp.boletos = st.boletosExtra || 0; pp.compensa = st.compensa || 0; pp.metaP = st.metaP || META_BASE; } });
   } catch (e) { }
   // premio INDIVIDUAL: 25% de sus propias comisiones de la semana + SU acumulado individual
-  pilotos.forEach(p => { p.premio = dinero(p.comisiones * PCT_POZO + (pozo.acumuladoPor[p.tel] || 0)); });
-  const califican = pilotos.filter(p => p.entregas >= META);
+  pilotos.forEach(p => { p.metaEfectiva = Math.min(p.metaP || META_BASE, metaGlobal); p.premio = dinero(p.comisiones * PCT_POZO + (pozo.acumuladoPor[p.tel] || 0)); });
+  const califican = pilotos.filter(p => p.entregas >= p.metaEfectiva);
   const totalIndividual = dinero(califican.reduce((s, p) => s + p.premio, 0));
-  return { meta: META, modo: 'individual', pilotos, califican, totalIndividual, faltanDias: 7 - Math.floor((Date.now() - L) / 864e5) };
+  return { meta: metaGlobal, modo: 'individual', pilotos, califican, totalIndividual, faltanDias: 7 - Math.floor((Date.now() - L) / 864e5) };
 }
 
 module.exports = wrap(async (req, res) => {
@@ -93,14 +99,16 @@ module.exports = wrap(async (req, res) => {
     // 1) los que cumplen: premio acreditado como bono individual (sale de sus propias comisiones)
     const reparto = s.califican.map(p => ({ tel: p.tel, nombre: p.nombre, entregas: p.entregas, monto: p.premio }));
     // 2) los que NO cumplen: su 25% de la semana se acumula SOLO para ellos
-    const sinMeta = s.pilotos.filter(p => p.entregas < META);
+    const sinMeta = s.pilotos.filter(p => p.entregas < p.metaEfectiva);
     const acumulan = sinMeta.map(p => {
       const add = dinero(p.comisiones * PCT_POZO);
       pozo.acumuladoPor[p.tel] = dinero((pozo.acumuladoPor[p.tel] || 0) + add);
       return { nombre: p.nombre, tel: p.tel, entregas: p.entregas, acumulado: pozo.acumuladoPor[p.tel] };
     });
     // acreditar premios en pilots.json como bonosPend (descuentan en la próxima liquidación)
-    if (reparto.length) {
+    // + PROGRESION DE META: 4 domingos seguidos cumpliendo suman +2 a la meta personal
+    const subidasMeta = [];
+    if (reparto.length || s.pilotos.length) {
       const fp = await ghGet('pilots.json');
       const arr = fp ? fp.data : [];
       reparto.forEach(r2 => {
@@ -109,7 +117,20 @@ module.exports = wrap(async (req, res) => {
         st.bonosPend = dinero((st.bonosPend || 0) + r2.monto);
         pozo.acumuladoPor[r2.tel] = 0;
       });
-      await ghPut('pilots.json', fp ? fp.sha : null, arr, 'premio semanal individual acreditado');
+      s.pilotos.forEach(p => {
+        let st = arr.find(x => x.tel === p.tel);
+        if (!st) { st = { tel: p.tel }; arr.push(st); }
+        const cumplio = p.entregas >= p.metaEfectiva;
+        st.metasSeguidas = cumplio ? (st.metasSeguidas || 0) + 1 : 0;
+        st.metaP = st.metaP || META_BASE;
+        if (st.metasSeguidas >= SEMANAS_PARA_SUBIR) {
+          const antes = st.metaP;
+          st.metaP = Math.min(st.metaP + SUBIDA_META, META_MAX);
+          st.metasSeguidas = 0;
+          if (st.metaP !== antes) subidasMeta.push(`${p.nombre}: meta ${antes} → ${st.metaP} (4 domingos seguidos cumpliendo 🐉)`);
+        }
+      });
+      await ghPut('pilots.json', fp ? fp.sha : null, arr, 'premios + progresion de metas');
     }
     // reset semanal de rachas/boletos
     try {
@@ -119,7 +140,19 @@ module.exports = wrap(async (req, res) => {
       if (chg) await ghPut('pilots.json', fpr2.sha, arr2, 'reset semanal de rachas');
     } catch (e) { }
 
-    pozo.historial.push({ domingo: g.toISOString().slice(0, 10), reparto, acumulan, modo: 'individual' });
+    // RETARGET GLOBAL estilo cripto: la meta sube si hay mucha demanda, baja si hay poca.
+    // Objetivo: que al menos el 75% de los pilotos activos llegue a la meta. Piso 10, techo 40.
+    const activos = s.pilotos.filter(p => p.entregas > 0);
+    let ajuste = null;
+    if (activos.length) {
+      const totalEntregas = s.pilotos.reduce((s2, p) => s2 + p.entregas, 0);
+      const demanda = Math.round((totalEntregas / activos.length) * 10) / 10;
+      const anterior = s.meta;
+      const nueva = Math.max(META_MIN, Math.min(META_MAX, Math.round(demanda * TARGET)));
+      pozo.metaGlobal = nueva;
+      ajuste = { anterior, nueva, demanda, activos: activos.length };
+    }
+    pozo.historial.push({ domingo: g.toISOString().slice(0, 10), reparto, acumulan, modo: 'individual', metaGlobal: pozo.metaGlobal || META_BASE, ajuste });
     await ghPut('pozo.json', pz ? pz.sha : null, pozo, 'recompensas dominicales individuales');
 
     const GANAN = reparto.length ? reparto.map(p => `• ${p.nombre}: ${p.entregas} entregas → Q${p.monto} de SUS PROPIAS comisiones (se descuenta de su próxima transferencia, vos no ponés nada)`).join('\n') : '— Nadie cumplió la meta de 20 entregas 😢';
@@ -127,7 +160,9 @@ module.exports = wrap(async (req, res) => {
     const rachasPerdidas = [];
     try { const fpx = await ghGet('pilots.json'); (fpx ? fpx.data : []).forEach(x => { if (x.rachaRespaldo) rachasPerdidas.push(x.nombre || x.tel); }); } catch (e) { }
 
-    await aviso(`🏆 DRAGOEXPRES — RECOMPENSAS SEMANALES 🐉\nModelo individual: cada piloto recibe el 25% de SUS PROPIAS comisiones al cumplir ${META} entregas. Vos no ponés nada: compartís lo que ese mismo piloto generó.\n\nGANADORES de hoy:\n${GANAN}${ACUM}\n\nLos premios ya quedaron acreditados como bono: se descuentan de lo que cada piloto transfiere en su próxima liquidación de 72h.`);
+    const AJUSTE = ajuste ? `\n\n📈 META AUTO-AJUSTADA (estilo cripto, objetivo 75%):\nDemanda: ${ajuste.demanda} entregas promedio × ${ajuste.activos} pilotos activos → meta global: ${ajuste.anterior} → ${ajuste.nueva}\nLa meta sube si hay mucho pedidos y baja si hay pocos, para que el 75% llegue.` : '\n\n📈 Sin pilotos activos: la meta global no se mueve.';
+    const SUBIDAS = subidasMeta.length ? `\n\n🐉 PROGRESIÓN (4 domingos seguidos cumpliendo = +2):\n${subidasMeta.join('\n')}` : '';
+    await aviso(`🏆 DRAGOEXPRES — DEVOLUCIÓN SEMANAL 🐉\nCada piloto que cumple su meta recibe el 25% de SUS comisiones de vuelta. Vos no ponés nada.\n\nGANADORES de hoy:\n${GANAN}${ACUM}${AJUSTE}${SUBIDAS}\n\nLos premios ya quedaron acreditados como bono: se descuentan de lo que cada piloto transfiere en su próxima liquidación de 72h.`);
     return res.status(200).json({ ok: true, reparto, acumulan });
   }
 

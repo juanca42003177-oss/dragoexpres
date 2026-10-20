@@ -200,9 +200,12 @@ module.exports = wrap(async (req, res) => {
     const entregados = pedidos.filter(o => o.estado === 'entregado' && (o.tsEntregado || o.ts) >= lunes);
     const comisiones = entregados.reduce((s, o) => s + (o.comision || 0) + (o.comisionLocal || 0), 0);
     const por = {};
-    entregados.forEach(o => { if (o.piloto) { const k = o.piloto.nombre; if (!por[k]) por[k] = { nombre: k, entregas: 0, comisiones: 0 }; por[k].entregas++; por[k].comisiones += (o.comision || 0) + (o.comisionLocal || 0); } });
-    const pilotos = Object.values(por).map(x => ({ nombre: x.nombre, entregas: x.entregas, premio: Math.round(x.comisiones * 25) / 100 })).sort((x, y) => y.entregas - x.entregas);
-    return res.status(200).json({ ok: true, meta: 20, comisiones, pozo: Math.round(pilotos.filter(p => p.entregas >= 20).reduce((s, p) => s + p.premio, 0) * 100) / 100, modo: 'individual', pilotos });
+    entregados.forEach(o => { if (o.piloto) { const k = o.piloto.tel; if (!por[k]) por[k] = { nombre: o.piloto.nombre, tel: k, entregas: 0, comisiones: 0 }; por[k].entregas++; por[k].comisiones += (o.comision || 0) + (o.comisionLocal || 0); } });
+    let metaGlobal = 20;
+    try { const rpz = await fetch(`https://api.github.com/repos/${REPO}/contents/pozo.json?ref=${BRANCH}`, { headers: { Authorization: 'Bearer ' + TOKEN(), Accept: 'application/vnd.github+json' } }); if (rpz.ok) metaGlobal = (JSON.parse(Buffer.from((await rpz.json()).content, 'base64').toString('utf8')) || {}).metaGlobal || 20; } catch (e) { }
+    try { const rpl = await fetch(`https://api.github.com/repos/${REPO}/contents/pilots.json?ref=${BRANCH}`, { headers: { Authorization: 'Bearer ' + TOKEN(), Accept: 'application/vnd.github+json' } }); if (rpl.ok) { const sts = JSON.parse(Buffer.from((await rpl.json()).content, 'base64').toString('utf8')) || []; Object.values(por).forEach(p => { const st = sts.find(x => String(x.tel).replace(/\D/g, '') === String(p.tel).replace(/\D/g, '')); p.metaP = (st && st.metaP) || 20; }); } } catch (e) { }
+    const pilotos = Object.values(por).map(x => { x.metaEfectiva = Math.min(x.metaP || 20, metaGlobal); return { nombre: x.nombre, entregas: x.entregas, premio: Math.round(x.comisiones * 25) / 100, meta: x.metaEfectiva, metaP: x.metaP || 20 }; }).sort((x, y) => y.entregas - x.entregas);
+    return res.status(200).json({ ok: true, meta: metaGlobal, comisiones, pozo: Math.round(pilotos.filter(p => p.entregas >= p.meta).reduce((s, p) => s + p.premio, 0) * 100) / 100, modo: 'individual', pilotos });
   }
   return res.status(200).json({ ok: false, error: 'Acción desconocida' });
 });

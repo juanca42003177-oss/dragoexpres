@@ -390,9 +390,11 @@ module.exports = wrap(async (req, res) => {
     const semana = mios.filter(x => (x.tsEntregado || x.ts) >= iniSem).length;
     const fp = await ghGet('pilots.json');
     const st = (fp ? fp.data : []).find(x => String(x.tel).replace(/\D/g, '') === tel) || {};
+    let metaEfe = st.metaP || 20;
+    try { const pz2 = await ghGet('pozo.json'); const pg = pz2 ? pz2.data : {}; metaEfe = Math.min(st.metaP || 20, pg.metaGlobal || 20); } catch (e) { }
     const historial = mios.slice(-15).reverse().map(x => ({ id: x.id, tipo: x.tipo, ganado: dinero(x.envio - x.comision + (x.propina || 0)), envio: x.envio, propina: x.propina || 0, ts: x.tsEntregado || x.ts }));
     const resenas = califs.slice(-10).reverse().map(x => ({ id: x.id, estrellas: x.califCliente, texto: String(x.califClienteTxt || ''), ts: x.tsEntregado || x.ts }));
-    return res.status(200).json({ ok: true, entregas: mios.length, resenas, ganado, comisiones: dinero(comisiones - (st.bonosAplicados || 0)), calif, bonosPend: dinero(st.bonosPend || 0), bonoBienvenida: st.bonoBienvenida || null, pendiente: st.pendiente || null, pendienteActivo: !!(st.pendiente && !st.pendiente.pagado), retraso: !!st.retraso, meta: { hechas: semana, faltan: Math.max(0, 20 - semana) }, historial });
+    return res.status(200).json({ ok: true, entregas: mios.length, resenas, ganado, comisiones: dinero(comisiones - (st.bonosAplicados || 0)), calif, bonosPend: dinero(st.bonosPend || 0), bonoBienvenida: st.bonoBienvenida || null, pendiente: st.pendiente || null, pendienteActivo: !!(st.pendiente && !st.pendiente.pagado), retraso: !!st.retraso, meta: { hechas: semana, faltan: Math.max(0, metaEfe - semana), meta: metaEfe }, historial });
   }
 
   // ---- consultar estado (usuario o pantalla) ----
