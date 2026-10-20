@@ -113,7 +113,7 @@ async function vistaDueno(){
   }catch(e){if(p!=='dragon2026'){document.getElementById('lerr').textContent='No se pudo verificar.';return}}
   PILOTO={tel:'00000000',demo:true};
   var demo={ok:true,piloto:{nombre:'Carlos Pérez (EJEMPLO)',zona:'Mixco Centro',vehiculo:'moto',marca:'Honda Wave 110',color:'Rojo',placa:'M123ABC',disponible:true,ganadoHoy:85,ganadoSemana:410,pedidosHoy:6,calif:4.8,pendiente:null},
-    activo:{id:'DX-DEMO',tipo:'comida',estado:'aceptado',zona:'Mixco Centro',direccion:'6a Calle 4-20, Zona 1 (ejemplo)',referencia:'Casa azul, portón negro',detalle:'2 pizzas grandes de El Horno',compra:120,envio:15,comision:1.5,cliente:{nombre:'María López (ejemplo)',tel:'55501234'},chat:[]},zonaBuscando:[]};
+    activo:{id:'DX-DEMO',tipo:'comida',estado:'aceptado',zona:'Mixco Centro',direccion:'6a Calle 4-20, Zona 1 (ejemplo)',referencia:'Casa azul, portón negro',detalle:'2 pizzas grandes de El Horno',compra:120,envio:15,comision:1.5,cliente:{nombre:'María López (ejemplo)',tel:'55501234'},piloto:{nombre:'Carlos Pérez (EJEMPLO)',tel:'00000000'},chat:[]},zonaBuscando:[]};
   pintar(demo);
   document.getElementById('login').style.display='none';document.getElementById('app').style.display='block';
   var b=document.createElement('div');b.style.cssText='background:#241a05;border:1px solid #f0b90b;color:#ffe08a;font-size:12.5px;padding:9px 12px;border-radius:10px;margin:10px 0;text-align:center;font-weight:800';
