@@ -125,13 +125,14 @@ module.exports = wrap(async (req, res) => {
     const tel8 = tel.slice(-8);
     const reg = f.data.find(r => { const t = String((r.datos || {}).tel || '').replace(/\D/g, ''); return t === tel || (tel8.length === 8 && t.slice(-8) === tel8); }) || null;
     if (!reg) return res.status(200).json({ ok: false, error: 'No encontrado.' });
+    const telReal = String((reg.datos || {}).tel || '').replace(/\D/g, '') || tel; // tel canonico del registro (para pedidos/pilots)
     const H2 = () => ({ Authorization: 'Bearer ' + TOKEN(), Accept: 'application/vnd.github+json' });
     const r2 = await fetch(`https://api.github.com/repos/${REPO}/contents/pedidos.json?ref=${BRANCH}`, { headers: H2() });
     const peds = r2.ok ? JSON.parse(Buffer.from((await r2.json()).content, 'base64').toString('utf8') || '[]') : [];
-    const mios = peds.filter(x => x.piloto && String(x.piloto.tel).replace(/\D/g, '') === tel && x.estado === 'entregado');
+    const mios = peds.filter(x => x.piloto && String(x.piloto.tel).replace(/\D/g, '') === telReal && x.estado === 'entregado');
     const r3 = await fetch(`https://api.github.com/repos/${REPO}/contents/pilots.json?ref=${BRANCH}`, { headers: H2() });
     const pilots = r3.ok ? JSON.parse(Buffer.from((await r3.json()).content, 'base64').toString('utf8') || '[]') : [];
-    const st = pilots.find(x => String(x.tel).replace(/\D/g, '') === tel) || {};
+    const st = pilots.find(x => String(x.tel).replace(/\D/g, '') === telReal) || {};
     const califs = mios.filter(x => x.califCliente > 0);
     const g = new Date(Date.now() - 21600000);
     const lunes = new Date(g);
