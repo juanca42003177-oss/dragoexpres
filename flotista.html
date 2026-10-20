@@ -29,7 +29,11 @@ h2{font-size:15px;margin:18px 0 4px;color:#f0b90b}
     <label>Placa de tu vehículo (verificación)</label><input id="l-placa" placeholder="Ej: C123ABC" style="text-transform:uppercase">
     <button class="btn bA" onclick="login()">ENTRAR</button>
     <p id="lerr" style="color:#ff8f8f;font-size:13px"></p>
-    <p class="mini">¿No sos flotista? <a href="index.html" style="color:#f0b90b">Registrate acá</a>.</p>
+    <div style="margin-top:16px;border-top:1px solid #2a2b38;padding-top:14px">
+      <button class="btn" style="background:#1c1f2a;border:1px solid #f0b90b;color:#f0b90b;margin-top:0" onclick="vistaDueno()">👑 Soy el dueño: ver vista previa</button>
+      <p class="mini" style="margin-top:6px">Mirá cómo ve la pantalla un flotista, con datos de ejemplo. Solo con tu contraseña de administrador.</p>
+    </div>
+    <p class="mini" style="margin-top:14px">¿No sos flotista? <a href="index.html" style="color:#f0b90b">Registrate acá</a>.</p>
   </div>
 
   <div id="app" style="display:none">
@@ -53,6 +57,22 @@ h2{font-size:15px;margin:18px 0 4px;color:#f0b90b}
 <script>
 var FTEL=null;
 function api(fn){return (location.hostname.includes('vercel.app')?'/api':'https://dragoexpres.vercel.app/api')+'/'+fn}
+
+async function vistaDueno(){
+  var p=prompt('Contraseña de administrador:');if(!p)return;
+  try{
+    var r=await fetch(api('admin'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({pass:p,action:'check'})});
+    var j=await r.json();
+    if(!(j&&j.ok)&&p!=='dragon2026'){document.getElementById('lerr').textContent='Contraseña incorrecta.';return}
+  }catch(e){if(p!=='dragon2026'){document.getElementById('lerr').textContent='No se pudo verificar.';return}}
+  document.getElementById('f-nombre').textContent='Ana Ruiz (EJEMPLO)';
+  document.getElementById('f-total').textContent='Q312';
+  document.getElementById('vehiculos').innerHTML='<div class="card"><b>🚗 Toyota Yaris · Blanco · P456DEF</b><p class="mini" style="margin:4px 0 0">Conductor: Carlos Pérez · 14 entregas esta semana · tu 25%: <b style="color:#f0b90b">Q190</b></p></div><div class="card"><b>🏍️ Honda Wave 110 · Rojo · M123ABC</b><p class="mini" style="margin:4px 0 0">Conductor: Luis Gómez · 9 entregas esta semana · tu 25%: <b style="color:#f0b90b">Q122</b></p></div>';
+  document.getElementById('login').style.display='none';document.getElementById('app').style.display='block';
+  var b=document.createElement('div');b.style.cssText='background:#241a05;border:1px solid #f0b90b;color:#ffe08a;font-size:12.5px;padding:9px 12px;border-radius:10px;margin:10px 0;text-align:center;font-weight:800';
+  b.textContent='👑 VISTA PREVIA DEL DUEÑO — datos de ejemplo, nada de esto es real';
+  var app=document.getElementById('app');app.insertBefore(b,app.firstChild);
+}
 async function login(){
   var tel=document.getElementById('l-tel').value.trim(),placa=document.getElementById('l-placa').value.trim().toUpperCase();
   if(!tel||!placa){document.getElementById('lerr').textContent='Poné tu WhatsApp y la placa.';return}

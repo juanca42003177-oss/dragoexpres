@@ -45,6 +45,12 @@ function comisionDe(tipo, envio) {
   if (e <= 50) return 3;
   return 5;
 }
+
+// Datos publicos del vehiculo del piloto (marca, color, placa) para que el cliente lo reconozca
+function vehInfo(d) {
+  d = d || {};
+  return { vehiculo: d.vehiculo || '', marca: d.marca || '', color: d.color || '', placa: d.placa || '' };
+}
 const ESTADOS = ['buscando', 'asignado', 'aceptado', 'en_camino', 'entregado', 'cancelado'];
 
 module.exports = wrap(async (req, res) => {
@@ -80,7 +86,7 @@ module.exports = wrap(async (req, res) => {
     const zona = peds.filter(o => o.estado === 'buscando' && o.zona === p.datos.zona);
     const califs = peds.filter(o => o.piloto && o.piloto.tel === tel && o.califCliente > 0);
     const calif = califs.length ? Math.round(califs.reduce((x, o) => x + o.califCliente, 0) / califs.length * 10) / 10 : null;
-    return res.status(200).json({ ok: true, piloto: { nombre: p.datos.nombre, zona: p.datos.zona, vehiculo: p.datos.vehiculo, disponible: st.disponible, ganadoHoy: st.ganadoHoy || 0, ganadoSemana: st.ganadoSemana || 0, pedidosHoy: st.pedidosHoy || 0, calif: calif, pendiente: st.pendiente || null }, activo: mio[0] || null, zonaBuscando: zona });
+    return res.status(200).json({ ok: true, piloto: { nombre: p.datos.nombre, zona: p.datos.zona, vehiculo: p.datos.vehiculo, marca: p.datos.marca || '', color: p.datos.color || '', placa: p.datos.placa || '', disponible: st.disponible, ganadoHoy: st.ganadoHoy || 0, ganadoSemana: st.ganadoSemana || 0, pedidosHoy: st.pedidosHoy || 0, calif: calif, pendiente: st.pendiente || null }, activo: mio[0] || null, zonaBuscando: zona });
   }
 
   // ---- PILOTO: ponerse disponible / no disponible ----
@@ -138,7 +144,7 @@ module.exports = wrap(async (req, res) => {
     if (cand.length) {
       const r = reg.find(y => y.tipo === 'piloto' && String(y.datos.tel).trim() === cand[0].tel);
       pedido.estado = 'asignado';
-      pedido.piloto = { tel: cand[0].tel, nombre: r.datos.nombre };
+      pedido.piloto = Object.assign({ tel: cand[0].tel, nombre: r.datos.nombre }, vehInfo(r.datos));
       const st = pilots.find(x => x.tel === cand[0].tel);
       // el piloto asignado queda "ocupado" hasta entregar/rechazar
     }
@@ -246,7 +252,7 @@ module.exports = wrap(async (req, res) => {
       if (o.estado === 'asignado' && (!o.piloto || o.piloto.tel !== tel)) return res.status(200).json({ ok: false, error: 'Este pedido es de otro piloto.' });
       if (!['asignado', 'buscando'].includes(o.estado)) return res.status(200).json({ ok: false, error: 'Este pedido ya no está disponible.' });
       if (o.estado === 'buscando' && o.zona !== p.datos.zona) return res.status(200).json({ ok: false, error: 'Pedido de otra zona.' });
-      o.estado = 'aceptado'; o.piloto = { tel, nombre: p.datos.nombre }; o.tsAceptado = now;
+      o.estado = 'aceptado'; o.piloto = Object.assign({ tel, nombre: p.datos.nombre }, vehInfo(p.datos)); o.tsAceptado = now;
       await ghPut('pedidos.json', fpd.sha, peds, 'aceptado ' + id);
       await aviso(`🚀 DRAGOEXPRES — Pedido ${id}\n✅ ${p.datos.nombre} ACEPTÓ el pedido (${o.tipo})\nCliente: ${o.cliente.nombre}\n→ El piloto va en camino. Estado: ACEPTADO`);
       return res.status(200).json({ ok: true, pedido: o });
