@@ -343,11 +343,13 @@ function pintarLocales(){
   loc.forEach(function(l,idx){
     var ini=(l.nombre||'?').trim().charAt(0).toUpperCase();
     var wa='https://wa.me/502'+String(l.tel).replace(/\D/g,'').replace(/^502/,'');
-    h+='<div class="loc"><div class="avatar">'+(l.fotoLocal?'<img src="'+l.fotoLocal+'" style="width:100%;height:100%;object-fit:cover;border-radius:50%">':ini)+'</div>'
-      +'<div class="info"><b>'+l.nombre+'</b><span><span class="chip">'+(l.rubro||'Local')+'</span>✅ Verificado · '+(l.zona||'')+'</span></div>'
+    var cerrado=l.abierto===false;
+    var pausado=l.pausado?true:false;
+    h+='<div class="loc"'+((cerrado||pausado)?' style="opacity:0.55"':'')+'><div class="avatar">'+(l.fotoLocal?'<img src="'+l.fotoLocal+'" style="width:100%;height:100%;object-fit:cover;border-radius:50%">':ini)+'</div>'
+      +'<div class="info"><b>'+l.nombre+'</b><span><span class="chip">'+(l.rubro||'Local')+'</span>✅ Verificado · '+(l.zona||'')+(pausado?' · <span style="color:#ffd479">⏸️ Saturado ahora</span>':cerrado?' · <span style="color:#ff8f8f">🔴 Cerrado · abre '+String(l.abre).padStart(2,'0')+':00</span>':' · <span style="color:#7ee2a8">🟢 Abierto</span>')+'</span></div>'
       +'<button class="btnW" onclick="window.open(\''+wa+'\',\'_blank\')">💬</button>'
       +'<button class="btnW" onclick="verMenu('+idx+')">Menú 📋</button>'+
-      '<button class="btnS" onclick="abrirPedidoLocal('+idx+')">Pedir aquí</button></div>';
+      (cerrado||pausado?'<button class="btnS" style="opacity:0.5" onclick="alert(\''+(pausado?'Está saturado ahora, probá en unos minutos.':(l.nombre+' está cerrado. Abre a las '+String(l.abre).padStart(2,'0')+':00'))+'\')">Cerrado</button>':'<button class="btnS" onclick="abrirPedidoLocal('+idx+')">Pedir aquí</button>')+'</div>';
   });
   document.getElementById('lista-locales').innerHTML=h;
 }

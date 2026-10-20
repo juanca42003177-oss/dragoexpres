@@ -50,6 +50,19 @@ input,textarea,select{-webkit-user-select:text;user-select:text}
     <h1>🐉 Hola, <span id="l-nombre"></span></h1>
     <p class="mini" id="l-zona"></p>
     <div id="pausaCard" class="card" style="display:none;background:#2a230f;border-color:#6b5a10;color:#ffe08a;text-align:center"></div>
+    <div class="card" id="horarioCard" style="background:#14151c">
+      <b>🕐 Tu horario de atención</b>
+      <p class="mini" style="margin:4px 0 8px">Fuera de este horario no te entran pedidos: el cliente ve "Cerrado, abre a las X". Así no suena el dragón cuando ya guardaste.</p>
+      <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
+        <span class="mini">Abro a las</span>
+        <select id="h-abre" style="background:#0d0e14;color:#fff;border:1px solid #2a2b38;border-radius:8px;padding:6px"></select>
+        <span class="mini">Cierro a las</span>
+        <select id="h-cierra" style="background:#0d0e14;color:#fff;border:1px solid #2a2b38;border-radius:8px;padding:6px"></select>
+        <button class="bMini" onclick="guardarHorario()">Guardar</button>
+        <button class="bMini bX" onclick="borrarHorario()">24hrs</button>
+      </div>
+      <div class="mini" id="h-estado" style="margin-top:6px;color:#ffd479"></div>
+    </div>
     <button class="btn bR" id="pausaBtn" onclick="pausar(30)">⏸️ Cocina saturada: pausar 30 min</button>
     <h3 style="color:#f0b90b;margin:16px 0 4px;font-size:15px">📋 Mi menú</h3>
     <p class="mini" style="margin:4px 0 8px">Cargá tus productos con foto y precio. Si algo se te acaba, marcá AGOTADO con un toque: el cliente lo ve gris y no lo puede pedir. Sin foto también funciona.</p>
@@ -94,6 +107,66 @@ input,textarea,select{-webkit-user-select:text;user-select:text}
 <script>
 var TEL=null,PAUSA=null,POLL=null;
 function api(fn){return (location.hostname.includes('vercel.app')?'/api':'https://dragoexpres.vercel.app/api')+'/'+fn}
+
+// ===== ALARMA: campanilla que NO PARA hasta confirmar el pedido (estilo tableta PedidosYa) =====
+var AC=null,SONIDO=localStorage.getItem('dxSonido')!=='off',ALARM=null;
+function desbloquearSonido(){try{if(!AC)AC=new (window.AudioContext||window.webkitAudioContext)();if(AC.state==='suspended')AC.resume()}catch(e){}}
+function beep(){try{
+  if(!AC)return;if(AC.state==='suspended')AC.resume();
+  [880,1245,880].forEach(function(f,i){var t=AC.currentTime+i*0.16;
+    var o=AC.createOscillator(),g=AC.createGain();o.type='square';o.frequency.value=f;
+    g.gain.setValueAtTime(0.001,t);g.gain.exponentialRampToValueAtTime(0.32,t+0.02);g.gain.exponentialRampToValueAtTime(0.001,t+0.14);
+    o.connect(g);g.connect(AC.destination);o.start(t);o.stop(t+0.15)});
+  if(navigator.vibrate)try{navigator.vibrate([250,150,250])}catch(e){}
+}catch(e){}}
+function tocarAlarma(pend){ // pend = pedidos activos sin confirmar
+  if(pend>0&&SONIDO){if(!ALARM){beep();ALARM=setInterval(beep,4000)}}
+  else if(ALARM){clearInterval(ALARM);ALARM=null}
+  var b=document.getElementById('alarmChip');
+  if(b){b.style.display=pend>0?'inline-block':'none';b.textContent='🔔 '+pend+' pedido'+(pend>1?'s':'')+' sin confirmar'}
+}
+
+// ===== HORARIO =====
+var HORARIO={abre:null,cierra:null};
+function hh(x){return x===null||x===undefined?'':String(x).padStart(2,'0')+':00'}
+function pintarHorario(){
+  var a=document.getElementById('h-abre'),c=document.getElementById('h-cierra');
+  if(!a.options.length){for(var i=0;i<24;i++){var op=new Option(hh(i),i);a.add(op);c.add(new Option(hh(i),i))}}
+  if(HORARIO.abre===null){a.value='';c.value='';document.getElementById('h-estado').textContent='Atendés 24 horas (no configuraste horario).'}
+  else{a.value=HORARIO.abre;c.value=HORARIO.cierra;
+    var h=new Date(Date.now()-21600000).getUTCHours();
+    var abi=(HORARIO.abre<HORARIO.cierra)?(h>=HORARIO.abre&&h<HORARIO.cierra):(h>=HORARIO.abre||h<HORARIO.cierra);
+    document.getElementById('h-estado').textContent=(abi?'🟢 Abierto ahora · ':'🔴 Cerrado ahora · ')+'Atendés de '+hh(HORARIO.abre)+' a '+hh(HORARIO.cierra)}
+}
+async function guardarHorario(){
+  var a=document.getElementById('h-abre').value,c=document.getElementById('h-cierra').value;
+  if(a===''||c===''){alert('Elegí la hora de abrir y cerrar (o tocá 24hrs para atender siempre).');return}
+  var r=await fetch(api('orders'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'horario',tel:TEL,abre:+a,cierra:+c})});
+  var j=await r.json();if(j.ok){HORARIO={abre:+a,cierra:+c};pintarHorario()}else{alert(j.error||'No se pudo guardar')}
+}
+async function borrarHorario(){
+  var r=await fetch(api('orders'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'horario',tel:TEL})});
+  var j=await r.json();if(j.ok){HORARIO={abre:null,cierra:null};pintarHorario()}
+}
+
+// ===== TICKET IMPRIMIBLE (cualquier impresora, incluida Bluetooth) =====
+function ticket(o){
+  var w=window.open('','_blank','width=380,height=600');
+  if(!w){alert('Permití las ventanas emergentes para imprimir el ticket.');return}
+  var fecha=new Date(o.ts||Date.now()-21600000);
+  var filas=(o.detalle||'').replace(/</g,'&lt;').replace(/\n/g,'<br>');
+  var cli=(o.cliente&&o.cliente.nombre)||'';var dir=(o.cliente&&(o.cliente.direccion||''))||'';
+  var ref=(o.cliente&&(o.cliente.referencia||''))||'';
+  w.document.write('<!DOCTYPE html><html><head><title>Ticket '+o.id+'</title><style>body{font-family:monospace;font-size:13px;margin:12px;width:280px}.c{text-align:center}hr{border:0;border-top:1px dashed #000;margin:6px 0}b{font-size:15px}</style></head><body>'
+   +'<div class="c"><b>🐉 DRAGOEXPRES</b></div><hr>'
+   +'<div class="c">Pedido <b>'+o.id+'</b></div><div class="c">'+fecha.toLocaleString('es-GT')+'</div><hr>'
+   +'<b>CLIENTE:</b> '+cli+'<br><b>DIRECCIÓN:</b> '+dir+(ref?'<br><b>REF:</b> '+ref:'')+'<hr>'
+   +'<b>PEDIDO:</b><br>'+filas+'<hr>'
+   +'<table style="width:100%"><tr><td>Tu venta</td><td style="text-align:right">Q'+o.compra+'</td></tr><tr><td>Envío (piloto)</td><td style="text-align:right">Q'+o.envio+'</td></tr><tr><td><b>Cliente paga</b></td><td style="text-align:right"><b>Q'+(+o.compra+ +o.envio)+'</b></td></tr></table><hr>'
+   +'<div class="c">'+(o.prep?('Listo en ~'+o.prep.min+' min'):'SIN CONFIRMAR')+'</div><hr>'
+   +'<div class="c">Confirmá el tiempo de preparación<br>en tu pantalla DragoExpres</div>'
+   +'</body></html>');w.document.close();setTimeout(function(){w.print()},300)
+}
 
 var MENU=[],FOTOB64='';
 var CATORD=['Platos fuertes','Combos','Entradas','Bebidas','Postres','Repuestos','Otros'];
@@ -218,7 +291,9 @@ async function menuDel(id){
   var j=await r.json();if(j.ok){MENU=j.items;pintarMenu()}
 }
 document.getElementById('m-foto').addEventListener('change',function(){if(this.files&&this.files[0])comprimirFoto(this.files[0])});
+function toggleSonido(){SONIDO=!SONIDO;localStorage.setItem('dxSonido',SONIDO?'on':'off');desbloquearSonido();if(!SONIDO&&ALARM){clearInterval(ALARM);ALARM=null}var b=document.getElementById('sonidoBtn');if(b)b.textContent=SONIDO?'🔔':'🔇'}
 async function login(){
+  desbloquearSonido();
   var tel=document.getElementById('l-tel').value.trim();
   if(!tel){document.getElementById('lerr').textContent='Poné tu WhatsApp.';return}
   var r=await fetch(api('orders'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'loginLocal',tel:tel})});
@@ -232,8 +307,9 @@ async function login(){
   if(POLL)clearInterval(POLL);POLL=setInterval(tick,15000);cargarMenu();
 }
 function pintar(j){
+  HORARIO={abre:j.local.abre!==undefined&&j.local.abre!==null?j.local.abre:null,cierra:j.local.cierra!==undefined&&j.local.cierra!==null?j.local.cierra:null};pintarHorario();
   document.getElementById('l-nombre').textContent=j.local.nombre.split(' ')[0];
-  document.getElementById('l-zona').textContent='Zona: '+j.local.zona+' · Local verificado ✅ · Cada pedido suena acá, confirmalo con un toque';
+  document.getElementById('l-zona').innerHTML='Zona: '+j.local.zona+' · Local verificado ✅ · Cada pedido suena acá, confirmalo con un toque <button class="bMini" id="sonidoBtn" style="padding:3px 8px" onclick="toggleSonido()">'+(SONIDO?'🔔':'🔇')+'</button> <span id="alarmChip" class="chip" style="display:none;background:#3a1414;color:#ff9f9f"></span>';
   PAUSA=j.pausa;
   var pc=document.getElementById('pausaCard'),pb=document.getElementById('pausaBtn');
   if(PAUSA&&PAUSA>Date.now()){
@@ -243,8 +319,10 @@ function pintar(j){
   }else{pc.style.display='none';pb.textContent='⏸️ Cocina saturada: pausar 30 min';pb.className='btn bR';pb.onclick=function(){pausar(30)}}
   var box=document.getElementById('pedidos');
   if(!j.activos||!j.activos.length){
-    box.innerHTML='<div class="card" style="text-align:center"><div style="font-size:34px">🐉</div><b>Sin pedidos ahora</b><p class="mini">Cuando un cliente pida de tu local, aparece acá al instante y confirmás con un toque.</p></div>';
+    tocarAlarma(0);
+    box.innerHTML='<div class="card" style="text-align:center"><div style="font-size:34px">🐉</div><b>Sin pedidos ahora</b><p class="mini">Cuando un cliente pida de tu local, aparece acá al instante, SUENA y confirmás con un toque.</p></div>';
   }else{
+    tocarAlarma(j.activos.filter(function(o){return !o.prep}).length);
     box.innerHTML=j.activos.map(function(o){
       var est={buscando:['Buscando piloto','sBus'],asignado:['Piloto asignado','sAsig'],aceptado:['Piloto va por tu pedido','sAsig'],en_camino:['En camino al cliente','sCam']}[o.estado]||[o.estado,'sBus'];
       var conf=o.prep?('<div class="chip" style="background:#0d2015;color:#7ee2a8">✅ Confirmaste: ~'+o.prep.min+' min</div>')
@@ -256,7 +334,7 @@ function pintar(j){
       return '<div class="pedido"><div style="display:flex;justify-content:space-between;align-items:center"><b>'+({comida:'🍔',viaje:'🛺',repuesto:'🔧'}[o.tipo])+' '+o.id+'</b><span class="st '+est[1]+'">'+est[0]+'</span></div>'+
       '<div class="dato">👤 '+o.cliente.nombre+' · 📍 '+o.cliente.direccion+'</div>'+
       '<div class="dato">📝 '+o.detalle+'</div>'+
-      '<div class="dato">💵 El cliente paga Q'+(+o.compra+ +o.envio)+' (tu venta Q'+o.compra+' + envío Q'+o.envio+')</div>'+nr+conf+chatI+'<button class="bMini bX" style="width:100%;margin-top:8px" onclick="localCancela(\''+o.id+'\')">✕ No puedo preparar este pedido (cancelar)</button></div>';
+      '<div class="dato">💵 El cliente paga Q'+(+o.compra+ +o.envio)+' (tu venta Q'+o.compra+' + envío Q'+o.envio+')</div>'+nr+conf+chatI+'<button class="bMini" style="width:100%;margin-top:8px;background:#0d2015;color:#7ee2a8" onclick="ticket(JSON.parse(document.getElementById(\'tk-'+o.id+'\').textContent))">🖨️ Imprimir ticket de cocina</button><span id="tk-'+o.id+'" style="display:none">'+JSON.stringify(o).replace(/</g,'&lt;')+'</span><button class="bMini bX" style="width:100%;margin-top:8px" onclick="localCancela(\''+o.id+'\')">✕ No puedo preparar este pedido (cancelar)</button></div>';
     }).join('');
   }
   var cn=document.getElementById('cancelHoyBox');if(cn)cn.remove();

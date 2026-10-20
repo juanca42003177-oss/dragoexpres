@@ -7,6 +7,13 @@
 // usuario↔piloto↔local: DragoExpres no toca el dinero; las comisiones
 // (10% comida, 8% repuestos, Q2-Q5 viajes) se registran para liquidación.
 const wrap = require('./_cors');
+// horario de atencion: null/undefined = abierto siempre; soporta cruce de medianoche
+const abiertoAhora = (h, abre, cierra) => {
+  if (abre === undefined || abre === null || cierra === undefined || cierra === null) return true;
+  if (abre === cierra) return true;
+  if (abre < cierra) return h >= abre && h < cierra;
+  return h >= abre || h < cierra;
+};
 const { REPO, BRANCH, H, ensureBranch } = require('./_dx');
 
 const TZ = 6 * 3600 * 1000; // GT = UTC-6
@@ -204,10 +211,19 @@ module.exports = wrap(async (req, res) => {
     const id = 'DX' + String(now).slice(-6) + String(Math.floor(Math.random() * 90) + 10);
     const localObj = b.local && b.local.tel ? { nombre: String(b.local.nombre || '').slice(0, 60), tel: String(b.local.tel).replace(/\D/g, '').slice(0, 25) } : null;
     if (localObj) {
-      const fl = await ghGet('locales.json'); const pausa = (fl ? fl.data : []).find(x => x.tel === localObj.tel && x.hasta > now);
+      const fl = await ghGet('locales.json');
+      const rowL = (fl ? fl.data : []).find(x => x.tel === localObj.tel) || {};
+      const pausa = rowL.hasta > now;
       if (pausa) {
-        const mins = Math.max(1, Math.ceil((pausa.hasta - now) / 60000));
+        const mins = Math.max(1, Math.ceil((rowL.hasta - now) / 60000));
         return res.status(200).json({ ok: false, error: localObj.nombre + ' está saturado ahora. Probá de nuevo en ' + mins + ' minuto(s) o pedí de otro local.' });
+      }
+      if (rowL.horarioAbre !== undefined && rowL.horarioCierra !== undefined) {
+        const horaGT = new Date(now - TZ).getUTCHours();
+        if (!abiertoAhora(horaGT, rowL.horarioAbre, rowL.horarioCierra)) {
+          const hh = (x) => String(x).padStart(2, '0') + ':00';
+          return res.status(200).json({ ok: false, error: localObj.nombre + ' está CERRADO ahora. Abre a las ' + hh(rowL.horarioAbre) + ' (atiende de ' + hh(rowL.horarioAbre) + ' a ' + hh(rowL.horarioCierra) + ').' });
+        }
       }
     }
     const compra = dinero(b.compra || 0);
@@ -277,7 +293,8 @@ module.exports = wrap(async (req, res) => {
     const gL = new Date(now - 21600000); const lunesL = new Date(gL); lunesL.setUTCDate(gL.getUTCDate() - ((gL.getUTCDay() + 6) % 7)); lunesL.setUTCHours(0, 0, 0, 0); const iniSemL = lunesL.getTime() + 21600000;
     const entSem = mios.filter(x => x.estado === 'entregado' && (x.tsEntregado || x.ts) >= iniSemL);
     const ventasSemana = dinero(entSem.reduce((s2, x) => s2 + (+x.compra || 0), 0));
-    return res.status(200).json({ ok: true, local: { nombre: r.datos.nombre, zona: r.datos.zona, tel, fotoLocal: r.datos.fotoLocal || '' }, activos: activos.slice(-10).reverse(), totalEntregados: mios.filter(x => x.estado === 'entregado').length, ventasSemana, entregasSemana: entSem.length, pausa: pausa ? pausa.hasta : null, cancelHoy });
+    const rowH = (fl ? fl.data : []).find(x => x.tel === tel) || {};
+    return res.status(200).json({ ok: true, local: { nombre: r.datos.nombre, zona: r.datos.zona, tel, fotoLocal: r.datos.fotoLocal || '', abre: rowH.horarioAbre !== undefined ? rowH.horarioAbre : null, cierra: rowH.horarioCierra !== undefined ? rowH.horarioCierra : null }, activos: activos.slice(-10).reverse(), totalEntregados: mios.filter(x => x.estado === 'entregado').length, ventasSemana, entregasSemana: entSem.length, pausa: pausa ? pausa.hasta : null, cancelHoy });
   }
 
   // ---- LOCAL: confirmar pedido con tiempo de preparacion ----
@@ -291,6 +308,21 @@ module.exports = wrap(async (req, res) => {
     await ghPut('pedidos.json', fpd.sha, peds, 'local confirmo ' + id + ' (' + min + ' min)');
     await aviso('🏪 DRAGOEXPRES — ' + o.local.nombre + ' confirmó el pedido ' + id + '\nListo en ~' + min + ' minutos.');
     return res.status(200).json({ ok: true, pedido: o });
+  }
+
+  // ---- LOCAL: horario de atencion (regla: fuera de horario no entran pedidos) ----
+  if (action === 'horario') {
+    const tel = String(b.tel || '').replace(/\D/g, '');
+    const abre = parseInt(b.abre), cierra = parseInt(b.cierra);
+    const freg = await ghGet('registros.json');
+    const rl = (freg ? freg.data : []).find(x => x.tipo === 'local' && x.estado === 'aprobado' && String(x.datos.whatsapp || x.datos.tel || '').replace(/\D/g, '') === tel);
+    if (!rl) return res.status(200).json({ ok: false, error: 'No encontramos un local aprobado con ese WhatsApp.' });
+    const fl = await ghGet('locales.json'); const arr = fl ? fl.data : [];
+    let row = arr.find(x => x.tel === tel);
+    if (isNaN(abre) || isNaN(cierra)) { if (row) { delete row.horarioAbre; delete row.horarioCierra; } }
+    else { if (!row) { row = { tel }; arr.push(row); } row.horarioAbre = abre; row.horarioCierra = cierra; }
+    await ghPut('locales.json', fl ? fl.sha : null, arr, 'horario local ' + tel);
+    return res.status(200).json({ ok: true, abre: isNaN(abre) ? null : abre, cierra: isNaN(cierra) ? null : cierra });
   }
 
   // ---- LOCAL: pausar / reanudar pedidos ----
@@ -427,13 +459,22 @@ module.exports = wrap(async (req, res) => {
   // locales aprobados para el listado del consumidor (pantalla Inicio)
   if (action === 'locales') {
     const fr = await ghGet('registros.json'); const regs = fr ? fr.data : [];
-    const loc = regs.filter(r => r.tipo === 'local' && r.estado === 'aprobado').map(r => ({
-      nombre: (r.datos && r.datos.nombre) || r.nombre || 'Local',
-      zona: (r.datos && r.datos.zona) || r.zona || '',
-      tel: String((r.datos && (r.datos.whatsapp || r.datos.tel)) || '').replace(/\D/g, ''),
-      rubro: (r.datos && (r.datos.rubro || r.datos.tipo)) || 'Comida',
-      fotoLocal: (r.datos && r.datos.fotoLocal) || '',
-    }));
+    const fl = await ghGet('locales.json'); const lrows = fl ? fl.data : [];
+    const horaGT = new Date(Date.now() - TZ).getUTCHours();
+    const loc = regs.filter(r => r.tipo === 'local' && r.estado === 'aprobado').map(r => {
+      const tel = String((r.datos && (r.datos.whatsapp || r.datos.tel)) || '').replace(/\D/g, '');
+      const row = lrows.find(x => x.tel === tel) || {};
+      const tieneHor = row.horarioAbre !== undefined && row.horarioCierra !== undefined;
+      return {
+        nombre: (r.datos && r.datos.nombre) || r.nombre || 'Local',
+        zona: (r.datos && r.datos.zona) || r.zona || '',
+        tel, rubro: (r.datos && (r.datos.rubro || r.datos.tipo)) || 'Comida',
+        fotoLocal: (r.datos && r.datos.fotoLocal) || '',
+        abre: tieneHor ? row.horarioAbre : null, cierra: tieneHor ? row.horarioCierra : null,
+        abierto: tieneHor ? abiertoAhora(horaGT, row.horarioAbre, row.horarioCierra) : true,
+        pausado: !!(row.hasta && row.hasta > Date.now()),
+      };
+    });
     return res.status(200).json({ ok: true, locales: loc });
   }
 
