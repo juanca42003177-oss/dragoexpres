@@ -207,6 +207,7 @@ function pintar(regs){
   var MAP={pilotos:'piloto',locales:'local',flota:'flota',usuarios:'usuario'};
   var f=regs.filter(function(r){return r.tipo===MAP[TAB];});
   document.getElementById('resumen').style.display=TAB==='resumen'?'block':'none';
+  var vc=document.getElementById('vivoCard');if(vc)vc.style.display=TAB==='resumen'?'block':'none';
   document.getElementById('lista').style.display=(TAB==='pilotos'||TAB==='locales'||TAB==='flota'||TAB==='usuarios')?'block':'none';
   document.getElementById('zonas').style.display=TAB==='zonas'?'block':'none';
   document.getElementById('pedidosBox').style.display=TAB==='pedidos'?'block':'none';
