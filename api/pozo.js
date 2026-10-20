@@ -53,7 +53,7 @@ async function estado() {
   const fpd = await ghGet('pedidos.json');
   const peds = (fpd ? fpd.data : []).filter(o => o.estado === 'entregado' && (o.tsEntregado || o.ts) >= L);
   const pz = await ghGet('pozo.json');
-  const pozo = pz ? pz.data : {};
+  const pozo = pz && !Array.isArray(pz.data) ? pz.data : {};
   pozo.acumuladoPor = pozo.acumuladoPor || {};
   const metaGlobal = pozo.metaGlobal || META_BASE;
   const porPiloto = {};
@@ -92,7 +92,7 @@ module.exports = wrap(async (req, res) => {
     if (!action && g.getUTCDay() !== 0) return res.status(200).json({ ok: true, skip: 'hoy no es domingo' });
     const s = await estado();
     const pz = await ghGet('pozo.json');
-    const pozo = pz ? pz.data : {};
+    const pozo = pz && !Array.isArray(pz.data) ? pz.data : {};
     pozo.acumuladoPor = pozo.acumuladoPor || {};
     pozo.historial = pozo.historial || [];
 
