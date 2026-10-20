@@ -33,6 +33,16 @@ label{font-size:12px;color:#9aa3b5;display:block;margin-top:10px}
 </style>
 </head>
 <body>
+<div id="oferta" style="display:none;position:fixed;inset:0;background:rgba(6,6,10,.96);z-index:90;padding:22px;overflow-y:auto">
+  <div style="max-width:480px;margin:0 auto">
+    <div style="text-align:center;margin-bottom:8px"><span style="font-size:40px">🔔</span></div>
+    <div style="text-align:center;font-weight:900;font-size:17px;color:#f0b90b;margin-bottom:2px">¡PEDIDO NUEVO!</div>
+    <div style="text-align:center;margin-bottom:14px"><span id="ofTimer" style="display:inline-block;background:#241a05;border:2px solid #f0b90b;color:#ffe08a;font-weight:900;font-size:22px;border-radius:12px;padding:6px 18px">30</span><span style="color:#9aa3b5;font-size:12px"> segundos para aceptar</span></div>
+    <div id="ofData"></div>
+    <button class="btn bA" id="ofOk" style="font-size:17px">✅ ACEPTAR — LLEVO EL PEDIDO</button>
+    <button class="btn bR" onclick="cerrarOferta()" style="margin-top:8px">Rechazar esta vez</button>
+  </div>
+</div>
 <div class="w">
   <div id="login">
     <h1>🏍️ Drago<span>Expres</span> — Piloto</h1>
@@ -78,6 +88,30 @@ label{font-size:12px;color:#9aa3b5;display:block;margin-top:10px}
 </div>
 <script>
 var PILOTO=null,POLL=null,PCALIF=null,ESTADOS={asignado:'NUEVO PEDIDO — ACEPTALO',aceptado:'PEDIDO ACEPTADO — marcá CUANDO SALGAS',en_camino:'EN CAMINO — marcá ENTREGADO al llegar'};
+
+var OF=null,OFINT=null;
+function cerrarOferta(){document.getElementById('oferta').style.display='none';if(OFINT){clearInterval(OFINT);OFINT=null}OF=null}
+function mostrarOferta(o){
+  OF=o;
+  var gan=o.envio-o.comision;
+  document.getElementById('ofData').innerHTML='<div class="pedido"><h3>'+({comida:'🍔 Comida',viaje:'🛺 Viaje',repuesto:'🔧 Repuesto'}[o.tipo]||'📦')+' · '+o.id+'</h3>'+
+   '<div class="dato">🏪 '+(o.local?o.local.nombre:'Local del cliente')+'</div>'+
+   '<div class="dato">👤 '+o.cliente.nombre+' · Zona '+o.zona+'</div>'+
+   '<div class="dato">📍 '+o.cliente.direccion+'</div>'+
+   '<div class="dato">📝 '+String(o.detalle).slice(0,120)+'</div>'+
+   '<div class="dato" style="font-size:15px">💰 GANÁS <b style="color:#f0b90b;font-size:19px">Q'+gan+'</b> (envío Q'+o.envio+' − comisión Q'+o.comision+')'+(o.compra?'<br>💵 El cliente te paga <b>Q'+(+o.compra+ +o.envio)+'</b> en efectivo (compra '+o.compra+' + envío '+o.envio+')':'')+'</div></div>';
+  document.getElementById('ofOk').onclick=function(){cerrarOferta();hacer('aceptar',o.id)};
+  document.getElementById('oferta').style.display='block';
+  var restante=Math.max(0,Math.round(30-(Date.now()-(o.tsAsignado||o.ts))/1000));
+  document.getElementById('ofTimer').textContent=restante;
+  if(OFINT)clearInterval(OFINT);
+  OFINT=setInterval(function(){
+    restante--;
+    var el=document.getElementById('ofTimer');if(!el){if(OFINT)clearInterval(OFINT);return}
+    if(restante<=0){cerrarOferta();tick();return}
+    el.textContent=restante;
+  },1000);
+}
 var AID=null;
 function api(fn){return (location.hostname.includes('vercel.app')?'/api':'https://dragoexpres.vercel.app/api')+'/'+fn}
 function chatHTML(o){return (o.chat||[]).map(function(m){return '<div style="margin:4px 0;font-size:13px"><b>'+(m.de==='piloto'?'Vos':'🧑 '+o.cliente.nombre.split(' ')[0])+':</b> '+m.texto+'</div>'}).join('')||'<div class="mini">Escribile a tu cliente acá (le llega al instante)</div>'}
@@ -145,9 +179,10 @@ function pintar(j){
   var sw=document.getElementById('sw');sw.className='sw'+(p.disponible?' on':'');
   document.getElementById('dis-txt').textContent=p.disponible?'DISPONIBLE 🟢':'NO DISPONIBLE';
   var act=document.getElementById('pedidoActivo'),sin=document.getElementById('sinPedido');
-  if(j.activo){sin.style.display='none';act.style.display='block';var ci0=document.getElementById('chat-in');var cv0=ci0?ci0.value:'';var foc0=!!ci0&&document.activeElement===ci0;AID=j.activo.id;act.innerHTML=pedidoHTML(j.activo);var ci1=document.getElementById('chat-in');if(ci1){ci1.value=cv0;if(foc0)ci1.focus();}}
-  else if(PCALIF){act.style.display='block';sin.style.display='none';act.innerHTML='<div class="pedido"><h3>¿Cómo estuvo el cliente? ⭐</h3><div class="mini">'+PCALIF.cliente+'</div><div id="cest" style="margin:10px 0">'+[1,2,3,4,5].map(function(n){return '<span style="font-size:30px;cursor:pointer;padding:2px" onclick="calificarCliente('+n+')">⭐</span>'}).join('')+'</div></div>';}
-  else{act.style.display='none';sin.style.display='block';
+  if(j.activo){if(j.activo.estado==='asignado'){if(!OF||OF.id!==j.activo.id){mostrarOferta(j.activo)}}else{cerrarOferta()}
+  sin.style.display='none';act.style.display='block';var ci0=document.getElementById('chat-in');var cv0=ci0?ci0.value:'';var foc0=!!ci0&&document.activeElement===ci0;AID=j.activo.id;act.innerHTML=pedidoHTML(j.activo);var ci1=document.getElementById('chat-in');if(ci1){ci1.value=cv0;if(foc0)ci1.focus();}}
+  else if(PCALIF){cerrarOferta();act.style.display='block';sin.style.display='none';act.innerHTML='<div class="pedido"><h3>¿Cómo estuvo el cliente? ⭐</h3><div class="mini">'+PCALIF.cliente+'</div><div id="cest" style="margin:10px 0">'+[1,2,3,4,5].map(function(n){return '<span style="font-size:30px;cursor:pointer;padding:2px" onclick="calificarCliente('+n+')">⭐</span>'}).join('')+'</div></div>';}
+  else{cerrarOferta();act.style.display='none';sin.style.display='block';
     var zb=j.zonaBuscando||[];
     document.getElementById('zonaBuscando').innerHTML=zb.length?'<b style="color:#ffe08a">'+zb.length+' pedido(s) esperando piloto en tu zona:</b>'+zb.map(pedidoPequeno).join(''):'';
   }
@@ -166,6 +201,7 @@ function pedidoHTML(o){
   '<div class="dato">📝 '+o.detalle+'</div>'+
   (o.compra?'<div class="dato">💵 Compra: <b>Q'+o.compra+'</b> (al local le pagás <b>Q'+(o.compra-(o.comisionLocal||0))+'</b>'+(o.comisionLocal?' · 5% promo de zona':'')+')</div>':'')+
   '<div class="dato">🐉 Tu envío: <b style="color:#f0b90b">Q'+o.envio+'</b> (menos Q'+o.comision+' de comisión = <b>Q'+(o.envio-o.comision)+'</b> para vos)</div>'+
+  '<div class="dato">⏱️ '+(o.prep?('El local confirmó: listo en ~'+o.prep.min+' min'):(o.local?'Esperando confirmación del local…':''))+'</div>'+
   '<a class="wa" href="'+wa+'" target="_blank">💬 Escribille al cliente</a>'+
   '<div style="margin-top:10px;border-top:1px solid #2a2b38;padding-top:8px"><div class="mini">💬 CHAT CON EL CLIENTE</div><div id="chat-list" style="max-height:140px;overflow-y:auto">'+chatHTML(o)+'</div><div style="display:flex;gap:6px;margin-top:6px"><input id="chat-in" placeholder="Escribí tu mensaje..." style="flex:1"><button class="btn bA" style="padding:9px 12px" onclick="enviarMsg()">➤</button></div></div>'+botones+'</div>';
 }

@@ -193,6 +193,7 @@ nav div.on{color:var(--rojo)}
       <div class="item" onclick="location.href='piloto.html'"><div class="ic">🏍️</div>Soy piloto<div class="flecha">›</div></div>
       <div class="item" onclick="location.href='flotista.html'"><div class="ic">🚚</div>Tengo vehículos (flotista)<div class="flecha">›</div></div>
       <div class="item" onclick="location.href='index.html'"><div class="ic">🏪</div>Quiero poner mi local<div class="flecha">›</div></div>
+      <div class="item" onclick="location.href='local.html'"><div class="ic">📋</div>Soy local: mis pedidos<div class="flecha">›</div></div>
       <div class="item" onclick="cerrarSesion()"><div class="ic">🚪</div>Cerrar sesión<div class="flecha">›</div></div>
     </div>
     <p class="mini" style="text-align:center;padding:6px 0 18px">🐉 DragoExpres · Dragon Trade Labs · Guatemala</p>
@@ -299,13 +300,13 @@ function pintarLocales(){
   });
   var h='';
   if(!loc.length){h='<div class="empty">Aún no hay locales mostrándose acá.<br><b>Recomendá tu local favorito</b> para que se registre 🐉<br><br><button class="btn bA" style="width:auto;padding:11px 18px;display:inline-block" onclick="location.href=\'index.html\'">Recomendar un local</button></div>';}
-  loc.forEach(function(l){
+  loc.forEach(function(l,idx){
     var ini=(l.nombre||'?').trim().charAt(0).toUpperCase();
     var wa='https://wa.me/502'+String(l.tel).replace(/\D/g,'').replace(/^502/,'');
     h+='<div class="loc"><div class="avatar">'+ini+'</div>'
       +'<div class="info"><b>'+l.nombre+'</b><span><span class="chip">'+(l.rubro||'Local')+'</span>✅ Verificado · '+(l.zona||'')+'</span></div>'
       +'<button class="btnW" onclick="window.open(\''+wa+'\',\'_blank\')">💬</button>'
-      +'<button class="btnS" onclick="abrirPedido(\'comida\',\''+String(l.nombre).replace(/'/g,"")+'\')">Pedir aquí</button></div>';
+      +'<button class="btnS" onclick="abrirPedidoLocal('+idx+')">Pedir aquí</button></div>';
   });
   document.getElementById('lista-locales').innerHTML=h;
 }
@@ -345,8 +346,10 @@ function borrarDir(i){var u=LS();u.dires.splice(i,1);SS(u);pintarDirs();}
 function cerrarSesion(){if(confirm('¿Borrar tus datos de este celular?')){localStorage.removeItem('dx_user');location.reload();}}
 
 /* ---------- sheet de pedido ---------- */
-var TIPO='comida',LOCAL_PRE='';
+var TIPO='comida',LOCAL_PRE='',LOCAL_TEL='';
+function abrirPedidoLocal(idx){var l=LOCALES[idx];if(!l)return;LOCAL_PRE=l.nombre;LOCAL_TEL=l.tel;abrirPedido('comida')}
 function abrirPedido(tipo,local){
+  if(!local){LOCAL_PRE='';LOCAL_TEL=''}
   var u=LS();
   document.getElementById('f-nombre').value=u.nombre||'';
   document.getElementById('f-tel').value=u.tel||'';
@@ -384,7 +387,7 @@ var ULT_TEL='';
 async function enviar(){
   var v=function(id){var e=document.getElementById(id);return e?e.value.trim():''};
   var u=LS();
-  var d={action:'crear',tipo:TIPO,nombre:v('f-nombre')||u.nombre,tel:v('f-tel')||u.tel,zona:zonaValor(),direccion:v('f-dir'),referencia:v('f-ref'),detalle:v('f-det'),compra:v('f-compra')||0,envio:v('f-envio')||0};
+  var d={action:'crear',tipo:TIPO,local:(LOCAL_TEL?{nombre:LOCAL_PRE,tel:LOCAL_TEL}:undefined),nombre:v('f-nombre')||u.nombre,tel:v('f-tel')||u.tel,zona:zonaValor(),direccion:v('f-dir'),referencia:v('f-ref'),detalle:v('f-det'),compra:v('f-compra')||0,envio:v('f-envio')||0};
   if(!d.nombre||!d.tel||!d.zona||!d.direccion||!d.detalle){alert('Completá tu nombre, WhatsApp, zona, dirección y qué pedís.');return}
   // guardar perfil para la proxima
   u.nombre=d.nombre;u.tel=d.tel;u.zona=d.zona;u.dires=u.dires||[];
@@ -419,6 +422,8 @@ async function actualizar(){
   if(o.estado==='aceptado'){e.className='st sAce';e.textContent='Aceptado ✅';i.textContent=o.piloto.nombre+' aceptó tu pedido'}
   if(o.estado==='en_camino'){e.className='st sCam';e.textContent='En camino 🛺';i.textContent=o.piloto.nombre+' va en camino. Tenés el efectivo listo: Q'+o.compra+' (compra) + Q'+o.envio+' (envío)'}
   if(o.estado==='entregado'){e.className='st sEnt';e.textContent='Entregado ✅';i.textContent='¡Listo! El dragón entregó tu pedido'}
+  if(o.prep&&['asignado','aceptado','en_camino'].includes(o.estado)){i.textContent=i.textContent+' — El local confirmó: listo en ~'+o.prep.min+' min ⏱️'}
+  else if(o.local&&!o.prep&&['asignado','aceptado'].includes(o.estado)){i.textContent=i.textContent+' — Esperando que '+o.local.nombre+' confirme tu orden…'}
   if(o.estado==='cancelado'){e.className='st sCan';e.textContent='Cancelado';i.textContent='Este pedido fue cancelado'}
   var mapa=document.getElementById('mapa');
   if(j.gps&&j.gps.lat){

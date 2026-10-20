@@ -46,6 +46,20 @@ function comisionDe(tipo, envio) {
   return 5;
 }
 
+
+// Expira pedidos asignados que el piloto no acepto en 35s -> vuelven a BUSCANDO
+const OFERTA_MS = 35000;
+async function expirarAsignados(peds, sha) {
+  let cambio = false;
+  peds.forEach(o => {
+    if (o.estado === 'asignado' && o.tsAsignado && Date.now() - o.tsAsignado > OFERTA_MS) {
+      o.estado = 'buscando'; o.piloto = null; o.expiro = Date.now(); cambio = true;
+    }
+  });
+  if (cambio) await ghPut('pedidos.json', sha, peds, 'expiracion de ofertas 30s');
+  return cambio;
+}
+
 // Datos publicos del vehiculo del piloto (marca, color, placa) para que el cliente lo reconozca
 function vehInfo(d) {
   d = d || {};
@@ -80,6 +94,7 @@ module.exports = wrap(async (req, res) => {
     if (st.susp) return res.status(200).json({ ok: false, suspendido: true, error: 'Suspendido por liquidación pendiente: Q' + (st.pendiente ? st.pendiente.monto : '?') + '. Pagá tus comisiones a la cuenta del banco y avisános por WhatsApp para reactivarte.' });
     const fpd = await ghGet('pedidos.json');
     const peds = fpd ? fpd.data : [];
+    await expirarAsignados(peds, fpd ? fpd.sha : null);
     const mio = peds.filter(o => o.piloto && o.piloto.tel === tel && !['entregado', 'cancelado'].includes(o.estado));
     const zona = peds.filter(o => o.estado === 'buscando' && o.zona === p.datos.zona);
     const califs = peds.filter(o => o.piloto && o.piloto.tel === tel && o.califCliente > 0);
@@ -115,6 +130,14 @@ module.exports = wrap(async (req, res) => {
     const pago = b.pago === 'transferencia' ? 'transferencia' : 'efectivo';
     const referencia = pago === 'transferencia' ? String(b.refbanco || '').trim().slice(0, 40) : '';
     const id = 'DX' + String(now).slice(-6) + String(Math.floor(Math.random() * 90) + 10);
+    const localObj = b.local && b.local.tel ? { nombre: String(b.local.nombre || '').slice(0, 60), tel: String(b.local.tel).replace(/\D/g, '').slice(0, 25) } : null;
+    if (localObj) {
+      const fl = await ghGet('locales.json'); const pausa = (fl ? fl.data : []).find(x => x.tel === localObj.tel && x.hasta > now);
+      if (pausa) {
+        const mins = Math.max(1, Math.ceil((pausa.hasta - now) / 60000));
+        return res.status(200).json({ ok: false, error: localObj.nombre + ' está saturado ahora. Probá de nuevo en ' + mins + ' minuto(s) o pedí de otro local.' });
+      }
+    }
     const compra = dinero(b.compra || 0);
     let comisionLocal = 0;
     if (tipo === 'comida' && compra > 0) {
@@ -128,7 +151,7 @@ module.exports = wrap(async (req, res) => {
       cliente: { nombre, tel, direccion: String(b.direccion).slice(0, 160), referencia: String(b.referencia || '').slice(0, 160) },
       detalle: String(b.detalle).slice(0, 400),
       compra: dinero(b.compra || 0), envio, comision: comisionDe(tipo, envio), comisionLocal,
-      estado: 'buscando', piloto: null, ts: now, pago, referencia
+      estado: 'buscando', piloto: null, ts: now, pago, referencia, local: localObj || undefined
     };
     // dispatch: primer piloto disponible de la zona
     const fp = await ghGet('pilots.json'); const pilots = fp ? fp.data : [];
@@ -142,6 +165,7 @@ module.exports = wrap(async (req, res) => {
     if (cand.length) {
       const r = reg.find(y => y.tipo === 'piloto' && String(y.datos.tel).trim() === cand[0].tel);
       pedido.estado = 'asignado';
+      pedido.tsAsignado = now;
       pedido.piloto = Object.assign({ tel: cand[0].tel, nombre: r.datos.nombre }, vehInfo(r.datos));
       const st = pilots.find(x => x.tel === cand[0].tel);
       // el piloto asignado queda "ocupado" hasta entregar/rechazar
@@ -149,8 +173,52 @@ module.exports = wrap(async (req, res) => {
     peds.push(pedido);
     await ghPut('pedidos.json', fpd ? fpd.sha : null, peds, 'pedido nuevo ' + id);
     const ic = { comida: '🍔', viaje: '🛺', repuesto: '🔧' }[tipo];
-    await aviso(`🚀 DRAGOEXPRES — PEDIDO NUEVO ${ic}\n${id} · ${tipo.toUpperCase()} · ${zona}\nCliente: ${nombre} (${tel})\nDetalle: ${String(b.detalle).slice(0, 120)}\nEnvío: Q${envio} · Comisión DragoExpres: Q${pedido.comision}${pedido.comisionLocal ? ' · 🍽️ 5% al local (zona operativa >3 meses): Q' + pedido.comisionLocal : ''}\n${pago === 'transferencia' ? '💳 Pago: TRANSFERENCIA al Banco Industrial' + (referencia ? ' · Ref: ' + referencia : ' · (sin referencia, verificar)') : '💵 Pago: EFECTIVO al piloto'}\n${pedido.piloto ? '→ Asignado AUTOMÁTICAMENTE a: ' + pedido.piloto.nombre + ' (' + pedido.piloto.tel + ')' : '→ SIN piloto disponible ahora, queda BUSCANDO'}`);
+    await aviso(`🚀 DRAGOEXPRES — PEDIDO NUEVO ${ic}\n${id} · ${tipo.toUpperCase()} · ${zona}\nCliente: ${nombre} (${tel})\n${pedido.local ? 'Local: ' + pedido.local.nombre + ' · ' : ''}Detalle: ${String(b.detalle).slice(0, 120)}\nEnvío: Q${envio} · Comisión DragoExpres: Q${pedido.comision}${pedido.comisionLocal ? ' · 🍽️ 5% al local (zona operativa >3 meses): Q' + pedido.comisionLocal : ''}\n${pago === 'transferencia' ? '💳 Pago: TRANSFERENCIA al Banco Industrial' + (referencia ? ' · Ref: ' + referencia : ' · (sin referencia, verificar)') : '💵 Pago: EFECTIVO al piloto'}\n${pedido.piloto ? '→ Asignado AUTOMÁTICAMENTE a: ' + pedido.piloto.nombre + ' (' + pedido.piloto.tel + ')' : '→ SIN piloto disponible ahora, queda BUSCANDO'}`);
     return res.status(200).json({ ok: true, pedido });
+  }
+
+
+  // ---- LOCAL: login (solo WhatsApp, debe estar aprobado) ----
+  if (action === 'loginLocal') {
+    const tel = String(b.tel || '').replace(/\D/g, '');
+    if (!tel) return res.status(200).json({ ok: false, error: 'Decinos tu WhatsApp.' });
+    const fr = await ghGet('registros.json'); const reg = fr ? fr.data : [];
+    const r = reg.find(x => x.tipo === 'local' && x.estado === 'aprobado' && String(x.datos.whatsapp || x.datos.tel || '').replace(/\D/g, '') === tel);
+    if (!r) return res.status(200).json({ ok: false, error: 'No encontramos un local aprobado con ese WhatsApp.' });
+    const fpd = await ghGet('pedidos.json'); const peds = fpd ? fpd.data : [];
+    await expirarAsignados(peds, fpd ? fpd.sha : null);
+    const mios = peds.filter(x => x.local && x.local.tel === tel);
+    const activos = mios.filter(x => !['entregado', 'cancelado'].includes(x.estado));
+    const fl = await ghGet('locales.json');
+    const pausa = (fl ? fl.data : []).find(x => x.tel === tel && x.hasta > now);
+    return res.status(200).json({ ok: true, local: { nombre: r.datos.nombre, zona: r.datos.zona, tel }, activos: activos.slice(-10).reverse(), totalEntregados: mios.filter(x => x.estado === 'entregado').length, pausa: pausa ? pausa.hasta : null });
+  }
+
+  // ---- LOCAL: confirmar pedido con tiempo de preparacion ----
+  if (action === 'prep') {
+    const tel = String(b.tel || '').replace(/\D/g, ''), id = String(b.id || ''), min = Math.max(5, Math.min(120, parseInt(b.min) || 25));
+    const fpd = await ghGet('pedidos.json'); const peds = fpd ? fpd.data : [];
+    const o = peds.find(x => x.id === id);
+    if (!o || !o.local || o.local.tel !== tel) return res.status(200).json({ ok: false, error: 'Pedido no encontrado para tu local.' });
+    if (['entregado', 'cancelado'].includes(o.estado)) return res.status(200).json({ ok: false, error: 'Este pedido ya cerró.' });
+    o.prep = { min, ts: now };
+    await ghPut('pedidos.json', fpd.sha, peds, 'local confirmo ' + id + ' (' + min + ' min)');
+    await aviso('🏪 DRAGOEXPRES — ' + o.local.nombre + ' confirmó el pedido ' + id + '\nListo en ~' + min + ' minutos.');
+    return res.status(200).json({ ok: true, pedido: o });
+  }
+
+  // ---- LOCAL: pausar / reanudar pedidos ----
+  if (action === 'pausaLocal') {
+    const tel = String(b.tel || '').replace(/\D/g, ''), min = parseInt(b.min) || 0;
+    const fl = await ghGet('locales.json'); const arr = fl ? fl.data : [];
+    let row = arr.find(x => x.tel === tel);
+    if (min > 0) {
+      if (!row) { row = { tel }; arr.push(row); }
+      row.hasta = now + min * 60000; row.ts = now;
+      await aviso('⏸️ DRAGOEXPRES — local pausó pedidos por ' + min + ' min');
+    } else if (row) { row.hasta = 0; }
+    await ghPut('locales.json', fl ? fl.sha : null, arr, 'pausa local ' + (min || 'off'));
+    return res.status(200).json({ ok: true, pausa: min > 0 ? row.hasta : null });
   }
 
   // ---- CHAT cliente <-> piloto (estilo PedidosYa) ----
@@ -197,6 +265,7 @@ module.exports = wrap(async (req, res) => {
   // ---- consultar estado (usuario o pantalla) ----
   if (action === 'estado') {
     const fpd = await ghGet('pedidos.json'); const peds = fpd ? fpd.data : [];
+    await expirarAsignados(peds, fpd ? fpd.sha : null);
     if (b.id) {
       const o = peds.find(x => x.id === String(b.id).trim());
       if (!o) return res.status(200).json({ ok: false, error: 'Pedido no encontrado.' });
@@ -243,6 +312,7 @@ module.exports = wrap(async (req, res) => {
     const o = peds.find(x => x.id === id);
     if (!o) return res.status(200).json({ ok: false, error: 'Pedido no encontrado.' });
     if (action === 'aceptar') {
+      if (o.estado === 'asignado' && o.tsAsignado && now - o.tsAsignado > OFERTA_MS) { o.estado = 'buscando'; o.piloto = null; o.expiro = now; await ghPut('pedidos.json', fpd.sha, peds, 'expirado ' + id); return res.status(200).json({ ok: false, error: 'La oferta expiró (30 segundos). El pedido volvió a buscando.' }); }
       // puede aceptar el suyo asignado o tomar uno 'buscando' de su zona
       const fr = await ghGet('registros.json'); const reg = fr ? fr.data : [];
       const p = reg.find(r => r.tipo === 'piloto' && r.estado === 'aprobado' && String(r.datos.tel).trim() === tel);

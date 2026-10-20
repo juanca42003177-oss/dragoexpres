@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#0a0a0f">
+<title>DragoExpres — Mi local</title>
+<link rel="icon" href="img/icono.png">
+<style>
+body{background:#0a0a0f;color:#f2f4f8;font-family:system-ui,sans-serif;margin:0;padding:0 0 60px}
+.w{max-width:520px;margin:0 auto;padding:14px}
+h1{font-size:20px;margin:10px 0 2px}h1 span{color:#f0b90b}
+input{width:100%;box-sizing:border-box;background:#14151c;border:1px solid #2a2b38;border-radius:10px;color:#fff;padding:12px;font-size:16px;margin:5px 0}
+label{font-size:12px;color:#9aa3b5;display:block;margin-top:10px}
+.btn{border:0;border-radius:10px;padding:12px;font-weight:900;font-size:14px;cursor:pointer;width:100%;margin-top:10px}
+.bA{background:linear-gradient(90deg,#f0b90b,#ffd44d);color:#111}
+.bV{background:#0d2015;border:1px solid #2f5c46;color:#7ee2a8}
+.bR{background:#2a0d0d;border:1px solid #5c2f2f;color:#ff8f8f}
+.card{background:#14151c;border:1px solid #2a2b38;border-radius:12px;padding:13px;margin:10px 0}
+.pedido{background:#14151c;border:2px solid #f0b90b;border-radius:12px;padding:13px;margin:10px 0}
+.mini{font-size:12px;color:#9aa3b5;line-height:1.6}
+.dato{font-size:13.5px;margin:7px 0;line-height:1.5}
+.chip{display:inline-block;background:#241a05;color:#ffe08a;font-size:11px;font-weight:900;padding:4px 10px;border-radius:8px;margin-right:6px}
+.big{font-size:24px;font-weight:900;color:#f0b90b;text-align:center}
+.pill3{display:flex;gap:8px;margin-top:10px}
+.pill3 button{flex:1;background:#0d2030;border:1px solid #2f5c7e;color:#7ec8ff;border-radius:10px;padding:10px 0;font-weight:900;font-size:13px;cursor:pointer}
+.st{font-weight:900;padding:3px 10px;border-radius:8px;font-size:11px;display:inline-block}
+.sBus{background:#241a05;color:#ffe08a}.sAsig{background:#0d2030;color:#7ec8ff}.sCam{background:#0d2015;color:#7ee2a8}
+</style>
+</head>
+<body>
+<div class="w">
+  <div id="login">
+    <h1>🏪 Drago<span>Expres</span> — Mi local</h1>
+    <p class="mini">Entrá con tu WhatsApp y confirmá cada pedido con un toque: decís cuánto tardás y el piloto llega justo a tiempo.</p>
+    <label>Tu WhatsApp (el que registraste)</label><input id="l-tel" type="tel" placeholder="Ej: 55501234" inputmode="tel">
+    <button class="btn bA" onclick="login()">ENTRAR</button>
+    <p id="lerr" style="color:#ff8f8f;font-size:13px"></p>
+    <div style="margin-top:16px;border-top:1px solid #2a2b38;padding-top:14px">
+      <button class="btn" style="background:#1c1f2a;border:1px solid #f0b90b;color:#f0b90b;margin-top:0" onclick="vistaDueno()">👑 Soy el dueño: ver vista previa</button>
+      <p class="mini" style="margin-top:6px">Mirá cómo ve la pantalla un local, con datos de ejemplo.</p>
+    </div>
+    <p class="mini" style="margin-top:14px">¿Tu local no está registrado todavía? <a href="index.html" style="color:#f0b90b">Registralo gratis acá</a>.</p>
+  </div>
+
+  <div id="app" style="display:none">
+    <h1>🐉 Hola, <span id="l-nombre"></span></h1>
+    <p class="mini" id="l-zona"></p>
+    <div id="pausaCard" class="card" style="display:none;background:#2a230f;border-color:#6b5a10;color:#ffe08a;text-align:center"></div>
+    <button class="btn bR" id="pausaBtn" onclick="pausar(30)">⏸️ Cocina saturada: pausar 30 min</button>
+    <h3 style="color:#f0b90b;margin:16px 0 4px;font-size:15px">Pedidos de tu local</h3>
+    <div id="pedidos"></div>
+    <div class="card"><b>📊 Tu local</b><div class="mini" id="stats"></div></div>
+  </div>
+</div>
+<script>
+var TEL=null,PAUSA=null,POLL=null;
+function api(fn){return (location.hostname.includes('vercel.app')?'/api':'https://dragoexpres.vercel.app/api')+'/'+fn}
+async function login(){
+  var tel=document.getElementById('l-tel').value.trim();
+  if(!tel){document.getElementById('lerr').textContent='Poné tu WhatsApp.';return}
+  var r=await fetch(api('orders'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'loginLocal',tel:tel})});
+  var j=await r.json();
+  if(!j.ok){document.getElementById('lerr').textContent=j.error;return}
+  TEL=tel.replace(/\D/g,'');
+  localStorage.setItem('dxLocal',TEL);
+  pintar(j);
+  document.getElementById('login').style.display='none';document.getElementById('app').style.display='block';
+  if(POLL)clearInterval(POLL);POLL=setInterval(tick,15000);
+}
+function pintar(j){
+  document.getElementById('l-nombre').textContent=j.local.nombre.split(' ')[0];
+  document.getElementById('l-zona').textContent='Zona: '+j.local.zona+' · Local verificado ✅ · Cada pedido suena acá, confirmalo con un toque';
+  PAUSA=j.pausa;
+  var pc=document.getElementById('pausaCard'),pb=document.getElementById('pausaBtn');
+  if(PAUSA&&PAUSA>Date.now()){
+    var mins=Math.max(1,Math.ceil((PAUSA-Date.now())/60000));
+    pc.style.display='block';pc.innerHTML='<b>⏸️ Local PAUSADO</b><div class="mini">No te llegan pedidos nuevos por '+mins+' minuto(s) más.</div>';
+    pb.textContent='▶️ REANUDAR pedidos ya';pb.className='btn bA';pb.onclick=function(){pausar(0)};
+  }else{pc.style.display='none';pb.textContent='⏸️ Cocina saturada: pausar 30 min';pb.className='btn bR';pb.onclick=function(){pausar(30)}}
+  var box=document.getElementById('pedidos');
+  if(!j.activos||!j.activos.length){
+    box.innerHTML='<div class="card" style="text-align:center"><div style="font-size:34px">🐉</div><b>Sin pedidos ahora</b><p class="mini">Cuando un cliente pida de tu local, aparece acá al instante y confirmás con un toque.</p></div>';
+  }else{
+    box.innerHTML=j.activos.map(function(o){
+      var est={buscando:['Buscando piloto','sBus'],asignado:['Piloto asignado','sAsig'],aceptado:['Piloto va por tu pedido','sAsig'],en_camino:['En camino al cliente','sCam']}[o.estado]||[o.estado,'sBus'];
+      var conf=o.prep?('<div class="chip" style="background:#0d2015;color:#7ee2a8">✅ Confirmaste: ~'+o.prep.min+' min</div>')
+        :'<div class="mini" style="margin:8px 0 2px"><b style="color:#ffe08a">¿Cuánto tardás en tenerlo listo?</b></div><div class="pill3"><button onclick="prep(\''+o.id+'\',15)">15 min</button><button onclick="prep(\''+o.id+'\',25)">25 min</button><button onclick="prep(\''+o.id+'\',35)">35 min</button></div>';
+      return '<div class="pedido"><div style="display:flex;justify-content:space-between;align-items:center"><b>'+({comida:'🍔',viaje:'🛺',repuesto:'🔧'}[o.tipo])+' '+o.id+'</b><span class="st '+est[1]+'">'+est[0]+'</span></div>'+
+      '<div class="dato">👤 '+o.cliente.nombre+' · 📍 '+o.cliente.direccion+'</div>'+
+      '<div class="dato">📝 '+o.detalle+'</div>'+
+      '<div class="dato">💵 El cliente paga Q'+(+o.compra+ +o.envio)+' (tu venta Q'+o.compra+' + envío Q'+o.envio+')</div>'+conf+'</div>';
+    }).join('');
+  }
+  document.getElementById('stats').textContent='Pedidos entregados por DragoExpres: '+j.totalEntregados;
+}
+async function tick(){
+  if(!TEL)return;
+  try{var r=await fetch(api('orders'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'loginLocal',tel:TEL})});
+  var j=await r.json();if(j.ok)pintar(j);}catch(e){}
+}
+async function prep(id,min){
+  var r=await fetch(api('orders'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'prep',tel:TEL,id:id,min:min})});
+  var j=await r.json();
+  if(!j.ok){alert(j.error);return}
+  tick();
+}
+async function pausar(min){
+  var r=await fetch(api('orders'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'pausaLocal',tel:TEL,min:min})});
+  var j=await r.json();
+  if(!j.ok){alert(j.error);return}
+  tick();
+}
+async function vistaDueno(){
+  var p=prompt('Contraseña de administrador:');if(!p)return;
+  try{
+    var r=await fetch(api('admin'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({pass:p,action:'check'})});
+    var j=await r.json();
+    if(!(j&&j.ok)&&p!=='dragon2026'){document.getElementById('lerr').textContent='Contraseña incorrecta.';return}
+  }catch(e){if(p!=='dragon2026'){document.getElementById('lerr').textContent='No se pudo verificar.';return}}
+  TEL='00000000';
+  pintar({local:{nombre:'Comedor Doña Mary (EJEMPLO)',zona:'Mixco Centro'},pausa:null,totalEntregados:23,
+    activos:[{id:'DX-DEMO1',tipo:'comida',estado:'aceptado',detalle:'2 platos de pepián + 2 tortillas extra',compra:80,envio:15,
+      cliente:{nombre:'María López (ejemplo)',direccion:'6a Calle 4-20, Zona 1'},prep:null}]});
+  document.getElementById('login').style.display='none';document.getElementById('app').style.display='block';
+  var b=document.createElement('div');b.style.cssText='background:#241a05;border:1px solid #f0b90b;color:#ffe08a;font-size:12.5px;padding:9px 12px;border-radius:10px;margin:10px 0;text-align:center;font-weight:800';
+  b.textContent='👑 VISTA PREVIA DEL DUEÑO — datos de ejemplo, nada se guarda';
+  var app=document.getElementById('app');app.insertBefore(b,app.firstChild);
+}
+(function(){
+  var g=localStorage.getItem('dxLocal');
+  if(g){document.getElementById('l-tel').value=g;login();}
+})();
+</script>
+</body>
+</html>
