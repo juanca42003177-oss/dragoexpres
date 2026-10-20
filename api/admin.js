@@ -37,11 +37,21 @@ module.exports = wrap(async (req, res) => {
     return res.status(200).json({ ok: true, registros: data });
   }
   if (action === 'aprobar' || action === 'rechazar') {
-    const i = data.findIndex(r => String(r.ts) === String(d.ts));
-    if (i < 0) return res.status(200).json({ ok: false, error: 'Registro no encontrado' });
-    data[i].estado = action === 'aprobar' ? 'aprobado' : 'rechazado';
-    await ghPut(PATH, f ? f.sha : null, data, 'admin: actualizar registro');
-    return res.status(200).json({ ok: true, estado: data[i].estado });
+    // blindaje: reintenta con lectura fresca si la bodega se estaba actualizando a la vez (HTTP 409)
+    for (let intento = 0; intento < 3; intento++) {
+      const f2 = intento === 0 && f ? f : await ghGet();
+      const data2 = f2 ? f2.data : [];
+      const i = data2.findIndex(r => String(r.ts) === String(d.ts));
+      if (i < 0) return res.status(200).json({ ok: false, error: 'Registro no encontrado' });
+      data2[i].estado = action === 'aprobar' ? 'aprobado' : 'rechazado';
+      try {
+        await ghPut(PATH, f2 ? f2.sha : null, data2, 'admin: actualizar registro');
+        return res.status(200).json({ ok: true, estado: data2[i].estado });
+      } catch (e) {
+        if (intento === 2) return res.status(200).json({ ok: false, error: 'El sistema se estaba actualizando justo ahora. Tocá de nuevo en 5 segundos.' });
+        await new Promise(r2 => setTimeout(r2, 1500));
+      }
+    }
   }
   if (action === 'pedidos') {
     // pedidos.json vive en la misma rama; se lee aparte para no romper si aún no existe
