@@ -191,10 +191,10 @@ input,textarea,select{-webkit-user-select:text;user-select:text}
       <b style="font-size:15px">💡 Buzón de sugerencias</b>
       <p class="mini" style="margin:6px 0">¿Cómo podemos mejorar? Decinos qué local querés, qué te gustaría que el dragón haga mejor, o cualquier idea. Llega directo al administrador.</p>
       <textarea id="sug-texto" placeholder="Escribí acá tu sugerencia o pedido..." style="width:100%;box-sizing:border-box;border:1px solid #e0e0e0;border-radius:10px;padding:10px;font-size:14px;min-height:70px;resize:vertical"></textarea>
-      <button class="btn bA" onclick="enviarSugerencia()" id="sug-btn">Enviar al administrador 🐉</button>
+      <button class="btn bA" onclick="enviarSugerencia()" id="sug-btn">Enviar al administrador </button>
     </div>
     <div class="pcard">
-      <b style="font-size:15px">🏪 ¿Falta tu local favorito? Invitalo 🐉</b>
+      <b style="font-size:15px">🏪 ¿Falta tu local favorito? Invitalo </b>
       <p class="mini" style="margin:6px 0">Mandale esta invitación por WhatsApp y ayualo a vender más. Es gratis para vos y para él.</p>
       <label>Nombre del local</label><input id="inv-nombre" placeholder="Ej: Pizzería El Horno">
       <label>WhatsApp del local (opcional)</label><input id="inv-tel" type="tel" placeholder="Ej: 55501234">
@@ -373,12 +373,12 @@ function invitarLocal(){
   if(nom.length<3){alert('Escribí el nombre del local.');return}
   var tel=document.getElementById('inv-tel').value.replace(/\D/g,'');
   if(tel.length>=8&&tel.indexOf('502')!==0&&tel.length<=8)tel='502'+tel;
-  var msg='¡Hola '+nom+'! 👋🐉\n\nLos clientes te están buscando en *DragoExpres*, la app de reparto que está creciendo en Guatemala. Te invitamos a poner tu local, mirá lo que ganás:\n\n✅ *90 DÍAS SIN COMISIÓN* — vendés de prueba gratis\n✅ Después solo *10%* (las otras apps te cobran hasta 25-30%)\n✅ *Vos ponés tus precios y tus promos*\n✅ Registro gratis y rápido: dragoexpres.vercel.app\n\nTus pedidos llegan a la puerta de tus clientes. No perdés nada, más bien ganás clientes nuevos 🐉💰';
+  var msg='¡Hola '+nom+'! 👋\n\nLos clientes te están buscando en *DragoExpres*, la app de reparto que está creciendo en Guatemala. Te invitamos a poner tu local, mirá lo que ganás:\n\n✅ *90 DÍAS SIN COMISIÓN* — vendés de prueba gratis\n✅ Después solo *10%* (las otras apps te cobran hasta 25-30%)\n✅ *Vos ponés tus precios y tus promos*\n✅ Registro gratis y rápido: dragoexpres.vercel.app\n\nTus pedidos llegan a la puerta de tus clientes. No perdés nada, más bien ganás clientes nuevos 💰';
   var url='https://wa.me/'+(tel.length>=8?tel:'')+'?text='+encodeURIComponent(msg);
   window.open(url,'_blank');
   var u=datosUsuario();
   fetch(api('orders'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'sugerencia',rol:'usuario',nombre:(u&&u.nombre)||'',tel:(u&&u.tel)||'',texto:'🏪 INVITÓ al local: '+nom+(tel?' (WhatsApp '+tel+')':'')})}).catch(function(){});
-  alert('¡Gracias! Abrimos WhatsApp para que le mandes la invitación a '+nom+' 🐉');
+  alert('¡Gracias! Abrimos WhatsApp para que le mandes la invitación a '+nom+' ');
 }
 async function enviarSugerencia(){
   var tx=document.getElementById('sug-texto').value.trim();
@@ -388,10 +388,10 @@ async function enviarSugerencia(){
     var u=datosUsuario();
     var r=await fetch(api('orders'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'sugerencia',rol:'usuario',nombre:(u&&u.nombre)||'',tel:(u&&u.tel)||'',texto:tx})});
     var j=await r.json();
-    if(j.ok){document.getElementById('sug-texto').value='';alert('¡Gracias! El dragón leyó tu sugerencia 🐉');}
+    if(j.ok){document.getElementById('sug-texto').value='';alert('¡Gracias! El dragón leyó tu sugerencia ');}
     else alert(j.error||'No se pudo enviar, probá de nuevo.');
   }catch(e){alert('No se pudo enviar, revisá tu internet.')}
-  btn.disabled=false;btn.textContent='Enviar al administrador 🐉';
+  btn.disabled=false;btn.textContent='Enviar al administrador ';
 }
 function guardarPerfil(){
   var u=LS();
