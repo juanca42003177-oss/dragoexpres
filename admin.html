@@ -48,6 +48,7 @@ input{width:100%;background:#0d0e14;border:1px solid #2a2b38;border-radius:10px;
     </div>
     <div class="aviso" id="modoAviso" style="display:none">👁 VISTA PREVIA con datos de EJEMPLO — probá todos los botones. Con la API montada en Vercel (ADMIN_PASS) acá aparecen los registros REALES de tu app.</div>
     <div class="tabs" id="tabs"></div>
+    <div id="vivoCard"></div>
     <div id="resumen"></div>
     <div id="lista"></div>
     <div id="zonas"></div>
@@ -56,6 +57,7 @@ input{width:100%;background:#0d0e14;border:1px solid #2a2b38;border-radius:10px;
 </div>
 <script>
 var PASS='',MODO_DEMO=false,TAB='resumen';
+setInterval(function(){if(PASS&&TAB==='resumen')cargarVivo()},30000);
 var DEMO=[
  {tipo:'piloto',ts:1,estado:'aprobado',datos:{nombre:'Carlos Mendoza',tel:'5555 1111',zona:'Zona 11',vehiculo:'moto',marca:'Honda',color:'rojo',placa:'C-123ABC',h24:true,equipo:true}},
  {tipo:'piloto',ts:2,estado:'pendiente',datos:{nombre:'Luis Tzoc',tel:'5555 2222',zona:'Mixco',vehiculo:'bicicleta',marca:'Trek',color:'negro',equipo:true}},
@@ -157,6 +159,14 @@ async function verDoc(archivo){
   if(j&&j.ok)document.getElementById('docImg').innerHTML='<img src="'+j.img+'" style="width:100%;border-radius:12px;border:1px solid #2a2b38">';
   else alert((j&&j.error)||'No se pudo abrir el documento.');
 }
+async function cargarVivo(){
+  try{
+    var r=await fetch(apiBase()+'/admin',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({pass:PASS,action:'vivo'})});
+    var j=await r.json();if(!j||!j.ok||!j.vivo)return;
+    var v=j.vivo,el=document.getElementById('vivoCard');if(!el)return;
+    el.innerHTML='<div class="card"><div class="av">📡</div><div><b>En vivo (ahora mismo)</b><div class="s">🏍️ '+v.pilotosDisponibles+' pilotos disponibles · 🛺 '+v.pilotosOcupados+' en ruta · 📦 '+('buscando '+v.pedidos.buscando+' · asignado '+v.pedidos.asignado+' · aceptado '+v.pedidos.aceptado+' · en camino '+v.pedidos.en_camino)+'</div><div class="s">'+v.entregadosHoy+' entregas hoy · ⏳ '+v.pendientesPago+' pilotos pendientes de pago · 🏪 '+v.localesAprobados+' locales activos</div></div></div>';
+  }catch(e){}
+}
 async function waResumen(tel){
   var r=await fetch(apiBase()+'/admin',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({pass:PASS,action:'detalle',tel:tel})});
   var j=await r.json();if(!j||!j.ok){alert('No se pudo armar el resumen.');return}
@@ -181,7 +191,7 @@ function pintar(regs){
   document.getElementById('zonas').style.display=TAB==='zonas'?'block':'none';
   document.getElementById('pedidosBox').style.display=TAB==='pedidos'?'block':'none';
   if(TAB==='pedidos'){cargarPedidos();}
-  if(TAB==='resumen'){
+  if(TAB==='resumen'){ cargarVivo();
     var n={pilotos:0,locales:0,flota:0,usuario:0,pen:0,apro:0};
     regs.forEach(function(r){n[r.tipo]=(n[r.tipo]||0)+1;if(r.estado==='aprobado')n.apro++;if(r.estado==='pendiente')n.pen++;});
     var zz={};
