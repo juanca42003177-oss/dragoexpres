@@ -81,6 +81,32 @@ module.exports = wrap(async (req, res) => {
     return res.status(200).json({ ok: true, zonas: [...zonas].sort() });
   }
 
+
+  // ---- PROMOS auto-gestionadas del local ----
+  if (action === 'promoAdd' || action === 'promoDel') {
+    const tel = String(b.tel || '').replace(/\D/g, '');
+    const fr = await ghGet('registros.json');
+    const reg = fr ? fr.data : [];
+    const esLocal = reg.some(r => r.tipo === 'local' && r.estado === 'aprobado' && String(r.datos.tel).replace(/\D/g, '') === tel);
+    if (!esLocal) return res.status(200).json({ ok: false, error: 'No encontramos un local aprobado con ese WhatsApp.' });
+    const fm = await ghGet('menus.json'); let arr = fm ? fm.data : [];
+    let m = arr.find(x => x.tel === tel);
+    if (!m) { m = { tel, items: [] }; arr.push(m); }
+    if (action === 'promoAdd') {
+      const titulo = String(b.titulo || '').trim().slice(0, 60);
+      const detalle = String(b.detalle || '').trim().slice(0, 140);
+      if (!titulo) return res.status(200).json({ ok: false, error: 'Poné un título a la promo.' });
+      m.promos = m.promos || [];
+      if (m.promos.length >= 5) return res.status(200).json({ ok: false, error: 'Máximo 5 promos activas.' });
+      m.promos.push({ id: String(now) + String(Math.floor(Math.random() * 90) + 10), titulo, detalle, ts: now });
+    } else {
+      const pid = String(b.promoId || '');
+      m.promos = (m.promos || []).filter(x => x.id !== pid);
+    }
+    await ghPut('menus.json', fm ? fm.sha : null, arr, 'promo ' + action + ' ' + tel);
+    return res.status(200).json({ ok: true, promos: m.promos || [] });
+  }
+
   // ---- PILOTO: login (tel + placa) ----
   if (action === 'loginPiloto') {
     const tel = String(b.tel || '').trim(), placa = String(b.placa || '').trim().toUpperCase();
@@ -99,7 +125,7 @@ module.exports = wrap(async (req, res) => {
     const zona = peds.filter(o => o.estado === 'buscando' && o.zona === p.datos.zona);
     const califs = peds.filter(o => o.piloto && o.piloto.tel === tel && o.califCliente > 0);
     const calif = califs.length ? Math.round(califs.reduce((x, o) => x + o.califCliente, 0) / califs.length * 10) / 10 : null;
-    return res.status(200).json({ ok: true, piloto: { nombre: p.datos.nombre, zona: p.datos.zona, vehiculo: p.datos.vehiculo, marca: p.datos.marca || '', color: p.datos.color || '', placa: p.datos.placa || '', disponible: st.disponible, ganadoHoy: st.ganadoHoy || 0, ganadoSemana: st.ganadoSemana || 0, pedidosHoy: st.pedidosHoy || 0, calif: calif, pendiente: st.pendiente || null }, activo: mio[0] || null, zonaBuscando: zona });
+    return res.status(200).json({ ok: true, piloto: { nombre: p.datos.nombre, zona: p.datos.zona, vehiculo: p.datos.vehiculo, marca: p.datos.marca || '', color: p.datos.color || '', placa: p.datos.placa || '', disponible: st.disponible, ganadoHoy: st.ganadoHoy || 0, ganadoSemana: st.ganadoSemana || 0, pedidosHoy: st.pedidosHoy || 0, racha: st.racha || 0, boletosExtra: st.boletosExtra || 0, calif: calif, pendiente: st.pendiente || null }, activo: mio[0] || null, zonaBuscando: zona });
   }
 
   // ---- PILOTO: ponerse disponible / no disponible ----
@@ -231,7 +257,7 @@ module.exports = wrap(async (req, res) => {
     if (!tel) return res.status(200).json({ ok: false, error: 'Decinos de qué local el menú.' });
     const fm = await ghGet('menus.json');
     const m = (fm ? fm.data : []).find(x => x.tel === tel);
-    return res.status(200).json({ ok: true, items: (m && m.items) || [] });
+    return res.status(200).json({ ok: true, items: (m && m.items) || [], promos: (m && m.promos) || [] });
   }
   if (['menuAdd', 'menuEdit', 'menuDel'].includes(action)) {
     const tel = String(b.tel || '').replace(/\D/g, '');
@@ -267,7 +293,7 @@ module.exports = wrap(async (req, res) => {
   // ---- CHAT cliente <-> piloto (estilo PedidosYa) ----
   if (action === 'msg') {
     const id = String(b.id || '');
-    const de = b.de === 'piloto' ? 'piloto' : 'cliente';
+    const de = ['piloto', 'cliente', 'local'].includes(b.de) ? b.de : 'cliente';
     const texto = String(b.texto || '').trim().slice(0, 300);
     const tel = String(b.tel || '').replace(/\D/g, '');
     if (!id || !texto || !tel) return res.status(200).json({ ok: false, error: 'Faltan datos del mensaje.' });
@@ -277,6 +303,8 @@ module.exports = wrap(async (req, res) => {
     if (!ped || ['entregado', 'cancelado'].includes(ped.estado)) return res.status(200).json({ ok: false, error: 'Este chat ya cerró.' });
     if (de === 'cliente' && String(ped.cliente.tel).replace(/\D/g, '') !== tel) return res.status(200).json({ ok: false, error: 'Chat no disponible.' });
     if (de === 'piloto' && (!ped.piloto || String(ped.piloto.tel).replace(/\D/g, '') !== tel)) return res.status(200).json({ ok: false, error: 'Chat no disponible.' });
+    if (de === 'local' && (!ped.local || String(ped.local.tel).replace(/\D/g, '') !== tel)) return res.status(200).json({ ok: false, error: 'Chat no disponible.' });
+    if (de === 'cliente' && ped.noResponde) { delete ped.noResponde; }
     ped.chat = ped.chat || [];
     ped.chat.push({ de, texto, ts: now });
     await ghPut('pedidos.json', fpd.sha, peds, 'chat ' + id);
@@ -349,6 +377,45 @@ module.exports = wrap(async (req, res) => {
   }
 
   // ---- acciones del piloto sobre el pedido ----
+
+  // ---- CLIENTE NO RESPONDE (piloto en la puerta) ----
+  if (action === 'noResponde' || action === 'cerrarNoResponde') {
+    const telNR = String(b.tel || '').replace(/\D/g, '');
+    const idNR = String(b.id || '');
+    if (!telNR || !idNR) return res.status(200).json({ ok: false, error: 'Faltan datos.' });
+    const fpdNR = await ghGet('pedidos.json'); const pedsNR = fpdNR ? fpdNR.data : [];
+    const o = pedsNR.find(x => x.id === idNR);
+    if (!o || ['entregado', 'cancelado'].includes(o.estado)) return res.status(200).json({ ok: false, error: 'Este pedido ya cerró.' });
+    const tel = telNR, id = idNR, fpd = fpdNR, peds = pedsNR;
+  if (action === 'noResponde') {
+    if (o.estado !== 'en_camino') return res.status(200).json({ ok: false, error: 'Solo cuando ya estás en camino.' });
+    if (!o.piloto || String(o.piloto.tel).replace(/\D/g, '') !== tel) return res.status(200).json({ ok: false, error: 'No es tu pedido.' });
+    o.noResponde = { ts: now, tel };
+    await ghPut('pedidos.json', fpd.sha, peds, 'no responde ' + id);
+    await aviso('🚀 DRAGOEXPRES — ' + id + '\n🚫 El piloto reporta: CLIENTE NO RESPONDE. Tiene 10 minutos de tolerancia; si el cliente responde el chat, se cancela.');
+    return res.status(200).json({ ok: true, pedido: o });
+  }
+  if (action === 'cerrarNoResponde') {
+    if (o.estado !== 'en_camino' || !o.noResponde) return res.status(200).json({ ok: false, error: 'Primero marcá que el cliente no responde.' });
+    if (String(o.piloto.tel).replace(/\D/g, '') !== tel) return res.status(200).json({ ok: false, error: 'No es tu pedido.' });
+    if (now - o.noResponde.ts < 10 * 60000) return res.status(200).json({ ok: false, error: 'Todavía no pasan los 10 minutos de tolerancia. Escribile al cliente.' });
+    o.estado = 'entregado'; o.tsEntregado = now; o.cerradoNoResponde = true;
+    await ghPut('pedidos.json', fpd.sha, peds, 'cerrado por no respuesta ' + id);
+    const fp = await ghGet('pilots.json'); const arr = fp ? fp.data : [];
+    let st = arr.find(x => x.tel === tel);
+    if (!st) { st = { tel }; arr.push(st); }
+    if (st.dia !== hoy()) { st.dia = hoy(); st.ganadoHoy = 0; st.pedidosHoy = 0; }
+    if (st.semana !== semana()) { st.semana = semana(); st.ganadoSemana = 0; }
+    const neto = dinero(o.envio - o.comision);
+    st.ganadoHoy = dinero((st.ganadoHoy || 0) + neto); st.ganadoSemana = dinero((st.ganadoSemana || 0) + neto);
+    st.pedidosHoy = (st.pedidosHoy || 0) + 1;
+    st.racha = (st.racha || 0) + 1;
+    if (st.racha % 3 === 0) st.boletosExtra = (st.boletosExtra || 0) + 1;
+    await ghPut('pilots.json', fp ? fp.sha : null, arr, 'cobrado no-responde ' + id);
+    await aviso('🚀 DRAGOEXPRES — ' + id + '\n⏱️ Cerrado tras 10 minutos sin respuesta del cliente. El piloto cobra COMPLETO su envío (Q' + neto + ').');
+    return res.status(200).json({ ok: true, pedido: o });
+  }
+  }
   if (['aceptar', 'rechazar', 'avanzar'].includes(action)) {
     const tel = String(b.tel || '').trim(), id = String(b.id || '').trim();
     const fpd = await ghGet('pedidos.json'); const peds = fpd ? fpd.data : [];
@@ -372,6 +439,7 @@ module.exports = wrap(async (req, res) => {
     if (action === 'rechazar') {
       if (!['asignado', 'aceptado'].includes(o.estado)) return res.status(200).json({ ok: false, error: 'Ya no se puede rechazar.' });
       o.estado = 'buscando'; o.piloto = null; o.rechazos = (o.rechazos || 0) + 1;
+      try { const fp2 = await ghGet('pilots.json'); const a2 = fp2 ? fp2.data : []; const sr = a2.find(x => x.tel === tel); if (sr && sr.racha) { sr.racha = 0; await ghPut('pilots.json', fp2.sha, a2, 'racha rota ' + tel); } } catch (e) {}
       await ghPut('pedidos.json', fpd.sha, peds, 'rechazado ' + id);
       await aviso(`🚀 DRAGOEXPRES — Pedido ${id}\n⚠️ ${tel} rechazó el pedido → volvió a BUSCANDO`);
       return res.status(200).json({ ok: true, pedido: o });
@@ -386,6 +454,8 @@ module.exports = wrap(async (req, res) => {
         if (!st) { st = { tel }; arr.push(st); }
         if (st.dia !== hoy()) { st.dia = hoy(); st.ganadoHoy = 0; st.pedidosHoy = 0; }
         if (st.semana !== semana()) { st.semana = semana(); st.ganadoSemana = 0; }
+        st.racha = (st.racha || 0) + 1;
+        if (st.racha % 3 === 0) st.boletosExtra = (st.boletosExtra || 0) + 1;
         const neto = dinero(o.envio - o.comision);
         let gananciaPiloto = neto, flotaTxt = '';
         const ff = await ghGet('flotas.json');

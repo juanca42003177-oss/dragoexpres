@@ -371,8 +371,9 @@ async function verMenu(idx){
   document.getElementById('menuSheet').style.display='block';
   document.getElementById('menuLista').innerHTML='<p class="mini">Cargando el menú...</p>';
   try{var r=await fetch(api('orders'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'menu',tel:l.tel})});
-  var j=await r.json();var items=j.ok?j.items:[];
-  if(!items.length){document.getElementById('menuLista').innerHTML='<p class="mini">Este local todavía no cargó su menú. Podés pedirle lo que querás escribiéndolo.</p><button class="btn bA" onclick="cerrarMenu();abrirPedidoLocal('+idx+')">Escribir mi pedido</button>';return}
+  var j=await r.json();var items=j.ok?j.items:[];var promos=j.ok?(j.promos||[]):[];
+  document.getElementById('menuLista').innerHTML=promos.length?promos.map(function(p){return '<div style="background:linear-gradient(135deg,#c1121f,#7a0c15);color:#fff;border-radius:12px;padding:10px 14px;margin:0 0 8px"><b>🎉 '+p.titulo+'</b>'+(p.detalle?'<div style="font-size:12.5px;opacity:.9">'+p.detalle+'</div>':'')+'</div>'}).join(''):'';
+  if(!items.length){document.getElementById('menuLista').innerHTML+='<p class="mini">Este local todavía no cargó su menú. Podés pedirle lo que querás escribiéndolo.</p><button class="btn bA" onclick="cerrarMenu();abrirPedidoLocal('+idx+')">Escribir mi pedido</button>';return}
   MENU_CACHE[idx]=items;
   var g={};items.forEach(function(it){var c=it.categoria||'Otros';(g[c]=g[c]||[]).push(it)});
   var orden=['Platos fuertes','Combos','Entradas','Bebidas','Postres','Repuestos','Otros'].concat(Object.keys(g).filter(function(c){return ['Platos fuertes','Combos','Entradas','Bebidas','Postres','Repuestos','Otros'].indexOf(c)<0}));
@@ -499,7 +500,7 @@ async function actualizar(){
   if(!PID)return;
   try{var r=await fetch(api('orders'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'estado',id:PID})});
   var j=await r.json();if(!j.ok)return;var o=j.pedido;
-  var e=document.getElementById('oestado'),i=document.getElementById('oinfo');
+  var e=document.getElementById('oestado'),i=document.getElementById('oinfo');var nr=document.getElementById('nrBox');if(nr)nr.remove();if(o.noResponde){var nb=document.createElement('div');nb.id='nrBox';nb.style.cssText='background:#fff3cd;border:2px solid #c1121f;color:#7a0c15;font-weight:900;border-radius:12px;padding:10px;margin:8px 0';nb.innerHTML='🚫 Tu piloto te espera afuera y no le respondés. Tenés 10 minutos o cierra el pedido. Respondé acá abajo 👇';var box2=document.getElementById('chatBox');if(box2)box2.parentNode.insertBefore(nb,box2);}
   if(o.estado==='buscando'){e.className='st sBus';e.textContent='Buscando piloto...';i.textContent='Encontrando al piloto disponible de tu zona'}
   if(o.estado==='asignado'){e.className='st sAsig';e.textContent='Piloto asignado';i.textContent=o.piloto.nombre+' va a aceptar tu pedido'}
   if(o.estado==='aceptado'){e.className='st sAce';e.textContent='Aceptado ✅';i.textContent=o.piloto.nombre+' aceptó tu pedido'}
@@ -535,7 +536,7 @@ async function actualizar(){
   if(o.piloto&&!['entregado','cancelado'].includes(o.estado)){
     cb.style.display='block';
     var ci=document.getElementById('chat-in');var cv=ci?ci.value:'';var foc=!!ci&&document.activeElement===ci;
-    document.getElementById('chat-list').innerHTML=(o.chat||[]).map(function(m){return '<div style="margin:4px 0;font-size:13px"><b>'+(m.de==='piloto'?'🏍️ '+o.piloto.nombre.split(' ')[0]:'🧑 Vos')+':</b> '+m.texto+'</div>'}).join('')||'<div class="mini">Escribile acá, ej: "dejalo en el portón"</div>';
+    document.getElementById('chat-list').innerHTML=(o.chat||[]).map(function(m){var qui=m.de==='cliente'?'🧑 Vos':m.de==='local'?'🏪 '+((o.local&&o.local.nombre)||'Local').split(' ')[0]:'🏍️ '+((o.piloto&&o.piloto.nombre)||'Piloto').split(' ')[0];return '<div style="margin:4px 0;font-size:13px"><b>'+qui+':</b> '+m.texto+'</div>'}).join('')||'<div class="mini">Escribile acá, ej: "dejalo en el portón"</div>';
     if(ci){ci.value=cv;if(foc)ci.focus();}
   }else{cb.style.display='none'}
   }catch(e){}

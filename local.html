@@ -64,6 +64,15 @@ label{font-size:12px;color:#9aa3b5;display:block;margin-top:10px}
       <button class="btn bA" id="m-add" onclick="menuAdd()">➕ AGREGAR AL MENÚ</button>
       <p class="mini" style="margin-top:10px"><b style="color:#ffe08a">📸 Tips para que tu foto venda (los usa PedidosYa):</b><br>• Un solo plato por foto, centrado y completo<br>• Fondo limpio: una mesa o paño liso<br>• Sin texto, precios ni marcas de agua encima<br>• Luz de ventana o de día, sin flash directo<br>• Que sea lo MISMO que le llega al cliente<br>• Primero fotografiá tus 10 más vendidos</p>
     </div>
+    <h3 style="color:#f0b90b;margin:16px 0 4px;font-size:15px">🎉 Mis promos</h3>
+    <p class="mini" style="margin:4px 0 8px">Hasta 5 promos activas. Aparecen arriba del menú para los clientes: 2x1, descuentos, combos... Vos las creás y las quitás cuando querés.</p>
+    <div id="promosBox"></div>
+    <div class="card">
+      <b style="font-size:14px">Crear promo</b>
+      <label>Título</label><input id="pr-titulo" placeholder="Ej: 2x1 en Pepián los martes">
+      <label>Detalle (opcional)</label><input id="pr-detalle" placeholder="Ej: Válido solo hoy, pedidos por la app">
+      <button class="btn bA" onclick="promoAdd()">🎉 ACTIVAR PROMO</button>
+    </div>
     <h3 style="color:#f0b90b;margin:16px 0 4px;font-size:15px">Pedidos de tu local</h3>
     <div id="pedidos"></div>
     <div class="card"><b>📊 Tu local</b><div class="mini" id="stats"></div></div>
@@ -94,6 +103,25 @@ function pintarMenu(){
     });
   }
   document.getElementById('menuBox').innerHTML=h;
+}
+var PROMOS=[];
+function pintarPromos(){
+  var h='';
+  if(PROMOS.length)h=PROMOS.map(function(p){return '<div class="pedido" style="display:flex;justify-content:space-between;align-items:center;gap:8px"><div><b>🎉 '+p.titulo+'</b>'+(p.detalle?'<div class="mini">'+p.detalle+'</div>':'')+'</div><button class="bMini bX" onclick="promoDel(\''+p.id+'\')">Quitar</button></div>'}).join('');
+  else h='<div class="mini" style="padding:4px 2px">Sin promos activas. Creá una abajo.</div>';
+  document.getElementById('promosBox').innerHTML=h;
+}
+async function promoAdd(){
+  if(DEMO)return;
+  var t=document.getElementById('pr-titulo').value.trim(),d=document.getElementById('pr-detalle').value.trim();
+  if(!t){alert('Poné un título a la promo.');return}
+  try{var r=await fetch(api('orders'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'promoAdd',tel:TEL,titulo:t,detalle:d})});
+  var j=await r.json();if(!j.ok){alert(j.error);return}PROMOS=j.promos;document.getElementById('pr-titulo').value='';document.getElementById('pr-detalle').value='';pintarPromos();}catch(e){}
+}
+async function promoDel(id){
+  if(DEMO)return;
+  try{var r=await fetch(api('orders'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'promoDel',tel:TEL,promoId:id})});
+  var j=await r.json();if(!j.ok){return}PROMOS=j.promos;pintarPromos();}catch(e){}
 }
 async function cargarMenu(){
   try{var r=await fetch(api('orders'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'menu',tel:TEL})});
@@ -176,10 +204,14 @@ function pintar(j){
       var est={buscando:['Buscando piloto','sBus'],asignado:['Piloto asignado','sAsig'],aceptado:['Piloto va por tu pedido','sAsig'],en_camino:['En camino al cliente','sCam']}[o.estado]||[o.estado,'sBus'];
       var conf=o.prep?('<div class="chip" style="background:#0d2015;color:#7ee2a8">✅ Confirmaste: ~'+o.prep.min+' min</div>')
         :'<div class="mini" style="margin:8px 0 2px"><b style="color:#ffe08a">¿Cuánto tardás en tenerlo listo?</b></div><div class="pill3"><button onclick="prep(\''+o.id+'\',15)">15 min</button><button onclick="prep(\''+o.id+'\',25)">25 min</button><button onclick="prep(\''+o.id+'\',35)">35 min</button></div>';
+      var nr=o.noResponde?'<div class="dato" style="color:#ff8f8f">🚫 El piloto espera al cliente (10 min de tolerancia)</div>':'';
+      var pl=o.piloto?('💬 Chat con el piloto: '+o.piloto.nombre+(o.piloto.marca?' · '+o.piloto.vehiculo+' '+o.piloto.marca+' '+o.piloto.color:'')):'';
+      var chatH=(o.chat||[]).map(function(m){var q=m.de==='local'?'Vos 🏪':m.de==='piloto'?'🏍️ Piloto':'🧑 Cliente';return '<div style="margin:3px 0;font-size:12.5px"><b>'+q+':</b> '+m.texto+'</div>'}).join('')||'<div class="mini">Escribile al piloto de este pedido</div>';
+      var chatI=(o.piloto&&o.estado!=='buscando')?'<div style="margin-top:8px;border-top:1px solid #2a2b38;padding-top:6px"><div class="mini">'+pl+'</div><div id="ch-'+o.id+'" style="max-height:100px;overflow-y:auto">'+chatH+'</div><div style="display:flex;gap:6px;margin-top:5px"><input id="ci-'+o.id+'" placeholder="Escribí tu mensaje..." style="flex:1" onkeydown="if(event.key===\'Enter\')enviarMsgLocal(\''+o.id+'\')"><button class="bMini" onclick="enviarMsgLocal(\''+o.id+'\')">➤</button></div></div>':'';
       return '<div class="pedido"><div style="display:flex;justify-content:space-between;align-items:center"><b>'+({comida:'🍔',viaje:'🛺',repuesto:'🔧'}[o.tipo])+' '+o.id+'</b><span class="st '+est[1]+'">'+est[0]+'</span></div>'+
       '<div class="dato">👤 '+o.cliente.nombre+' · 📍 '+o.cliente.direccion+'</div>'+
       '<div class="dato">📝 '+o.detalle+'</div>'+
-      '<div class="dato">💵 El cliente paga Q'+(+o.compra+ +o.envio)+' (tu venta Q'+o.compra+' + envío Q'+o.envio+')</div>'+conf+'</div>';
+      '<div class="dato">💵 El cliente paga Q'+(+o.compra+ +o.envio)+' (tu venta Q'+o.compra+' + envío Q'+o.envio+')</div>'+nr+conf+chatI+'</div>';
     }).join('');
   }
   document.getElementById('stats').textContent='Pedidos entregados por DragoExpres: '+j.totalEntregados;
@@ -188,7 +220,14 @@ async function tick(){
   if(DEMO)return
   if(!TEL)return;
   try{var r=await fetch(api('orders'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'loginLocal',tel:TEL})});
-  var j=await r.json();if(j.ok)pintar(j);}catch(e){}
+  var j=await r.json();
+  if(j.ok){pintar(j);try{var rm=await fetch(api('orders'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'menu',tel:TEL})});var jm=await rm.json();if(jm.ok){PROMOS=jm.promos||[];pintarPromos();}}catch(e2){}}}catch(e){}
+}
+async function enviarMsgLocal(id){
+  if(DEMO)return;
+  var inp=document.getElementById('ci-'+id);if(!inp)return;var t=inp.value.trim();if(!t)return;
+  try{await fetch(api('orders'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'msg',id:id,de:'local',tel:TEL,texto:t})});inp.value='';}catch(e){}
+  tick();
 }
 async function prep(id,min){
   if(DEMO){DEMODATA.activos[0].prep={min:min};pintar(DEMODATA);return}

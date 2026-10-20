@@ -67,6 +67,10 @@ async function estado() {
     porPiloto[k].comisiones = dinero(porPiloto[k].comisiones + (o.comision || 0) + (o.comisionLocal || 0));
   });
   const pilotos = Object.values(porPiloto).sort((a, b) => b.entregas - a.entregas);
+  try {
+    const fpl = await ghGet('pilots.json');
+    (fpl ? fpl.data : []).forEach(st => { const pp = porPiloto[st.tel]; if (pp) pp.boletos = st.boletosExtra || 0; });
+  } catch (e) {}
   const califican = pilotos.filter(p => p.entregas >= META);
   const pozoSemana = dinero(comisiones * PCT_POZO);
   const total = dinero(pozoSemana + (pozo.acumulado || 0));
@@ -92,11 +96,14 @@ module.exports = wrap(async (req, res) => {
     const pozo = pz ? pz.data : {};
     pozo.acumulado = pozo.acumulado || 0;
     pozo.historial = pozo.historial || [];
-    const totalEntregas = s.califican.reduce((s2, p) => s2 + p.entregas, 0);
-    const reparto = s.califican.map(p => ({ tel: p.tel, nombre: p.nombre, entregas: p.entregas, monto: dinero(s.total * p.entregas / totalEntregas) }));
+    const partes = s.califican.map(p => ({ tel: p.tel, nombre: p.nombre, entregas: p.entregas, boletos: p.boletos || 0, partes: p.entregas + (p.boletos || 0) }));
+    const totalPartes = partes.reduce((s2, p) => s2 + p.partes, 0);
+    const reparto = totalPartes ? partes.map(p => ({ tel: p.tel, nombre: p.nombre, entregas: p.entregas, boletos: p.boletos || 0, monto: dinero(s.total * p.partes / totalPartes) })) : partes.map(p => ({ tel: p.tel, nombre: p.nombre, entregas: p.entregas, boletos: p.boletos || 0, monto: 0 }));
     const gana = {};
     reparto.forEach(p => gana[p.tel] = p.monto);
     // pendientes de la semana pasada sin pagar → SUSPENSION automatica
+    const fpr = await ghGet('pilots.json');
+    try { const arr2 = fpr ? fpr.data : []; let chg = false; arr2.forEach(x => { if (x.racha || x.boletosExtra) { x.racha = 0; x.boletosExtra = 0; chg = true; } }); if (chg) await ghPut('pilots.json', fpr.sha, arr2, 'reset semanal de rachas'); } catch (e) {}
     const fp = await ghGet('pilots.json');
     const parr = fp ? fp.data : [];
     const sancionados = [];
