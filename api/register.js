@@ -60,10 +60,13 @@ module.exports = wrap(async (req, res) => {
   if (d.tipo === 'piloto') {
     const dpiOk = limpiar(d.dpi).length === 13;
     checks.push({ k: 'DPI', ok: dpiOk, txt: dpiOk ? 'DPI de 13 dígitos' : 'DPI incompleto (' + limpiar(d.dpi).length + '/13)' });
-    const docsOk = Array.isArray(d.docs) && d.docs.length >= 3;
-    const licOk = Array.isArray(d.docs) && d.docs.some(y => y.tipo === 'licencia');
-    checks.push({ k: 'FOTOS', ok: docsOk, txt: (Array.isArray(d.docs) ? d.docs.length : 0) + '/3 fotos (DPI + licencia + selfie)' });
-    checks.push({ k: 'LICENCIA', ok: licOk, txt: licOk ? 'Foto de licencia recibida' : 'Falta la foto de la licencia' });
+    const nDocs = Array.isArray(d.docs) ? d.docs.length : 0;
+    const esBici = d.vehiculo === 'bicicleta';
+    const enTramite = d.licenciaEnTramite === true;
+    const tieneLic = Array.isArray(d.docs) && d.docs.some(y => y.tipo === 'licencia');
+    const docsOk = esBici ? nDocs >= 2 : (tieneLic ? nDocs >= 3 : (enTramite && nDocs >= 2));
+    checks.push({ k: 'FOTOS', ok: docsOk, txt: nDocs + '/' + ((esBici || (enTramite && !tieneLic)) ? 2 : 3) + ' fotos' + (esBici ? ' (bicicleta: DPI + selfie)' : (enTramite && !tieneLic ? ' (DPI + selfie, licencia en trámite 📜)' : ' (DPI + licencia + selfie)')) });
+    checks.push({ k: 'LICENCIA', ok: esBici ? true : (tieneLic || enTramite), txt: esBici ? 'Bicicleta: no requiere licencia' : (tieneLic ? 'Foto de licencia recibida' : (enTramite ? '📜 EN TRÁMITE — pide tu OK para trabajar mientras la tramita' : 'Falta la foto de la licencia')) });
     const placaOk = d.vehiculo === 'bicicleta' || /^[A-Z0-9-]{5,10}$/i.test(String(d.placa || ''));
     checks.push({ k: 'PLACA', ok: placaOk, txt: placaOk ? (d.vehiculo === 'bicicleta' ? 'Bicicleta (sin placa)' : 'Placa válida: ' + d.placa) : 'Placa inválida' });
     const dup = data.some(r2 => r2.tipo === 'piloto' && (limpiar((r2.datos || {}).tel) === limpiar(d.tel) || (d.placa && String((r2.datos || {}).placa || '').toUpperCase() === String(d.placa).toUpperCase())));
@@ -80,11 +83,11 @@ module.exports = wrap(async (req, res) => {
   }
   const estadoReg = d.tipo === 'usuario' ? 'aprobado' : 'pendiente_verificacion';
   const firmaContrato = (d.tipo === 'piloto' || d.tipo === 'local') && d.contrato
-    ? { version: 'C-2026.3', aceptado: true, tsFirma: now, ip: (req.headers && (req.headers['x-forwarded-for'] || req.headers['x-real-ip'])) || null }
+    ? { version: 'C-2026.5', aceptado: true, tsFirma: now, ip: (req.headers && (req.headers['x-forwarded-for'] || req.headers['x-real-ip'])) || null }
     : null;
   data.push({ tipo: d.tipo, datos: d, estado: estadoReg, checks, ts: now, firmaContrato });
   await ghPut(f ? f.sha : null, data);
   const icono = { piloto: '🏍️', local: '🏪', flota: '🚚', usuario: '👤' }[d.tipo] || '📋';
-  await aviso(`🚀 DRAGOEXPRES — Registro nuevo\n${icono} ${d.tipo.toUpperCase()}: ${d.nombre}\nWhatsApp: ${d.tel}\nZona: ${d.zona}${d.vehiculo ? '\nVehículo: ' + d.vehiculo + (d.placa ? ' (' + d.placa + ')' : '') : ''}${d.rubro ? '\nRubro: ' + d.rubro : ''}${(d.tipo === 'piloto' || d.tipo === 'flota') ? '\nVerificación: ' + checks.map(c => (c.ok ? '✅' : '❌') + c.k).join(' ') : ''}${firmaContrato ? '\n✍️ Contrato ' + firmaContrato.version + ' aceptado digitalmente' : ''}${d.tipo === 'usuario' ? '\n✅ Auto-verificado (selfie + WhatsApp) — ya puede pedir' : ''}\n→ ${d.tipo === 'usuario' ? 'Visible en pestaña Usuarios' : 'Revisalo en el panel admin (pendiente de aprobar)'}`);
+  await aviso(`🚀 DRAGOEXPRES — Registro nuevo\n${icono} ${d.tipo.toUpperCase()}: ${d.nombre}\nWhatsApp: ${d.tel}\nZona: ${d.zona}${d.vehiculo ? '\nVehículo: ' + d.vehiculo + (d.placa ? ' (' + d.placa + ')' : '') : ''}${d.propio ? '\n🛺 DUEÑO-CONDUCTOR: el vehículo es suyo y lo maneja él mismo (gana el 100%, sin split 75/25)' : ''}${(d.licenciaEnTramite && d.vehiculo !== 'bicicleta') ? '\n📜 LICENCIA EN TRÁMITE: pide tu OK especial para trabajar mientras la tramita (abrí el detalle 📄 antes de aprobar)' : ''}${d.rubro ? '\nRubro: ' + d.rubro : ''}${(d.tipo === 'piloto' || d.tipo === 'flota') ? '\nVerificación: ' + checks.map(c => (c.ok ? '✅' : '❌') + c.k).join(' ') : ''}${firmaContrato ? '\n✍️ Contrato ' + firmaContrato.version + ' aceptado digitalmente' : ''}${d.tipo === 'usuario' ? '\n✅ Auto-verificado (selfie + WhatsApp) — ya puede pedir' : ''}\n→ ${d.tipo === 'usuario' ? 'Visible en pestaña Usuarios' : 'Revisalo en el panel admin (pendiente de aprobar)'}`);
   return res.status(200).json({ ok: true, mensaje: 'Registro recibido' });
 });

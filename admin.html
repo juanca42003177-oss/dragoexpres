@@ -138,6 +138,8 @@ async function verDetalle(tel){
   h2+='<div style="display:flex;justify-content:space-between;align-items:center"><h2 style="margin:0">'+(d.nombre||'')+'</h2><button class="btn bR" onclick="cerrarDetalle()">✕</button></div>';
   h2+='<div class="s">📱 '+(d.tel||'')+' · 📍 '+(d.zona||'')+(d.vehiculo?' · '+d.vehiculo+' '+(d.marca||'')+' '+(d.color||''):'')+(d.placa?' · 🔖 '+d.placa:'')+(d.dpi?' · DPI '+d.dpi:'')+'</div>';
   if(d.h24)h2+='<div class="s" style="color:#f0b90b">⏰ Turno 24hrs</div>';
+  if(d.propio)h2+='<div class="s" style="color:#f0b90b">🛺 Dueño-conductor: vehículo propio, lo maneja él mismo (sin split 75/25)</div>';
+  if(d.licenciaEnTramite)h2+='<div class="s" style="color:#ffd479;border:1px solid #6a4a10;border-radius:8px;padding:8px;margin-top:6px">📜 <b>LICENCIA EN TRÁMITE</b> — este piloto te pide el OK para trabajar mientras termina de tramitar su licencia. Si le das ✓ APROBAR, le das esa oportunidad (revocable). Las multas por manejar sin licencia son 100% su responsabilidad (cláusula 2 del contrato C-2026.5).</div>';
   if(j.firmaContrato){h2+='<div class="s" style="margin:6px 0;border-color:#4a5530">'+j.firmaContrato+'</div>';}
   if(j.checks&&j.checks.length){h2+='<h3 style="margin:14px 0 6px">✅ Verificación automática</h3>'+j.checks.map(function(c){return '<div class="s" style="margin:3px 0">'+(c.ok?'✅':'❌')+' <b>'+c.k+'</b> — '+c.txt+'</div>'}).join('');}
   if(j.stats&&j.stats.entregas!==undefined){h2+='<h3 style="margin:14px 0 6px">📊 Actividad</h3><div class="s">Entregas totales: <b>'+j.stats.entregas+'</b> (esta semana: '+j.stats.semana+')<br>Ganado histórico del piloto: <b>Q'+j.stats.ganado+'</b><br>Tus comisiones acumuladas: <b style="color:#f0b90b">Q'+j.stats.comisiones+'</b>'+(j.stats.pendiente?' · pendiente de liquidar: Q'+j.stats.pendiente:'')+(j.stats.calif?'<br>⭐ '+j.stats.calif+'/5':'')+'</div>';}
@@ -229,7 +231,7 @@ function pintar(regs){
       '<div class="s">📱 '+(d.tel||'')+' · 📍 '+(d.zona||'')+
       (d.vehiculo?' · 🛵 '+d.vehiculo:'')+(d.marca?' · '+d.marca+' '+(d.color||''):'')+(d.placa?' · 🔖 '+d.placa:'')+
       (d.tipo?' · '+d.tipo:'')+
-      (d.h24?' · <b style="color:#f0b90b">24hrs</b>':'')+(d.equipo!==undefined?' · '+(d.equipo?'🪖 equipo OK':'<b style="color:#ff8f8f">SIN equipo</b>'):'')+'</div></div>'+
+      (d.h24?' · <b style="color:#f0b90b">24hrs</b>':'')+(d.propio?' · <b style="color:#f0b90b">🛺 dueño</b>':'')+(d.licenciaEnTramite?' · <b style="color:#ffd479">📜 licencia en TRÁMITE (dale tu OK)</b>':'')+(d.equipo!==undefined?' · '+(d.equipo?'🪖 equipo OK':'<b style="color:#ff8f8f">SIN equipo</b>'):'')+'</div></div>'+
       '<div><a class="btn bW" style="background:#1d5a35;color:#a8f0c6;text-decoration:none" href="https://wa.me/'+waLink(d.tel)+'">💬</a>'+
       '<button class="btn bW" onclick="verDetalle(\''+waLink(d.tel)+'\')">📄</button>'+
       (r.tipo==='piloto'?'<button class="btn bW" style="background:#0d3d63;color:#a8dcf0" onclick="waResumen(\''+waLink(d.tel)+'\')">📲</button>':'')+

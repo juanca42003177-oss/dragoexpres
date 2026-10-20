@@ -205,7 +205,7 @@ function pintar(j){
   var st=document.createElement('div');st.style.cssText='color:#ffe08a;font-size:12.5px;font-weight:800;margin:2px 0';
   st.textContent=(r>0?('🔥 Racha: '+r+' entrega'+(r>1?'s':'')+' seguida'+(r>1?'s':'')+(bx?' · 🎟️ '+bx+' boleto'+(bx>1?'s':'')+' extra al pozo':'')):'')+(cp>0?' ⛽ Q'+cp+' de gasolina por viajes cancelados (se abona en tu próxima liquidación, cada 72h)':'');
   var hn=document.getElementById('p-nombre');if(hn&&hn.parentNode&&!hn.dataset.r){hn.dataset.r=1;hn.parentNode.insertBefore(st,hn.nextSibling);}
-  document.getElementById('p-zona').textContent='Zona: '+p.zona+' · '+(p.vehiculo||'—')+(p.marca?' '+p.marca:'')+(p.color?' · '+p.color:'')+(p.placa?' · '+String(p.placa).toUpperCase():'')+' · Piloto verificado ✅';
+  document.getElementById('p-zona').textContent='Zona: '+p.zona+' · '+(p.vehiculo||'—')+(p.marca?' '+p.marca:'')+(p.color?' · '+p.color:'')+(p.placa?' · '+String(p.placa).toUpperCase():'')+(p.propio?' · 🛺 Dueño del vehículo':'')+' · Piloto verificado ✅';
   document.getElementById('g-hoy').textContent='Q'+(p.ganadoHoy||0);
   document.getElementById('g-sem').textContent='Q'+(p.ganadoSemana||0);
   document.getElementById('g-ped').textContent=p.pedidosHoy||0;
