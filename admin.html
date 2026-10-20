@@ -99,8 +99,8 @@ function cargarPedidos(){
     fetch(apiBase()+'/admin',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({pass:PASS,action:'pozo'})})
     .then(r2=>r2.json()).then(function(z){
       if(!z||!z.ok)return;
-      var tabla=z.pilotos.map(function(p){return '<div class="s">• '+p.nombre+': '+p.entregas+'/'+z.meta+' entregas · incentivo si cumple: <b style="color:#ffc107">Q'+p.premio.toFixed(2)+'</b>'+(p.entregas>=z.meta?' ✅ meta cumplida':'')+'</div>'}).join('')||'<div class="s">Sin entregas esta semana</div>';
-      document.getElementById('pozoCard').innerHTML='<div class="card"><div class="av">🏆</div><div><b>Incentivo semanal</b><div class="s">Meta '+z.meta+' entregas · Cada piloto que cumple recibe su INCENTIVO SEMANAL para motivarlo a seguir creciendo — ninguna otra app hace esto por sus pilotos · Se acredita domingo 20:00</div>'+tabla+'</div></div>';
+      var tabla=z.pilotos.map(function(p){return '<div class="s">• '+p.nombre+': '+p.entregas+'/'+z.meta+' entregas · devolución si cumple: <b style="color:#ffc107">Q'+p.premio.toFixed(2)+'</b>'+(p.entregas>=z.meta?' ✅ meta cumplida':'')+'</div>'}).join('')||'<div class="s">Sin entregas esta semana</div>';
+      document.getElementById('pozoCard').innerHTML='<div class="card"><div class="av">🏆</div><div><b>Devolución semanal (cashback 25%)</b><div class="s">Meta '+z.meta+' entregas · Cada piloto que cumple recibe la DEVOLUCIÓN del 25% de sus comisiones de la semana — se acredita sola domingo 20:00. Pitch: entre más entrega, más le devolvemos 🐉</div>'+tabla+'</div></div>';
     });
     fetch(apiBase()+'/admin',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({pass:PASS,action:'sugerencias'})})
     .then(r2=>r2.json()).then(function(sg){
