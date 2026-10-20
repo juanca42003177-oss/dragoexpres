@@ -184,6 +184,7 @@ function pintar(j){
   var sw=document.getElementById('sw');sw.className='sw'+(p.disponible?' on':'');
   document.getElementById('dis-txt').textContent=p.disponible?'DISPONIBLE 🟢':'NO DISPONIBLE';
   var act=document.getElementById('pedidoActivo'),sin=document.getElementById('sinPedido');
+  if(j.activo&&AID&&j.activo.id!==AID){alert('Tu pedido '+AID+' fue cancelado. No es tu culpa: tu racha sigue viva 🐉');AID=j.activo.id;}
   if(j.activo){if(j.activo.estado==='asignado'){if(!OF||OF.id!==j.activo.id){mostrarOferta(j.activo)}}else{cerrarOferta()}
   sin.style.display='none';act.style.display='block';var ci0=document.getElementById('chat-in');var cv0=ci0?ci0.value:'';var foc0=!!ci0&&document.activeElement===ci0;AID=j.activo.id;act.innerHTML=pedidoHTML(j.activo);var ci1=document.getElementById('chat-in');if(ci1){ci1.value=cv0;if(foc0)ci1.focus();}}
   else if(PCALIF){cerrarOferta();act.style.display='block';sin.style.display='none';act.innerHTML='<div class="pedido"><h3>¿Cómo estuvo el cliente? ⭐</h3><div class="mini">'+PCALIF.cliente+'</div><div id="cest" style="margin:10px 0">'+[1,2,3,4,5].map(function(n){return '<span style="font-size:30px;cursor:pointer;padding:2px" onclick="calificarCliente('+n+')">⭐</span>'}).join('')+'</div></div>';}

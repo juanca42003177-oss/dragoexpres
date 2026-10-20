@@ -211,7 +211,7 @@ function pintar(j){
       return '<div class="pedido"><div style="display:flex;justify-content:space-between;align-items:center"><b>'+({comida:'🍔',viaje:'🛺',repuesto:'🔧'}[o.tipo])+' '+o.id+'</b><span class="st '+est[1]+'">'+est[0]+'</span></div>'+
       '<div class="dato">👤 '+o.cliente.nombre+' · 📍 '+o.cliente.direccion+'</div>'+
       '<div class="dato">📝 '+o.detalle+'</div>'+
-      '<div class="dato">💵 El cliente paga Q'+(+o.compra+ +o.envio)+' (tu venta Q'+o.compra+' + envío Q'+o.envio+')</div>'+nr+conf+chatI+'</div>';
+      '<div class="dato">💵 El cliente paga Q'+(+o.compra+ +o.envio)+' (tu venta Q'+o.compra+' + envío Q'+o.envio+')</div>'+nr+conf+chatI+'<button class="bMini bX" style="width:100%;margin-top:8px" onclick="localCancela(\''+o.id+'\')">✕ No puedo preparar este pedido (cancelar)</button></div>';
     }).join('');
   }
   document.getElementById('stats').textContent='Pedidos entregados por DragoExpres: '+j.totalEntregados;
@@ -222,6 +222,14 @@ async function tick(){
   try{var r=await fetch(api('orders'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'loginLocal',tel:TEL})});
   var j=await r.json();
   if(j.ok){pintar(j);try{var rm=await fetch(api('orders'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'menu',tel:TEL})});var jm=await rm.json();if(jm.ok){PROMOS=jm.promos||[];pintarPromos();}}catch(e2){}}}catch(e){}
+}
+async function localCancela(id){
+  if(DEMO)return;
+  var razon=prompt('¿Por qué no podés prepararlo? (el cliente lo va a ver):','No me quedó producto')||'';
+  if(!confirm('¿Cancelar el pedido '+id+'? Al cliente NO se le cobra nada y el piloto queda libre.'))return;
+  try{var r=await fetch(api('orders'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'localCancela',tel:TEL,id:id,razon:razon})});
+  var j=await r.json();if(!j.ok){alert(j.error);return}}catch(e){}
+  tick();
 }
 async function enviarMsgLocal(id){
   if(DEMO)return;

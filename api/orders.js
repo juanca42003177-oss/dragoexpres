@@ -125,7 +125,8 @@ module.exports = wrap(async (req, res) => {
     const zona = peds.filter(o => o.estado === 'buscando' && o.zona === p.datos.zona);
     const califs = peds.filter(o => o.piloto && o.piloto.tel === tel && o.califCliente > 0);
     const calif = califs.length ? Math.round(califs.reduce((x, o) => x + o.califCliente, 0) / califs.length * 10) / 10 : null;
-    return res.status(200).json({ ok: true, piloto: { nombre: p.datos.nombre, zona: p.datos.zona, vehiculo: p.datos.vehiculo, marca: p.datos.marca || '', color: p.datos.color || '', placa: p.datos.placa || '', disponible: st.disponible, ganadoHoy: st.ganadoHoy || 0, ganadoSemana: st.ganadoSemana || 0, pedidosHoy: st.pedidosHoy || 0, racha: st.racha || 0, boletosExtra: st.boletosExtra || 0, calif: calif, pendiente: st.pendiente || null }, activo: mio[0] || null, zonaBuscando: zona });
+    const zonaF = zona.filter(o => !(o.rechazadoPor || []).includes(tel));
+    return res.status(200).json({ ok: true, piloto: { nombre: p.datos.nombre, zona: p.datos.zona, vehiculo: p.datos.vehiculo, marca: p.datos.marca || '', color: p.datos.color || '', placa: p.datos.placa || '', disponible: st.disponible, ganadoHoy: st.ganadoHoy || 0, ganadoSemana: st.ganadoSemana || 0, pedidosHoy: st.pedidosHoy || 0, racha: st.racha || 0, boletosExtra: st.boletosExtra || 0, calif: calif, pendiente: st.pendiente || null }, activo: mio[0] || null, zonaBuscando: zonaF });
   }
 
   // ---- PILOTO: ponerse disponible / no disponible ----
@@ -376,6 +377,36 @@ module.exports = wrap(async (req, res) => {
     return res.status(200).json({ ok: true, pedidos: mios });
   }
 
+
+  // ---- CANCELACIONES ----
+  if (action === 'localCancela') {
+    const tel = String(b.tel || '').replace(/\D/g, '');
+    const id = String(b.id || '');
+    const razon = String(b.razon || '').trim().slice(0, 80);
+    const fpd = await ghGet('pedidos.json'); const peds = fpd ? fpd.data : [];
+    const o = peds.find(x => x.id === id);
+    if (!o || ['entregado', 'cancelado'].includes(o.estado)) return res.status(200).json({ ok: false, error: 'Este pedido ya cerró.' });
+    if (!o.local || String(o.local.tel).replace(/\D/g, '') !== tel) return res.status(200).json({ ok: false, error: 'No es un pedido de tu local.' });
+    const teniaPiloto = !!(o.piloto && ['asignado', 'aceptado', 'en_camino'].includes(o.estado));
+    o.estado = 'cancelado'; o.canceladoPor = 'local'; o.canceladoRazon = razon; o.canceladoTs = now;
+    await ghPut('pedidos.json', fpd.sha, peds, 'local cancela ' + id);
+    await aviso('🚀 DRAGOEXPRES — ' + id + '\n🏪 El local canceló el pedido' + (razon ? ' (' + razon + ')' : '') + (teniaPiloto ? '. El piloto ' + o.piloto.nombre + ' queda LIBRE y su racha NO se rompe.' : '') + '. El cliente no fue cobrado.');
+    return res.status(200).json({ ok: true, pedido: o });
+  }
+  if (action === 'clienteCancela') {
+    const tel = String(b.tel || '').replace(/\D/g, '');
+    const id = String(b.id || '');
+    const fpd = await ghGet('pedidos.json'); const peds = fpd ? fpd.data : [];
+    const o = peds.find(x => x.id === id);
+    if (!o || ['entregado', 'cancelado'].includes(o.estado)) return res.status(200).json({ ok: false, error: 'Este pedido ya cerró.' });
+    if (String(o.cliente.tel).replace(/\D/g, '') !== tel) return res.status(200).json({ ok: false, error: 'No es tu pedido.' });
+    if (o.estado !== 'buscando') return res.status(200).json({ ok: false, error: 'Ya hay un piloto en camino. Escribile por el chat para coordinar.' });
+    o.estado = 'cancelado'; o.canceladoPor = 'cliente'; o.canceladoTs = now;
+    await ghPut('pedidos.json', fpd.sha, peds, 'cliente cancela ' + id);
+    await aviso('🚀 DRAGOEXPRES — ' + id + '\n🧑 El cliente canceló mientras buscábamos piloto. Nadie pierde nada.');
+    return res.status(200).json({ ok: true, pedido: o });
+  }
+
   // ---- acciones del piloto sobre el pedido ----
 
   // ---- CLIENTE NO RESPONDE (piloto en la puerta) ----
@@ -428,6 +459,7 @@ module.exports = wrap(async (req, res) => {
       const p = reg.find(r => r.tipo === 'piloto' && r.estado === 'aprobado' && String(r.datos.tel).trim() === tel);
       if (!p) return res.status(200).json({ ok: false, error: 'No sos piloto aprobado.' });
       if (o.estado === 'asignado' && (!o.piloto || o.piloto.tel !== tel)) return res.status(200).json({ ok: false, error: 'Este pedido es de otro piloto.' });
+      if ((o.rechazadoPor || []).includes(tel)) return res.status(200).json({ ok: false, error: 'Rechazaste este pedido, se lo dejamos a otro piloto.' });
       if (!['asignado', 'buscando'].includes(o.estado)) return res.status(200).json({ ok: false, error: 'Este pedido ya no está disponible.' });
       if (o.estado === 'buscando' && o.zona !== p.datos.zona) return res.status(200).json({ ok: false, error: 'Pedido de otra zona.' });
       o.estado = 'aceptado'; o.piloto = Object.assign({ tel, nombre: p.datos.nombre }, vehInfo(p.datos)); o.tsAceptado = now;
@@ -438,10 +470,20 @@ module.exports = wrap(async (req, res) => {
     if (!o.piloto || o.piloto.tel !== tel) return res.status(200).json({ ok: false, error: 'Este pedido no es tuyo.' });
     if (action === 'rechazar') {
       if (!['asignado', 'aceptado'].includes(o.estado)) return res.status(200).json({ ok: false, error: 'Ya no se puede rechazar.' });
-      o.estado = 'buscando'; o.piloto = null; o.rechazos = (o.rechazos || 0) + 1;
+      o.rechazadoPor = o.rechazadoPor || []; o.rechazadoPor.push(tel);
+      o.rechazos = (o.rechazos || 0) + 1;
+      try { const fp2 = await ghGet('pilots.json'); const a2 = fp2 ? fp2.data : []; const sr = a2.find(x => x.tel === tel); if (sr && sr.racha) { sr.racha = 0; await ghPut('pilots.json', fp2.sha, a2, 'racha rota ' + tel); } } catch (e) {}
+      if (o.rechazos >= 3) {
+        o.estado = 'cancelado'; o.piloto = null; o.canceladoPor = 'sin_piloto'; o.canceladoTs = now;
+        await ghPut('pedidos.json', fpd.sha, peds, 'cancelado por rechazos ' + id);
+        await aviso(`🚀 DRAGOEXPRES — Pedido ${id}
+⛔ 3 pilotos lo rechazaron → CANCELADO. Avisale al cliente que nadie le cobró nada.`);
+        return res.status(200).json({ ok: true, pedido: o });
+      }
+      o.estado = 'buscando'; o.piloto = null;
       try { const fp2 = await ghGet('pilots.json'); const a2 = fp2 ? fp2.data : []; const sr = a2.find(x => x.tel === tel); if (sr && sr.racha) { sr.racha = 0; await ghPut('pilots.json', fp2.sha, a2, 'racha rota ' + tel); } } catch (e) {}
       await ghPut('pedidos.json', fpd.sha, peds, 'rechazado ' + id);
-      await aviso(`🚀 DRAGOEXPRES — Pedido ${id}\n⚠️ ${tel} rechazó el pedido → volvió a BUSCANDO`);
+      await aviso(`🚀 DRAGOEXPRES — Pedido ${id}\n⚠️ Un piloto rechazó → volvió a BUSCANDO, se lo ofrecemos a otro piloto de la zona.`);
       return res.status(200).json({ ok: true, pedido: o });
     }
     if (action === 'avanzar') {

@@ -471,7 +471,8 @@ var ULT_TEL='';
 async function enviar(){
   var v=function(id){var e=document.getElementById(id);return e?e.value.trim():''};
   var u=LS();
-  var d={action:'crear',tipo:TIPO,local:(LOCAL_TEL?{nombre:LOCAL_PRE,tel:LOCAL_TEL}:undefined),nombre:v('f-nombre')||u.nombre,tel:v('f-tel')||u.tel,zona:zonaValor(),direccion:v('f-dir'),referencia:v('f-ref'),detalle:v('f-det'),compra:v('f-compra')||0,envio:v('f-envio')||0};
+  var telCli=v('f-tel')||u.tel;MI_TEL=telCli;
+  var d={action:'crear',tipo:TIPO,local:(LOCAL_TEL?{nombre:LOCAL_PRE,tel:LOCAL_TEL}:undefined),nombre:v('f-nombre')||u.nombre,tel:telCli,zona:zonaValor(),direccion:v('f-dir'),referencia:v('f-ref'),detalle:v('f-det'),compra:v('f-compra')||0,envio:v('f-envio')||0};
   if(!d.nombre||!d.tel||!d.zona||!d.direccion||!d.detalle){alert('Completá tu nombre, WhatsApp, zona, dirección y qué pedís.');return}
   // guardar perfil para la proxima
   u.nombre=d.nombre;u.tel=d.tel;u.zona=d.zona;u.dires=u.dires||[];
@@ -489,7 +490,14 @@ async function enviar(){
 }
 
 /* ---------- tracker (chat, mapa, calificacion) ---------- */
-var PID=null;
+var PID=null,MI_TEL=null;
+async function clienteCancela(){
+  if(!PID||!confirm('¿Cancelar tu pedido? Nadie te cobró nada.'))return;
+  try{var r=await fetch(api('orders'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'clienteCancela',id:PID,tel:MI_TEL})});
+  var j=await r.json();if(!j.ok){alert(j.error||'No se pudo cancelar.');return}}catch(e){}
+  alert('Pedido cancelado. Nadie perdió nada.');
+  cerrarTrk();
+}
 function cerrarTrk(){document.getElementById('trk').style.display='none';if(PID){clearInterval(window.TINT);PID=null}cargarMisPedidos()}
 function seguir(id){PID=id;actualizar();window.TINT=setInterval(actualizar,12000)}
 async function enviarMsg(){
@@ -508,7 +516,11 @@ async function actualizar(){
   if(o.estado==='entregado'){e.className='st sEnt';e.textContent='Entregado ✅';i.textContent='¡Listo! El dragón entregó tu pedido'}
   if(o.prep&&['asignado','aceptado','en_camino'].includes(o.estado)){i.textContent=i.textContent+' — El local confirmó: listo en ~'+o.prep.min+' min ⏱️'}
   else if(o.local&&!o.prep&&['asignado','aceptado'].includes(o.estado)){i.textContent=i.textContent+' — Esperando que '+o.local.nombre+' confirme tu orden…'}
-  if(o.estado==='cancelado'){e.className='st sCan';e.textContent='Cancelado';i.textContent='Este pedido fue cancelado'}
+  if(o.estado==='cancelado'){e.className='st sCan';e.textContent='Cancelado';
+    var porQ={local:'🏪 El local no pudo preparar tu pedido'+(o.canceladoRazon?' ('+o.canceladoRazon+')':'')+'. No te cobramos nada.',sin_piloto:'⛔ No encontramos piloto para tu pedido. No te cobramos nada. Probá de nuevo más tarde.',cliente:'Cancelaste este pedido'};
+    i.textContent=porQ[o.canceladoPor||'cliente']||'Este pedido fue cancelado. Nadie te cobró nada.'}
+  var cbx=document.getElementById('cancelBox');if(cbx)cbx.remove();
+  if(o.estado==='buscando'){var cbn=document.createElement('button');cbn.id='cancelBox';cbn.style.cssText='width:100%;background:#fff;color:#c1121f;border:2px solid #c1121f;font-weight:900;border-radius:12px;padding:11px;margin-top:10px;font-size:14px;cursor:pointer';cbn.textContent='✕ Cancelar mi pedido (gratis, nadie pierde)';cbn.onclick=clienteCancela;var trk2=document.getElementById('trk');if(trk2)trk2.appendChild(cbn);}
   var mapa=document.getElementById('mapa');
   if(j.gps&&j.gps.lat){
     mapa.style.display='block';
