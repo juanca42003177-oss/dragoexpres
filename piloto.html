@@ -172,14 +172,16 @@ async function verBilletera(){
 }
 
 var DEMO=false;
-function entrarVista(){
+function entrarVista(dueno){
   DEMO=true;PILOTO={tel:'0'};
-  pintar({piloto:{nombre:'Piloto (ejemplo)',zona:'Tu zona',vehiculo:'moto',marca:'Honda Wave',color:'Rojo',placa:'C123ABC',disponible:false,ganadoHoy:0,ganadoSemana:0,pedidosHoy:0,calif:null,pendiente:null},activo:null,zonaBuscando:[]});
+  pintar({piloto:{nombre:(dueno?'Dueño-conductor (ejemplo)':'Piloto (ejemplo)'),zona:'Tu zona',vehiculo:'moto',marca:'Honda Wave',color:'Rojo',placa:'C123ABC',propio:!!dueno,disponible:false,ganadoHoy:0,ganadoSemana:0,pedidosHoy:0,calif:null,pendiente:null},activo:null,zonaBuscando:[]});
   document.getElementById('login').style.display='none';document.getElementById('app').style.display='block';
   var bn=document.createElement('div');bn.style.cssText='background:#241a05;border:1px solid #f0b90b;color:#ffe08a;font-size:12.5px;padding:9px 12px;border-radius:10px;margin:10px 0;text-align:center;font-weight:800';
   bn.textContent='👁 VISTA PREVIA — así ve un piloto su pantalla en 0 pedidos. Nada de esto se guarda. Salí con el botón atrás de tu navegador.';
   var app=document.getElementById('app');app.insertBefore(bn,app.firstChild);
 }(async function(){
+  var du=location.search.indexOf('demo=dueno')>-1;
+  if(du){entrarVista(true);return}
   var p=null;try{p=localStorage.getItem('dx_admin')}catch(e){}
   if(!p)return;
   try{var r=await fetch(api('admin'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({pass:p,action:'check'})});

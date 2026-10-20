@@ -58,31 +58,14 @@ input{width:100%;background:#0d0e14;border:1px solid #2a2b38;border-radius:10px;
 <script>
 var PASS='',MODO_DEMO=false,TAB='resumen';
 setInterval(function(){if(PASS&&TAB==='resumen')cargarVivo()},30000);
-var DEMO=[
- {tipo:'piloto',ts:1,estado:'aprobado',datos:{nombre:'Carlos Mendoza',tel:'5555 1111',zona:'Zona 11',vehiculo:'moto',marca:'Honda',color:'rojo',placa:'C-123ABC',h24:true,equipo:true}},
- {tipo:'piloto',ts:2,estado:'pendiente',datos:{nombre:'Luis Tzoc',tel:'5555 2222',zona:'Mixco',vehiculo:'bicicleta',marca:'Trek',color:'negro',equipo:true}},
- {tipo:'piloto',ts:3,estado:'pendiente',datos:{nombre:'Miguel Ruiz',tel:'5555 3333',zona:'Villa Nueva',vehiculo:'carro',marca:'Toyota',color:'blanco',placa:'P-777XYZ'}},
- {tipo:'piloto',ts:8,estado:'pendiente',datos:{nombre:'Jorge Baten',tel:'5555 8888',zona:'Mixco',vehiculo:'moto',marca:'Suzuki',color:'negro',placa:'C-910JKL',h24:true}},
- {tipo:'piloto',ts:9,estado:'rechazado',datos:{nombre:'Anónimo Pérez',tel:'5555 9999',zona:'Zona 12',vehiculo:'bicicleta',marca:'—',color:'—',equipo:false}},
- {tipo:'piloto',ts:10,estado:'pendiente',datos:{nombre:'Byron Xumul',tel:'5555 1010',zona:'Amatitlán',vehiculo:'moto',marca:'Yamaha',color:'azul',placa:'C-345MNO'}},
- {tipo:'local',ts:4,estado:'aprobado',datos:{nombre:'Pollería El Dragón',tipo:'comida',tel:'5555 4444',zona:'Zona 11'}},
- {tipo:'local',ts:5,estado:'pendiente',datos:{nombre:'Repuestos El Chino',tipo:'repuestos',tel:'5555 5555',zona:'Zona 12'}},
- {tipo:'local',ts:11,estado:'pendiente',datos:{nombre:'Tacos Doña Lupita',tipo:'comida',tel:'5555 1112',zona:'Mixco'}},
- {tipo:'local',ts:12,estado:'aprobado',datos:{nombre:'MotoRepuestos La Báscula',tipo:'repuestos',tel:'5555 1113',zona:'Mixco'}},
- {tipo:'local',ts:13,estado:'pendiente',datos:{nombre:'Taller El Turco',tipo:'taller',tel:'5555 1114',zona:'Villa Nueva'}},
- {tipo:'flota',ts:6,estado:'pendiente',datos:{nombre:'Doña Rosa',tel:'5555 6666',zona:'Amatitlán',vehiculo:'moto',marca:'Suzuki',color:'azul',placa:'C-456DEF'}},
- {tipo:'flota',ts:14,estado:'aprobado',datos:{nombre:'Sr. Paredes',tel:'5555 1115',zona:'Zona 11',vehiculo:'pickup',marca:'Nissan',color:'blanca',placa:'P-222QRS'}},
- {tipo:'usuario',ts:7,estado:'pendiente',datos:{nombre:'María López',tel:'5555 7777',zona:'Zona 11'}},
- {tipo:'usuario',ts:15,estado:'pendiente',datos:{nombre:'Juanito Morales',tel:'5555 1116',zona:'Mixco'}},
- {tipo:'usuario',ts:16,estado:'pendiente',datos:{nombre:'Sofía Ramírez',tel:'5555 1117',zona:'Quetzaltenango'}}
-];
+var DEMO=[];
 function apiBase(){return (location.hostname.indexOf('github.io')===-1&&!window.DX_API_URL)?'/api':(window.DX_API_URL||'https://dragoexpres.vercel.app/api');}
 function entrar(){
   PASS=document.getElementById('pass').value;
   fetch(apiBase()+'/admin',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({pass:PASS,action:'check'})})
   .then(r=>r.json()).then(j=>{
     if(j&&j.ok){MODO_DEMO=false;try{localStorage.setItem('dx_admin',PASS)}catch(e){}abrir();}
-    else if(PASS==='dragon2026'){MODO_DEMO=true;try{localStorage.setItem('dx_admin',PASS)}catch(e){}abrir();}
+    else{try{localStorage.removeItem('dx_admin')}catch(e){}document.getElementById('err').textContent='No pudimos conectar con el servidor (quizá estaba reiniciando). Esperá unos segundos y probá de nuevo.';}
     else{document.getElementById('err').textContent='Contraseña incorrecta';}
   }).catch(e=>{
     if(PASS==='dragon2026'){MODO_DEMO=true;abrir();}
@@ -222,7 +205,7 @@ function pintar(regs){
       '<div class="card"><div class="av">⏳</div><div><b>'+n.pen+' pendientes de tu aprobación</b><div class="s">Revisá la pestaña de cada rol y aprobá con 1 botón</div></div></div>'+
       '<div class="card"><div class="av">✅</div><div><b>'+n.apro+' aprobados</b><div class="s">El servicio funciona desde el día 1 en todas las zonas</div></div></div>'+
       (mejor?'<div class="card"><div class="av">📍</div><div><b>Zona con más equipo: '+mejor+'</b><div class="s">Pilotos y locales aprobados en esa zona</div></div></div>':'')+
-      '<div class="card" style="display:block"><div class="av">👁</div><div><b>Vistas previas (cómo ve tu equipo la app)</b><div class="s">Pantallas con datos de ejemplo, sin pedidos reales. Nada se guarda.</div></div><div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap"><button class="btn bA" style="width:auto;padding:10px 14px;margin:0" onclick="location.href=\'piloto.html\'">🏍️ Piloto</button><button class="btn bA" style="width:auto;padding:10px 14px;margin:0" onclick="location.href=\'flotista.html\'">🚚 Flotista</button><button class="btn bA" style="width:auto;padding:10px 14px;margin:0" onclick="location.href=\'local.html\'">🏪 Local</button></div></div>'+
+      '<div class="card" style="display:block"><div class="av">👁</div><div><b>Vistas previas (cómo ve tu equipo la app)</b><div class="s">Pantallas con datos de ejemplo, sin pedidos reales. Nada se guarda.</div></div><div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap"><button class="btn bA" style="width:auto;padding:10px 14px;margin:0" onclick="location.href=\'piloto.html\'">🏍️ Piloto</button><button class="btn bA" style="width:auto;padding:10px 14px;margin:0" onclick="location.href=\'piloto.html?demo=dueno\'">🛺 Dueño (maneja su vehículo)</button><button class="btn bA" style="width:auto;padding:10px 14px;margin:0" onclick="location.href=\'flotista.html\'">🚚 Flotista</button><button class="btn bA" style="width:auto;padding:10px 14px;margin:0" onclick="location.href=\'local.html\'">🏪 Local</button></div></div>'+
       '<div class="card"><div class="av">💰</div><div><b>Tus comisiones activas</b><div class="s">Comida 10% · Repuestos 8% · Viajes Q2–Q5 · 3 meses sin comisión al lanzar cada zona</div></div></div>';
   }
   if(TAB==='zonas'){
