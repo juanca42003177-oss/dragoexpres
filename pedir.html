@@ -1042,7 +1042,7 @@ function abrirPedido(tipo,local){
   document.getElementById('veil').style.display='block';
   document.getElementById('sheet').style.display='block';
   var dg=document.getElementById('dirs-guardadas');
-  var dirTxt=function(d){return typeof d==='string'?d:(d?(d.dir||d.calle||d.direccion||d.texto||''):'')};dg.innerHTML=(u.dires&&u.dires.length)?'<label>Direcciones guardadas</label>'+u.dires.map(function(d){return '<span class="dirchip" onclick="usarDir(this.textContent)">'+dirTxt(d)+'</span>'}).join(''):'';
+  var dirTxt=function(d){return typeof d==='string'?d:(d?(d.dir||d.calle||d.direccion||d.texto||''):'')};var vistos={},uDirs=(u.dires||[]).filter(function(d){var t=dirTxt(d);if(!t||vistos[t])return false;vistos[t]=1;return true});u.dires=uDirs;dg.innerHTML=uDirs.length?'<label>Direcciones guardadas</label>'+uDirs.map(function(d){return '<span class="dirchip" onclick="usarDir(this.textContent)">'+dirTxt(d)+'</span>'}).join(''):'';
   pintarTotal();
 }
 function usarDir(d){document.getElementById('f-dir').value=d;}
@@ -1106,7 +1106,8 @@ async function enviar(){
   if(!d.nombre||!d.tel||!d.zona||!d.direccion||!d.detalle){alert('Completá tu nombre, WhatsApp, zona, dirección y qué pedís.');return}
   // guardar perfil para la proxima
   u.nombre=d.nombre;u.tel=d.tel;u.zona=d.zona;u.dires=u.dires||[];
-  if(u.dires.indexOf(d.direccion)<0&&u.dires.length<6){u.dires.push(d.direccion);}
+  var _dt=function(x){return typeof x==='string'?x:(x?(x.dir||x.calle||x.direccion||x.texto||''):'')};
+  if(!u.dires.some(function(x){return _dt(x)===d.direccion})&&u.dires.length<6){u.dires.push(d.direccion);}
   SS(u);
   var b=document.querySelector('#sheet .btn');b.disabled=true;b.textContent='Enviando...';
   var j;
