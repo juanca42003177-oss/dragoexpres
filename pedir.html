@@ -314,7 +314,7 @@ input,textarea,select{-webkit-user-select:text;user-select:text}
   <h2 style="font-size:18px">📲 El local entra en 3 segundos</h2>
   <p class="mini" style="margin:4px 0 10px">Mostrale este código al dueño del negocio: lo escanea con su cámara y cae <b>directo al registro de su local</b>. Sin buscar nada.</p>
   <div style="background:#fff;border-radius:16px;padding:16px;margin:0 auto;max-width:290px;box-shadow:0 2px 10px rgba(0,0,0,.25)">
-    <img id="qrImg" style="width:100%;display:block" alt="QR DragoExpres">
+    <img id="qrImg" style="width:100%;display:none" alt="QR DragoExpres"><canvas id="qrCanvas" style="width:100%;max-width:280px;height:auto"></canvas>
   </div>
   <p class="mini" style="word-break:break-all;margin:10px 0" id="qrLink"></p>
   <button class="btn bA" onclick="invitarLocal()">Mandárselo por WhatsApp también</button>
@@ -447,6 +447,7 @@ input,textarea,select{-webkit-user-select:text;user-select:text}
   <button class="lG" style="margin-top:10px" onclick="cerrarSheets()">Cerrar</button>
 </div></div>
 
+<script src="qr.js"></script>
 <script>
 /* ---------- paises (internacional) ---------- */
 var PAISES=[
@@ -698,7 +699,7 @@ function pintarLocales(){
     return true;
   });
   var h='';
-  if(!loc.length){h='<div class="empty">Aún no hay locales mostrándose acá.<br><b>Recomendá tu local favorito</b> para que se registre<br><br><button class="btn bA" style="width:auto;padding:11px 18px;display:inline-block" onclick="location.href=\'index.html\'">Recomendar un local</button></div>';}
+  if(!loc.length){h='<div class="empty">Aún no hay locales mostrándose acá.<br><b>Recomendá tu local favorito</b> para que se registre<br><br><button class="btn bA" style="width:auto;padding:11px 18px;display:inline-block" onclick="invitarLocalSheet()">Recomendar un local</button></div>';}
   loc.forEach(function(l,idx){
     var ini=(l.nombre||'?').trim().charAt(0).toUpperCase();
     var u0=LS();var wa='https://wa.me/'+waTel(l.tel,u0);
@@ -729,10 +730,21 @@ var m=e.parentElement.textContent.match(/Q(\d+)/);var base=m?parseInt(m[1]):15;
 e.innerHTML='<br>🌙 De noche (23:00-06:00) son <b>Q'+(base+5)+'</b> · incluye recargo nocturno de <b>Q5 que va 100% a tu piloto</b>'})},4000);
 function mostrarQR(){
   var link='https://dragoexpres.vercel.app/index.html?rol=local';
-  document.getElementById('qrImg').src='https://api.qrserver.com/v1/create-qr-code/?size=300x300&margin=12&data='+encodeURIComponent(link);
   document.getElementById('qrLink').textContent=link;
   document.getElementById('veil').style.display='block';
   document.getElementById('qrSheet').style.display='block';
+  try{
+    var qr=qrcode(0,'M');qr.addData(link);qr.make();
+    var n=qr.getModuleCount(),cell=7,mg=4,side=(n+mg*2)*cell;
+    var cv=document.getElementById('qrCanvas');cv.width=side;cv.height=side;
+    var ctx=cv.getContext('2d');ctx.fillStyle='#fff';ctx.fillRect(0,0,side,side);ctx.fillStyle='#111';
+    for(var r=0;r<n;r++)for(var c=0;c<n;c++)if(qr.isDark(r,c))ctx.fillRect((c+mg)*cell,(r+mg)*cell,cell,cell);
+    cv.style.display='block';document.getElementById('qrImg').style.display='none';
+  }catch(e){
+    var im=document.getElementById('qrImg');
+    im.src='https://api.qrserver.com/v1/create-qr-code/?size=300x300&margin=12&data='+encodeURIComponent(link);
+    im.style.display='block';document.getElementById('qrCanvas').style.display='none';
+  }
 }
 function invitarLocal(){
   var nom=document.getElementById('inv-nombre').value.trim();
