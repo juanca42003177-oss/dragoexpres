@@ -74,15 +74,15 @@ input,textarea,select{-webkit-user-select:text;user-select:text}
   </div>
   <div style="display:flex;gap:8px;margin-top:14px">
     <a href="pedir.html" style="flex:1;text-align:center;background:linear-gradient(135deg,#ffe08a,#f0b90b);border:0;border-radius:10px;padding:13px;font-weight:900;font-size:15px;color:#111;text-decoration:none"><img src="img/dragon-paquete.webp" style="width:18px;height:18px;object-fit:contain;border-radius:5px;vertical-align:-4px"> PEDIR AHORA</a>
-    <a href="ganancias.html" style="flex:1;text-align:center;background:#14151c;border:1px solid #f0b90b;border-radius:10px;padding:13px;font-weight:900;font-size:15px;color:#f0b90b;text-decoration:none"><img src="img/dragon-dolares-s.png" style="width:18px;height:18px;object-fit:cover;border-radius:5px;vertical-align:-4px"> SOY PILOTO</a>
+    <a href="ganancias.html" style="flex:1;text-align:center;background:#14151c;border:1px solid #f0b90b;border-radius:10px;padding:13px;font-weight:900;font-size:15px;color:#f0b90b;text-decoration:none"><img src="img/dragon-billetera.png" style="width:18px;height:18px;object-fit:cover;border-radius:5px;vertical-align:-4px"> SOY PILOTO</a>
   </div>
   </div>
   <div class="puertas">
     <div class="puerta on" id="tUsuario" onclick="abrir('usuario')"><div class="i"><img src="img/dragon-paquete.webp" style="width:32px;height:32px;object-fit:contain;border-radius:8px"></div><div class="n">Quiero pedir</div><div class="s">Comida, viajes y repuestos</div></div>
-    <div class="puerta" id="tPiloto" onclick="location.href='ganancias.html'"><div class="i"><img src="img/dragon-dolares-s.png" style="width:32px;height:32px;object-fit:cover;border-radius:8px"></div><div class="n">Ser piloto</div><div class="s">Pagos semanales</div></div>
+    <div class="puerta" id="tPiloto" onclick="location.href='ganancias.html'"><div class="i"><img src="img/dragon-billetera.png" style="width:32px;height:32px;object-fit:cover;border-radius:8px"></div><div class="n">Ser piloto</div><div class="s">Pagos semanales</div></div>
     <div class="puerta" id="tLocal" onclick="abrir('local')"><div class="i"><img src="img/dragon-fuego.webp" style="width:32px;height:32px;object-fit:contain;border-radius:8px"></div><div class="n">Poné tu local</div><div class="s">Tu zona te ve</div></div>
     <div class="puerta" id="tFlota" onclick="abrir('flota')"><div class="i"><img src="img/dragon-volando.png" style="width:32px;height:32px;object-fit:cover;border-radius:8px"></div><div class="n">Tu moto o carro a trabajar</div><div class="s">Ganá el 25% sin manejar</div></div>
-    <div class="puerta" id="tDueno" onclick="abrirDueno()" style="grid-column:1/3;display:flex;align-items:center;gap:14px;text-align:left;padding:14px 16px"><div class="i" style="margin:0"><img src="img/dragon-dolares-s.png" style="width:32px;height:32px;object-fit:cover;border-radius:8px"></div><div><div class="n" style="margin-top:0">Mi vehículo, lo manejo YO</div><div class="s">Sos el dueño: ganás el 100% de cada entrega, sin split</div></div></div>
+    <div class="puerta" id="tDueno" onclick="abrirDueno()" style="grid-column:1/3;display:flex;align-items:center;gap:14px;text-align:left;padding:14px 16px"><div class="i" style="margin:0"><img src="img/dragon-billetera.png" style="width:32px;height:32px;object-fit:cover;border-radius:8px"></div><div><div class="n" style="margin-top:0">Mi vehículo, lo manejo YO</div><div class="s">Sos el dueño: ganás el 100% de cada entrega, sin split</div></div></div>
   </div>
 
   <div class="form on" id="fUsuario">
@@ -97,7 +97,7 @@ input,textarea,select{-webkit-user-select:text;user-select:text}
   </div>
 
   <div class="form" id="fPiloto">
-    <h3>Quiero ser piloto <img src="img/dragon-dolares-s.png" style="width:20px;height:20px;object-fit:cover;border-radius:5px;vertical-align:-4px"></h3>
+    <h3>Quiero ser piloto <img src="img/dragon-billetera.png" style="width:20px;height:20px;object-fit:cover;border-radius:5px;vertical-align:-4px"></h3>
     <p class="desc">Trabajá con tu bicicleta, moto o carro en tu propia zona. Pagos semanales, y vos ponés vuestro horario. Después del registro te pedimos tus documentos (DPI y licencia) para darte la insignia de Piloto Verificado.</p>
     <label>Tu nombre</label><input id="pNombre" placeholder="Nombre completo">
     <label>WhatsApp</label><input id="pTel" type="tel" placeholder="Tu WhatsApp">
@@ -162,7 +162,7 @@ input,textarea,select{-webkit-user-select:text;user-select:text}
 
   <div class="bene">
     <h4>⚡ Beneficios de los primeros</h4>
-    <div class="r"><img src="img/dragon-dolares-s.png" style="width:16px;height:16px;object-fit:cover;border-radius:5px;vertical-align:-4px"> <span><b>Pilotos:</b> vuestro primer mes con el 100% de vuestros envíos + DEVOLUCIÓN SEMANAL en cashback al cumplir 20 entregas (ninguna otra app hace esto).</span></div>
+    <div class="r"><img src="img/dragon-billetera.png" style="width:16px;height:16px;object-fit:cover;border-radius:5px;vertical-align:-4px"> <span><b>Pilotos:</b> vuestro primer mes con el 100% de vuestros envíos + DEVOLUCIÓN SEMANAL en cashback al cumplir 20 entregas (ninguna otra app hace esto).</span></div>
     <div class="r"><img src="img/dragon-fuego.webp" style="width:16px;height:16px;object-fit:contain;border-radius:5px;vertical-align:-4px"> <span><b>Locales:</b> vuestros primeros 90 días sin comisión, y publicás vuestras propias promos (después solo 10%, comida y repuestos).</span></div>
     <div class="r"><img src="img/dragon-paquete.webp" style="width:16px;height:16px;object-fit:contain;border-radius:5px;vertical-align:-4px"> <span><b>Usuarios:</b> con 30 pedidos tu envío 31 va gratis (promo LIMITADA, una sola vez) + sorpresas de lanzamiento en vuestra zona.</span></div>
   </div>
@@ -272,7 +272,7 @@ function verDemo(cual){
     <div class="ds" id="dsPiloto" style="display:none">
       <div style="display:flex;gap:10px;align-items:center;margin-top:12px">
         <img src="img/piloto.png" style="width:52px;height:52px;border-radius:50%;border:2px solid #f0b90b">
-        <div><div style="font-weight:900;font-size:18px">Vos sos piloto <img src="img/dragon-dolares-s.png" style="width:18px;height:18px;object-fit:cover;border-radius:5px;vertical-align:-4px"></div></div>
+        <div><div style="font-weight:900;font-size:18px">Vos sos piloto <img src="img/dragon-billetera.png" style="width:18px;height:18px;object-fit:cover;border-radius:5px;vertical-align:-4px"></div></div>
       </div>
       <div style="color:#9aa3b5;font-size:12.5px">Carlos M. · Honda roja · C-123ABC · ✅ Verificado</div>
       <div style="background:#14151c;border:1px solid #2a2b38;border-radius:12px;padding:12px;margin-top:12px;display:flex;justify-content:space-between;align-items:center">
@@ -305,7 +305,7 @@ function verDemo(cual){
     </div>
     <div style="display:flex;position:fixed;bottom:0;left:0;right:0;max-width:480px;margin:0 auto;background:#14151c;border-top:1px solid #2a2b38">
       <div class="tabb" onclick="verDemo('Usuario')" style="flex:1;text-align:center;padding:12px 0;cursor:pointer"><img src="img/dragon-paquete.webp" style="width:18px;height:18px;object-fit:contain;border-radius:5px;vertical-align:-4px"><div style="font-size:10px">Usuario</div></div>
-      <div class="tabb" onclick="verDemo('Piloto')" style="flex:1;text-align:center;padding:12px 0;cursor:pointer"><img src="img/dragon-dolares-s.png" style="width:18px;height:18px;object-fit:cover;border-radius:5px;vertical-align:-4px"><div style="font-size:10px">Piloto</div></div>
+      <div class="tabb" onclick="verDemo('Piloto')" style="flex:1;text-align:center;padding:12px 0;cursor:pointer"><img src="img/dragon-billetera.png" style="width:18px;height:18px;object-fit:cover;border-radius:5px;vertical-align:-4px"><div style="font-size:10px">Piloto</div></div>
       <div class="tabb" onclick="verDemo('Local')" style="flex:1;text-align:center;padding:12px 0;cursor:pointer"><img src="img/dragon-fuego.webp" style="width:18px;height:18px;object-fit:contain;border-radius:5px;vertical-align:-4px"><div style="font-size:10px">Local</div></div>
       <div class="tabb" onclick="location.href='admin.html'" style="flex:1;text-align:center;padding:12px 0;cursor:pointer">👑<div style="font-size:10px">Panel</div></div>
     </div>
@@ -481,7 +481,7 @@ function initMapa(){
   L.marker(ruta[0],{icon:L.divIcon({html:"<div style=font-size:20px>🍗</div>",iconSize:[22,22]})}).addTo(mapita).bindPopup("Polleria El Dragon");
   L.marker(ruta[3],{icon:L.divIcon({html:"<div style=font-size:20px>🏠</div>",iconSize:[22,22]})}).addTo(mapita).bindPopup("Tu casa");
   L.polyline(ruta,{color:"#f0b90b",weight:3,dashArray:"6 6"}).addTo(mapita);
-  var p=L.marker(ruta[0],{icon:L.divIcon({html:"<img src=img/dragon-dolares-s.png style=width:20px;height:20px;object-fit:contain>",iconSize:[22,22]})}).addTo(mapita);
+  var p=L.marker(ruta[0],{icon:L.divIcon({html:"<img src=img/dragon-billetera.png style=width:20px;height:20px;object-fit:contain>",iconSize:[22,22]})}).addTo(mapita);
   var i=0;
   setInterval(function(){i=(i+1)%ruta.length;p.setLatLng(ruta[i]);},1500);
 }
