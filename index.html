@@ -98,7 +98,7 @@ input,textarea,select{-webkit-user-select:text;user-select:text}
 
   <div class="form" id="fPiloto">
     <h3>Quiero ser piloto <img src="img/dragon-billetera.png" style="width:20px;height:20px;object-fit:cover;border-radius:5px;vertical-align:-4px"></h3>
-    <p class="desc">Trabajá con tu bicicleta, moto o carro en tu propia zona. Pagos semanales, y vos ponés vuestro horario. Después del registro te pedimos tus documentos (DPI y licencia) para darte la insignia de Piloto Verificado.</p>
+    <p class="desc">Trabajá con tu bicicleta, moto o carro en tu propia zona. Pagos semanales, y vos ponés vuestro horario. Te pedimos DPI, selfie, tu vehículo y tu caja térmica 📦 (obligatoria para que la comida llegue caliente) para darte la insignia de Piloto Verificado.</p>
     <label>Tu nombre</label><input id="pNombre" placeholder="Nombre completo">
     <label>WhatsApp</label><input id="pTel" type="tel" placeholder="Tu WhatsApp">
     <label>¿Con qué vas a trabajar?</label>
@@ -118,7 +118,10 @@ input,textarea,select{-webkit-user-select:text;user-select:text}
     <label>Foto de tu licencia de conducir 🪪</label><input type="file" accept="image/*" capture="environment" id="pLicencia" style="padding:8px">
     <label style="display:flex;gap:8px;align-items:flex-start;margin-top:10px"><input type="checkbox" id="pLicTramite" style="width:auto;margin-top:3px"> <span>Mi licencia está <b>EN TRÁMITE</b> (la estoy tramitando) 📜<br><span style="color:#f0b90b">Pido la oportunidad de trabajar mientras la termino: el administrador decide con su OK. Cualquier multa por manejar sin licencia es mi responsabilidad.</span></span></label>
     </div>
-    <p class="desc" style="font-size:11px;margin:0 0 8px">La verificación es automática: DPI bien escrito + tus 2 fotos = quedás APROBADO AL INSTANTE y podés trabajar ya. Sin papeleo, sin esperar.</p>
+    <label style="margin-top:10px">Foto de tu caja térmica 📦 <b style="color:#c1121f">(OBLIGATORIA)</b></label>
+    <input type="file" accept="image/*" capture="environment" id="pMochila" style="padding:8px">
+    <p class="desc" style="font-size:11px;margin:0 0 8px">La caja cuadrada de reparto (como la de PedidosYa) para llevar la comida CALIENTE. Sin excepción: sin su foto no podés repartir. La comprás vos, es tuya y dura años.</p>
+    <p class="desc" style="font-size:11px;margin:0 0 8px">La verificación es automática: DPI bien escrito + tus fotos + tu caja térmica = quedás APROBADO AL INSTANTE y podés trabajar ya. Sin papeleo, sin esperar.</p>
     <label>Tu área</label><input id="pZona" placeholder="Ej: Zona 11, Mixco, Villa Nueva...">
     <label style="display:flex;gap:8px;align-items:flex-start;margin-top:14px"><input type="checkbox" id="p24" style="width:auto;margin-top:3px"> <span>Me animo a turnos de <b>24 horas</b> <span style="color:#f0b90b">(prioridad en pedidos nocturnos + el cliente paga Q5 extra de noche que es 100% tuyo + boletos extra para tu devolución dominical)</span></span></label>
     <label style="display:flex;gap:8px;align-items:flex-start;margin-top:8px;font-size:12px;border:1px solid #f5b942;border-radius:10px;padding:10px;background:#16130a"><input type="checkbox" id="pContrato" style="width:auto;margin-top:2px"> He leído y acepto el <a href="contrato.html" target="_blank"><b>Contrato Digital de DragoExpres</b></a> (C-2026.5 · licencia en trámite con OK · cero tolerancia al fraude)</label>
@@ -374,6 +377,7 @@ function validar(t,d) {
   if (!d.zona) return 'Decinos tu área';
   if (t==='piloto' && d.vehiculo==='bicicleta' && !d.equipo) return 'Para bicicleta necesitás confirmar que trabajás con casco y rodilleras';
   if (t==='piloto' && String(d.dpi||'').replace(/\D/g,'').length!==13) return 'Poné el número de tu DPI completo (13 dígitos, sin espacios)';
+  if (t==='piloto') { var mo=document.getElementById('pMochila'); if(!mo||!mo.files||!mo.files[0]) return 'Falta la foto de tu caja térmica 📦 — es obligatoria para llevar la comida caliente (como los repartidores de las apps grandes)'; }
   if (t==='piloto' && d.vehiculo!=='bicicleta' && !d.licenciaEnTramite) {
     var lf = document.getElementById('pLicencia');
     if (!lf || !lf.files || !lf.files[0]) return 'Falta la foto de tu licencia (o marcá que está en trámite)';
@@ -438,6 +442,7 @@ async function enviar(t) {
       if (fs && fs.files && fs.files[0]) { var b = await subirDoc(fs.files[0], 'selfie', d.nombre, d.tel); if (b) docs.push(b); }
       var fl = document.getElementById('pLicencia');
       if (fl && fl.files && fl.files[0]) { var li = await subirDoc(fl.files[0], 'licencia', d.nombre, d.tel); if (li) docs.push(li); }
+      var mo2 = document.getElementById('pMochila'); if (mo2 && mo2.files && mo2.files[0]) { var m1 = await subirDoc(mo2.files[0], 'mochila', d.nombre, d.tel); if (m1) docs.push(m1); }
       if (btn) { btn.textContent = 'Registrarme de piloto'; btn.disabled = false; }
     }
   } catch(e) {}

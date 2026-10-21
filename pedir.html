@@ -1210,7 +1210,7 @@ async function actualizar(){
   if(o.piloto&&(o.piloto.marca||o.piloto.color||o.piloto.placa)){
     var tv={moto:'🏍️ Moto',carro:'🚗 Carro',bicicleta:'🚲 Bicicleta'}[o.piloto.vehiculo]||'🚗 Vehículo';
     vb.style.display='block';
-    vb.innerHTML='<div style="font-size:11px;font-weight:800;color:#9a7b00;margin-bottom:4px">TU PILOTO VIENE EN</div><div style="font-size:15px;font-weight:900;color:#1a1a22">'+tv+(o.piloto.marca?' '+o.piloto.marca:'')+(o.piloto.color?' · '+o.piloto.color:'')+'</div>'+(o.piloto.placa?'<div style="display:inline-block;margin-top:6px;background:#fff;border:2px solid #1a1a22;border-radius:6px;padding:2px 12px;font-weight:900;letter-spacing:2px;font-size:15px">'+String(o.piloto.placa).toUpperCase()+'</div>':'');
+    vb.innerHTML='<div style="font-size:11px;font-weight:800;color:#9a7b00;margin-bottom:4px">TU PILOTO VIENE EN</div><div style="font-size:15px;font-weight:900;color:#1a1a22">'+tv+(o.piloto.marca?' '+o.piloto.marca:'')+(o.piloto.color?' · '+o.piloto.color:'')+'</div>'+(o.piloto.placa?'<div style="display:inline-block;margin-top:6px;background:#fff;border:2px solid #1a1a22;border-radius:6px;padding:2px 12px;font-weight:900;letter-spacing:2px;font-size:15px">'+String(o.piloto.placa).toUpperCase()+'</div>':'')+(o.tipo==='comida'?'<div style="margin-top:6px;font-size:12.5px;color:#188038;font-weight:800">📦 Tu piloto lleva caja térmica: tu comida llega calentita</div>':'');
   }else{vb.style.display='none'}
   var wa=document.getElementById('owa');
   if(o.piloto){var uW=LS();wa.style.display='block';wa.href='https://wa.me/'+waTel(o.piloto.tel,uW)+'?text='+encodeURIComponent('Hola '+o.piloto.nombre+', soy '+o.cliente.nombre+', del pedido '+o.id+' de DragoExpres.')}

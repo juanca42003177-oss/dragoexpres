@@ -75,6 +75,8 @@ module.exports = wrap(async (req, res) => {
     const docsOk = esBici ? nDocs >= 2 : (tieneLic ? nDocs >= 3 : (enTramite && nDocs >= 2));
     checks.push({ k: 'FOTOS', ok: docsOk, txt: nDocs + '/' + ((esBici || (enTramite && !tieneLic)) ? 2 : 3) + ' fotos' + (esBici ? ' (bicicleta: DPI + selfie)' : (enTramite && !tieneLic ? ' (DPI + selfie, licencia en trámite 📜)' : ' (DPI + licencia + selfie)')) });
     checks.push({ k: 'LICENCIA', ok: esBici ? true : (tieneLic || enTramite), txt: esBici ? 'Bicicleta: no requiere licencia' : (tieneLic ? 'Foto de licencia recibida' : (enTramite ? '📜 EN TRÁMITE — pide tu OK para trabajar mientras la tramita' : 'Falta la foto de la licencia')) });
+    const tieneMochila = Array.isArray(d.docs) && d.docs.some(y => y.tipo === 'mochila');
+    checks.push({ k: 'MOCHILA', ok: tieneMochila, txt: tieneMochila ? 'Foto de caja térmica recibida 📦' : 'FALTA foto de la caja térmica (obligatoria: comida caliente)' });
     const placaOk = d.vehiculo === 'bicicleta' || /^[A-Z0-9-]{5,10}$/i.test(String(d.placa || ''));
     checks.push({ k: 'PLACA', ok: placaOk, txt: placaOk ? (d.vehiculo === 'bicicleta' ? 'Bicicleta (sin placa)' : 'Placa válida: ' + d.placa) : 'Placa inválida' });
     const dup = data.some(r2 => r2.tipo === 'piloto' && (limpiar((r2.datos || {}).tel) === limpiar(d.tel) || (d.placa && String((r2.datos || {}).placa || '').toUpperCase() === String(d.placa).toUpperCase())));
