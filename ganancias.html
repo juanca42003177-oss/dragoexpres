@@ -79,7 +79,7 @@ label.lb{display:block;font-size:13px;color:#666;margin:16px 0 6px;font-weight:6
   <div class="item" onclick="fin()"><div><b>Documento Personal de Identificación (DPI)</b><div class="sub">Próximo paso recomendado</div></div><span class="chev">›</span></div>
   <div class="item" onclick="fin()"><div><b>Foto de perfil (selfie)</b></div><span class="chev">›</span></div>
   <div class="item" onclick="fin()"><div><b>Licencia de conducir</b><div style="font-size:12px;color:#888">Solo moto y carro. <b style="color:#188038">¿No la tenés? Prometés tramitarla y trabajás igual</b> — te damos el acceso y la oportunidad 🐉</div></div><span class="chev">›</span></div>
-  <div class="item" onclick="fin()"><div><b>Contrato digital del equipo</b><div style="font-size:12px;color:#888">Lo firmás con un chequecito, sin papeleo</div></div><span class="chev">›</span></div>
+  <div class="item" onclick="verContrato()"><div><b>Contrato digital del equipo</b><div style="font-size:12px;color:#888">Lo firmás con un chequecito, sin papeleo — <b style="color:#188038">leelo acá</b></div></div><span class="chev">›</span></div>
   <div class="barra"><button class="vamos" onclick="fin()">Continuar al registro &nbsp;›</button></div>
 </div>
 
@@ -138,6 +138,14 @@ function paso2(){
 }
 function elige(k){ELE=k;document.querySelectorAll('.card').forEach(function(c){c.className='card'+(c.dataset.k===k?' sel':'')})}
 function paso3(){if(!ELE){alert('Elegí cómo querés generar ganancias.');return}go(3)}
+function verContrato(){
+  var o=document.getElementById('ctrOv');
+  if(!o){o=document.createElement('div');o.id='ctrOv';
+    o.style.cssText='position:fixed;inset:0;z-index:99;background:rgba(0,0,0,.88);display:flex;flex-direction:column';
+    o.innerHTML='<div style="display:flex;justify-content:space-between;align-items:center;padding:10px 14px;background:#0d0d10;color:#f5b942;font-weight:700;font-size:14px"><span>📄 Contrato Digital — DragoExpres</span><button onclick="document.getElementById(\'ctrOv\').style.display=\'none\'" style="background:#f5b942;border:0;border-radius:10px;padding:8px 14px;font-weight:800">✕ Cerrar</button></div><iframe src="contrato.html" style="flex:1;border:0;width:100%"></iframe>';
+    document.body.appendChild(o);}
+  o.style.display='flex';
+}
 function fin(){
   var q=[];
   if(ELE==='bici')q.push('rol=piloto','veh=bicicleta');
