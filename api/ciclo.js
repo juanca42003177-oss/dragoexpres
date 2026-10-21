@@ -9,7 +9,7 @@ const { REPO, BRANCH, H, ensureBranch } = require('./_dx');
 
 const TZ = 6 * 3600 * 1000;
 const CICLO_MS = 72 * 3600 * 1000;
-const dinero = (q) => Math.max(0, Math.round(+q * 100) / 100);
+const dinero = (q) => { const n = Number(q); return (isNaN(n) || !isFinite(n) || n < 0) ? 0 : Math.round(n * 100) / 100; };
 
 async function ghGet(path) {
   await ensureBranch();

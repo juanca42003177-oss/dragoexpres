@@ -149,7 +149,7 @@ module.exports = wrap(async (req, res) => {
     lunes.setUTCDate(g.getUTCDate() - ((g.getUTCDay() + 6) % 7));
     lunes.setUTCHours(0, 0, 0, 0);
     const semana = mios.filter(x => (x.tsEntregado || x.ts) >= lunes.getTime() + 21600000).length;
-    const dinero2 = (q) => Math.round(+q * 100) / 100;
+    const dinero2 = (q) => { const n = Number(q); return (isNaN(n) || !isFinite(n)) ? 0 : Math.round(n * 100) / 100; };
     const firma = reg.firmaContrato || null;
     const firmaTxt = firma ? ('✍️ Contrato ' + firma.version + ' aceptado digitalmente el ' + new Date((firma.tsFirma || reg.ts) - 21600000).toISOString().replace('T', ' ').slice(0, 16) + ' GT' + (firma.ip ? ' · IP ' + String(firma.ip).split(',')[0].trim() : '')) : 'Sin contrato firmado (registro anterior)';
     return res.status(200).json({ ok: true, registro: reg.datos, estado: reg.estado, auto: !!reg.auto, checks: reg.checks || [], docs: (reg.datos && reg.datos.docs) || [], firmaContrato: firmaTxt, stats: {

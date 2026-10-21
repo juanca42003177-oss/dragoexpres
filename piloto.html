@@ -215,9 +215,9 @@ function pintar(j){
   var p=j.piloto;
   document.getElementById('p-nombre').textContent=p.nombre.split(' ')[0];
   var r=p.racha||0,bx=p.boletosExtra||0,cp=p.compensa||0;
-  var st=document.createElement('div');st.style.cssText='color:#ffe08a;font-size:12.5px;font-weight:800;margin:2px 0';
+  var st=document.getElementById('p-racha');
+  if(!st){st=document.createElement('div');st.id='p-racha';st.style.cssText='color:#ffe08a;font-size:12.5px;font-weight:800;margin:2px 0';var hn0=document.getElementById('p-nombre');if(hn0&&hn0.parentNode)hn0.parentNode.insertBefore(st,hn0.nextSibling);}
   st.textContent=(r>0?('🔥 Racha: '+r+' entrega'+(r>1?'s':'')+' seguida'+(r>1?'s':'')+(bx?' · 🎟️ '+bx+' boleto'+(bx>1?'s':'')+' extra para tu devolución semanal':'')):'')+(cp>0?' ⛽ Q'+cp+' de gasolina por viajes cancelados (se abona en tu próxima liquidación, cada 72h)':'');
-  var hn=document.getElementById('p-nombre');if(hn&&hn.parentNode&&!hn.dataset.r){hn.dataset.r=1;hn.parentNode.insertBefore(st,hn.nextSibling);}
   document.getElementById('p-zona').textContent='Zona: '+p.zona+' · '+(p.vehiculo||'—')+(p.marca?' '+p.marca:'')+(p.color?' · '+p.color:'')+(p.placa?' · '+String(p.placa).toUpperCase():'')+(p.propio?' · 🛺 Dueño del vehículo':'')+' · Piloto verificado ✅';
   document.getElementById('g-hoy').textContent='Q'+(p.ganadoHoy||0);
   document.getElementById('g-sem').textContent='Q'+(p.ganadoSemana||0);
@@ -291,7 +291,7 @@ async function calificarCliente(n){
   var j=await r.json();PCALIF=null;tick();
 }
 // GPS: publicar posicion mientras esta disponible o con pedido activo
-var ULT_GPS=0;
+var ULT_GPS=0;var GPS_WARN=false;
 function gpsLoop(){
   if(!PILOTO||!navigator.geolocation)return;
   var dis=document.getElementById('sw').className.includes('on')||document.getElementById('pedidoActivo').style.display!=='none';
@@ -299,7 +299,7 @@ function gpsLoop(){
   navigator.geolocation.getCurrentPosition(function(pos){
     ULT_GPS=Date.now();
     fetch(api('orders'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'gps',tel:PILOTO.tel,lat:pos.coords.latitude,lng:pos.coords.longitude})}).catch(function(){});
-  },function(){},{enableHighAccuracy:true,timeout:10000});
+  },function(){ULT_GPS=Date.now();if(!GPS_WARN){GPS_WARN=true;var d=document.createElement('div');d.style.cssText='background:#241a05;border:1px solid #f0b90b;color:#ffe08a;font-size:12px;padding:8px 10px;border-radius:10px;margin:6px 0';d.textContent='📍 Activá tu GPS: sin él el cliente no te ve en el mapa. Revisá el permiso de ubicación del navegador.';var app=document.getElementById('app');if(app)app.insertBefore(d,app.firstChild);}},{enableHighAccuracy:true,timeout:10000});
 }
 setInterval(gpsLoop,15000);
 async function cambiarDis(){
@@ -311,12 +311,12 @@ async function cambiarDis(){
 }
 async function tick(){
   if(DEMO)return
-  var g=JSON.parse(localStorage.getItem('dxPiloto')||'{}');
+  var g={};try{g=JSON.parse(localStorage.getItem('dxPiloto')||'{}')}catch(e){}
   var r=await fetch(api('orders'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'loginPiloto',tel:g.tel,placa:g.placa})});
   var j=await r.json();if(j.ok)pintar(j);
 }
 (function(){
-  var g=JSON.parse(localStorage.getItem('dxPiloto')||'{}');
+  var g={};try{g=JSON.parse(localStorage.getItem('dxPiloto')||'{}')}catch(e){}
   if(g&&g.tel&&g.placa){document.getElementById('l-tel').value=g.tel;document.getElementById('l-placa').value=g.placa;login()}
 })();
 </script>

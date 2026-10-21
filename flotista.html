@@ -111,11 +111,11 @@ async function quitar(placa){
   var j=await r.json();if(j.ok)recargar();
 }
 async function recargar(){
-  var g=JSON.parse(localStorage.getItem('dxFlota')||'{}');
+  var g={};try{g=JSON.parse(localStorage.getItem('dxFlota')||'{}')}catch(e){}
   var r=await fetch(api('flotas'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'login',tel:g.tel,placa:g.placa})});
   var j=await r.json();if(j.ok)pintar(j);
 }
-(function(){if(localStorage.getItem('dx_admin'))return;var g=JSON.parse(localStorage.getItem('dxFlota')||'{}');if(g&&g.tel&&g.placa){document.getElementById('l-tel').value=g.tel;document.getElementById('l-placa').value=g.placa;login()}})();
+(function(){if(localStorage.getItem('dx_admin'))return;var g={};try{g=JSON.parse(localStorage.getItem('dxFlota')||'{}')}catch(e){}if(g&&g.tel&&g.placa){document.getElementById('l-tel').value=g.tel;document.getElementById('l-placa').value=g.placa;login()}})();
 </script>
 </body>
 </html>

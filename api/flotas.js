@@ -6,7 +6,7 @@ const { REPO, BRANCH, H, ensureBranch } = require('./_dx');
 
 const TZ = 6 * 3600 * 1000;
 const semana = () => 'S' + Math.floor((Date.now() - TZ) / (7 * 864e5));
-const dinero = (q) => Math.max(0, Math.round(+q * 100) / 100);
+const dinero = (q) => { const n = Number(q); return (isNaN(n) || !isFinite(n) || n < 0) ? 0 : Math.round(n * 100) / 100; };
 
 async function ghGet(path) {
   await ensureBranch();

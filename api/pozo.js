@@ -12,7 +12,7 @@ const wrap = require('./_cors');
 const { REPO, BRANCH, H, ensureBranch } = require('./_dx');
 
 const TZ = 6 * 3600 * 1000;
-const dinero = (q) => Math.max(0, Math.round(+q * 100) / 100);
+const dinero = (q) => { const n = Number(q); return (isNaN(n) || !isFinite(n) || n < 0) ? 0 : Math.round(n * 100) / 100; };
 const META = 20, PCT_POZO = 0.25;
 // Meta dinamica (regla de Juan 2026-10-20, estilo dificultad de cripto):
 // - Base 20. Cumplir 4 domingos SEGUIDOS suma +2 a la meta personal (progresion).

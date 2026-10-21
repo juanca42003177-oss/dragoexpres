@@ -32,7 +32,8 @@ async function compensarPiloto(tel, id) {
   } catch (e) { return 0; }
 }
 const semana = () => 'S' + Math.floor((Date.now() - TZ) / (7 * 864e5));
-const dinero = (q) => Math.max(0, Math.round(+q * 100) / 100);
+const dinero = (q) => { const n = Number(q); return (isNaN(n) || !isFinite(n) || n < 0) ? 0 : Math.round(n * 100) / 100; };
+const dig = (t) => String(t || '').replace(/\D/g, '');
 
 async function ghGet(path) {
   await ensureBranch();
@@ -96,11 +97,11 @@ const ESTADOS = ['buscando', 'asignado', 'aceptado', 'en_camino', 'entregado', '
 async function candidatosViaje(zona, excluir) {
   const fp = await ghGet('pilots.json'); const pilots = fp ? fp.data : [];
   const fr = await ghGet('registros.json'); const reg = fr ? fr.data : [];
-  const aprobados = new Set(reg.filter(r => r.tipo === 'piloto' && r.estado === 'aprobado').map(r => String(r.datos.tel).trim()));
+  const aprobados = new Set(reg.filter(r => r.tipo === 'piloto' && r.estado === 'aprobado').map(r => dig(r.datos.tel)));
   const fpd = await ghGet('pedidos.json');
-  const ocupados = new Set((fpd ? fpd.data : []).filter(o => o.piloto && ['asignado', 'aceptado', 'en_camino', 'contraoferta'].includes(o.estado)).map(o => o.piloto.tel));
-  return pilots.filter(x => x.disponible && !(x.pendiente && !x.pendiente.pagado) && aprobados.has(x.tel) && !ocupados.has(x.tel) && !excluir.includes(x.tel))
-    .filter(x => { const r = reg.find(y => y.tipo === 'piloto' && String(y.datos.tel).trim() === x.tel); return r && r.datos.zona === zona; });
+  const ocupados = new Set((fpd ? fpd.data : []).filter(o => o.piloto && ['asignado', 'aceptado', 'en_camino', 'contraoferta'].includes(o.estado)).map(o => dig(o.piloto.tel)));
+  return pilots.filter(x => x.disponible && !(x.pendiente && !x.pendiente.pagado) && aprobados.has(dig(x.tel)) && !ocupados.has(dig(x.tel)) && !excluir.includes(x.tel))
+    .filter(x => { const r = reg.find(y => y.tipo === 'piloto' && dig(y.datos.tel) === dig(x.tel)); return r && r.datos.zona === zona; });
 }
 
 async function redispatchViaje(o, peds, sha) {
@@ -108,7 +109,7 @@ async function redispatchViaje(o, peds, sha) {
   const cand = await candidatosViaje(o.zona, ex);
   if (cand.length) {
     const fr = await ghGet('registros.json'); const reg = fr ? fr.data : [];
-    const r = reg.find(y => y.tipo === 'piloto' && String(y.datos.tel).trim() === cand[0].tel);
+    const r = reg.find(y => y.tipo === 'piloto' && dig(y.datos.tel) === dig(cand[0].tel));
     o.estado = 'asignado'; o.tsAsignado = Date.now(); o.piloto = Object.assign({ tel: cand[0].tel, nombre: r.datos.nombre }, vehInfo(r.datos));
   } else { o.estado = 'buscando'; o.piloto = null; }
   o.contra = null;
@@ -176,7 +177,7 @@ module.exports = wrap(async (req, res) => {
     const tel = String(b.tel || '').trim(), placa = String(b.placa || '').trim().toUpperCase();
     const f = await ghGet('registros.json');
     const reg = f ? f.data : [];
-    const p = reg.find(r => r.tipo === 'piloto' && r.estado === 'aprobado' && String(r.datos.tel).trim() === tel);
+    const p = reg.find(r => r.tipo === 'piloto' && r.estado === 'aprobado' && dig(r.datos.tel) === dig(tel));
     if (!p) return res.status(200).json({ ok: false, error: 'No encontramos un piloto aprobado con ese WhatsApp.' });
     if (p.datos.placa && String(p.datos.placa).trim().toUpperCase() !== placa) return res.status(200).json({ ok: false, error: 'La placa no coincide.' });
     const fp = await ghGet('pilots.json');
@@ -269,22 +270,22 @@ module.exports = wrap(async (req, res) => {
     // dispatch: primer piloto disponible de la zona
     const fp = await ghGet('pilots.json'); const pilots = fp ? fp.data : [];
     const fr = await ghGet('registros.json'); const reg = fr ? fr.data : [];
-    const aprobados = new Set(reg.filter(r => r.tipo === 'piloto' && r.estado === 'aprobado').map(r => String(r.datos.tel).trim()));
+    const aprobados = new Set(reg.filter(r => r.tipo === 'piloto' && r.estado === 'aprobado').map(r => dig(r.datos.tel)));
     const fpd = await ghGet('pedidos.json'); const peds = fpd ? fpd.data : [];
-    const ocupados = new Set(peds.filter(o => o.piloto && ['asignado', 'aceptado', 'en_camino'].includes(o.estado)).map(o => o.piloto.tel));
-    const cand = pilots.filter(x => x.disponible && !(x.pendiente && !x.pendiente.pagado) && aprobados.has(x.tel) && !ocupados.has(x.tel))
-      .filter(x => { const r = reg.find(y => y.tipo === 'piloto' && String(y.datos.tel).trim() === x.tel); return r && r.datos.zona === zona; })
+    const ocupados = new Set(peds.filter(o => o.piloto && ['asignado', 'aceptado', 'en_camino'].includes(o.estado)).map(o => dig(o.piloto.tel)));
+    const cand = pilots.filter(x => x.disponible && !(x.pendiente && !x.pendiente.pagado) && aprobados.has(dig(x.tel)) && !ocupados.has(dig(x.tel)))
+      .filter(x => { const r = reg.find(y => y.tipo === 'piloto' && dig(y.datos.tel) === dig(x.tel)); return r && r.datos.zona === zona; })
       .sort((a, b2) => {
         if (nocturno) { // de noche: primero los turnos 24hrs, después los demás (FIFO)
-          const ra = reg.find(y => y.tipo === 'piloto' && String(y.datos.tel).trim() === a.tel);
-          const rb = reg.find(y => y.tipo === 'piloto' && String(y.datos.tel).trim() === b2.tel);
+          const ra = reg.find(y => y.tipo === 'piloto' && dig(y.datos.tel) === dig(a.tel));
+          const rb = reg.find(y => y.tipo === 'piloto' && dig(y.datos.tel) === dig(b2.tel));
           const ha = ra && ra.datos.h24 ? 1 : 0, hb = rb && rb.datos.h24 ? 1 : 0;
           if (ha !== hb) return hb - ha;
         }
         return (a.desde || 0) - (b2.desde || 0);
       });
     if (cand.length) {
-      const r = reg.find(y => y.tipo === 'piloto' && String(y.datos.tel).trim() === cand[0].tel);
+      const r = reg.find(y => y.tipo === 'piloto' && dig(y.datos.tel) === dig(cand[0].tel));
       pedido.estado = 'asignado';
       pedido.tsAsignado = now;
       pedido.piloto = Object.assign({ tel: cand[0].tel, nombre: r.datos.nombre }, vehInfo(r.datos));
@@ -622,7 +623,7 @@ module.exports = wrap(async (req, res) => {
     if (o.estado === 'asignado' && (!o.piloto || o.piloto.tel !== tel)) return res.status(200).json({ ok: false, error: 'Este pedido es de otro piloto.' });
     if ((o.contraRechazos || []).includes(tel)) return res.status(200).json({ ok: false, error: 'El cliente ya rechazó tu precio para este viaje.' });
     const fr = await ghGet('registros.json'); const reg = fr ? fr.data : [];
-    const p = reg.find(r => r.tipo === 'piloto' && r.estado === 'aprobado' && String(r.datos.tel).trim() === tel);
+    const p = reg.find(r => r.tipo === 'piloto' && r.estado === 'aprobado' && dig(r.datos.tel) === dig(tel));
     if (!p) return res.status(200).json({ ok: false, error: 'No sos piloto aprobado.' });
     const fps = await ghGet('pilots.json'); const stP = (fps ? fps.data : []).find(x => x.tel === tel) || {};
     if (stP.pendiente && !stP.pendiente.pagado) return res.status(200).json({ ok: false, error: 'Ponete al día con tus comisiones primero 😊' });
@@ -673,8 +674,9 @@ module.exports = wrap(async (req, res) => {
       if (o.estado === 'asignado' && o.tsAsignado && now - o.tsAsignado > OFERTA_MS) { o.estado = 'buscando'; o.piloto = null; o.expiro = now; await ghPut('pedidos.json', fpd.sha, peds, 'expirado ' + id); return res.status(200).json({ ok: false, error: 'La oferta expiró (30 segundos). El pedido volvió a buscando.' }); }
       // puede aceptar el suyo asignado o tomar uno 'buscando' de su zona
       const fr = await ghGet('registros.json'); const reg = fr ? fr.data : [];
-      const p = reg.find(r => r.tipo === 'piloto' && r.estado === 'aprobado' && String(r.datos.tel).trim() === tel);
+      const p = reg.find(r => r.tipo === 'piloto' && r.estado === 'aprobado' && dig(r.datos.tel) === dig(tel));
       if (!p) return res.status(200).json({ ok: false, error: 'No sos piloto aprobado.' });
+      if (peds.some(x => x.id !== id && x.piloto && dig(x.piloto.tel) === dig(tel) && ['asignado', 'aceptado', 'en_camino', 'contraoferta'].includes(x.estado) && !(x.estado === 'asignado' && x.tsAsignado && now - x.tsAsignado > OFERTA_MS))) return res.status(200).json({ ok: false, error: 'Ya tenés un pedido activo. Terminá ese primero y volvés a recibir otros.' });
       const fps = await ghGet('pilots.json'); const stP = (fps ? fps.data : []).find(x => x.tel === tel) || {};
       if (stP.pendiente && !stP.pendiente.pagado) return res.status(200).json({ ok: false, error: 'Primero ponete al día con tus comisiones (Q' + stP.pendiente.monto + '): transferilas a la cuenta del banco y avisale al admin por WhatsApp. En cuanto confirme, volvés a recibir pedidos como si nada 😊' });
       if (o.estado === 'contraoferta') return res.status(200).json({ ok: false, error: 'Esperá: le ofreciste un aumento al cliente. Si acepta, el viaje es tuyo.' });
@@ -692,7 +694,7 @@ module.exports = wrap(async (req, res) => {
       if (!['asignado', 'aceptado'].includes(o.estado)) return res.status(200).json({ ok: false, error: 'Ya no se puede rechazar.' });
       o.rechazadoPor = o.rechazadoPor || []; o.rechazadoPor.push(tel);
       o.rechazos = (o.rechazos || 0) + 1;
-      try { const fp2 = await ghGet('pilots.json'); const a2 = fp2 ? fp2.data : []; const sr = a2.find(x => x.tel === tel); if (sr && sr.racha) { sr.racha = 0; await ghPut('pilots.json', fp2.sha, a2, 'racha rota ' + tel); } } catch (e) {}
+      try { const fp2 = await ghGet('pilots.json'); const a2 = fp2 ? fp2.data : []; const sr = a2.find(x => x.tel === tel); if (sr && sr.racha) { sr.racha = 0; await ghPut('pilots.json', fp2 ? fp2.sha : null, a2, 'racha rota ' + tel); } } catch (e) {}
       if (o.rechazos >= 3) {
         o.estado = 'cancelado'; o.piloto = null; o.canceladoPor = 'sin_piloto'; o.canceladoTs = now;
         await ghPut('pedidos.json', fpd.sha, peds, 'cancelado por rechazos ' + id);
@@ -701,7 +703,7 @@ module.exports = wrap(async (req, res) => {
         return res.status(200).json({ ok: true, pedido: o });
       }
       o.estado = 'buscando'; o.piloto = null;
-      try { const fp2 = await ghGet('pilots.json'); const a2 = fp2 ? fp2.data : []; const sr = a2.find(x => x.tel === tel); if (sr && sr.racha) { sr.racha = 0; await ghPut('pilots.json', fp2.sha, a2, 'racha rota ' + tel); } } catch (e) {}
+      try { const fp2 = await ghGet('pilots.json'); const a2 = fp2 ? fp2.data : []; const sr = a2.find(x => x.tel === tel); if (sr && sr.racha) { sr.racha = 0; await ghPut('pilots.json', fp2 ? fp2.sha : null, a2, 'racha rota ' + tel); } } catch (e) {}
       await ghPut('pedidos.json', fpd.sha, peds, 'rechazado ' + id);
       await aviso(`🚀 DRAGOEXPRES — Pedido ${id}\n⚠️ Un piloto rechazó → volvió a BUSCANDO, se lo ofrecemos a otro piloto de la zona.`);
       return res.status(200).json({ ok: true, pedido: o });
@@ -711,41 +713,51 @@ module.exports = wrap(async (req, res) => {
       else if (o.estado === 'en_camino') {
         o.estado = 'entregado'; o.tsEntregado = now;
         await ghPut('pedidos.json', fpd.sha, peds, 'entregado ' + id); // guardar el estado ANTES de pagar al piloto
-        const fp = await ghGet('pilots.json'); const arr = fp ? fp.data : [];
-        let st = arr.find(x => x.tel === tel);
-        if (!st) { st = { tel }; arr.push(st); }
-        if (st.dia !== hoy()) { st.dia = hoy(); st.ganadoHoy = 0; st.pedidosHoy = 0; }
-        if (st.semana !== semana()) { st.semana = semana(); st.ganadoSemana = 0; }
-        st.racha = (st.racha || 0) + 1;
-        if (st.racha % 3 === 0) st.boletosExtra = (st.boletosExtra || 0) + 1;
-        if (o.nocturno) st.boletosExtra = (st.boletosExtra || 0) + 1; // 🌙 boleto extra por entrega nocturna
-        const neto = dinero(o.envio - o.comision + (o.propina || 0));
-        let gananciaPiloto = neto, flotaTxt = '';
-        const ff = await ghGet('flotas.json');
-        const flotas = ff ? ff.data : [];
-        const asig = flotas.find(x => x.activa !== false && x.conductor && x.conductor.tel === tel);
-        if (asig) {
-          gananciaPiloto = dinero(neto * 0.75);
-          if (asig.semana !== semana()) { asig.semana = semana(); asig.ganadoSemana = 0; asig.pedidosSemana = 0; }
-          asig.ganadoSemana = dinero((asig.ganadoSemana || 0) + dinero(neto * 0.25));
-          asig.pedidosSemana = (asig.pedidosSemana || 0) + 1;
-          await ghPut('flotas.json', ff ? ff.sha : null, flotas, 'flota ' + id);
-          flotaTxt = `\n🚚 Flota ${asig.placa}: 75% conductor (Q${gananciaPiloto}) / 25% flotista ${asig.flotista.nombre} (Q${dinero(neto * 0.25)})`;
+        // PAGO CON REINTENTO: si otra entrega concurrente movió pilots.json (HTTP 409), se relee fresco y se reaplica. La racha/boletos NO se duplican porque cada intento parte de datos recién leídos.
+        let st = null, gananciaPiloto = 0, flotaTxt = '', bonoTxt = '', flotasAcreditada = false;
+        for (let intento = 0; intento < 3 && !st; intento++) {
+          if (intento) await new Promise(r2 => setTimeout(r2, 900));
+          const fp = await ghGet('pilots.json'); const arr = fp ? fp.data : [];
+          let st2 = arr.find(x => x.tel === tel);
+          if (!st2) { st2 = { tel }; arr.push(st2); }
+          if (st2.dia !== hoy()) { st2.dia = hoy(); st2.ganadoHoy = 0; st2.pedidosHoy = 0; }
+          if (st2.semana !== semana()) { st2.semana = semana(); st2.ganadoSemana = 0; }
+          st2.racha = (st2.racha || 0) + 1;
+          if (st2.racha % 3 === 0) st2.boletosExtra = (st2.boletosExtra || 0) + 1;
+          if (o.nocturno) st2.boletosExtra = (st2.boletosExtra || 0) + 1; // 🌙 boleto extra por entrega nocturna
+          const neto = dinero(o.envio - o.comision + (o.propina || 0));
+          let gp = neto;
+          if (!flotasAcreditada) {
+            const ff = await ghGet('flotas.json');
+            const flotas = ff ? ff.data : [];
+            const asig = flotas.find(x => x.activa !== false && x.conductor && x.conductor.tel === tel);
+            if (asig) {
+              gp = dinero(neto * 0.75);
+              if (asig.semana !== semana()) { asig.semana = semana(); asig.ganadoSemana = 0; asig.pedidosSemana = 0; }
+              asig.ganadoSemana = dinero((asig.ganadoSemana || 0) + dinero(neto * 0.25));
+              asig.pedidosSemana = (asig.pedidosSemana || 0) + 1;
+              try { await ghPut('flotas.json', ff ? ff.sha : null, flotas, 'flota ' + id); flotasAcreditada = true; } catch (e) { }
+              flotaTxt = `\n🚚 Flota ${asig.placa}: 75% conductor (Q${gp}) / 25% flotista ${asig.flotista.nombre} (Q${dinero(neto * 0.25)})`;
+            }
+          } else { gp = dinero(neto * 0.75); }
+          st2.ganadoHoy = dinero((st2.ganadoHoy || 0) + gp);
+          st2.ganadoSemana = dinero((st2.ganadoSemana || 0) + gp);
+          st2.pedidosHoy = (st2.pedidosHoy || 0) + 1;
+          st2.disponible = true; st2.desde = now;
+          // 🎁 BONO DE BIENVENIDA: a la 10ma entrega vuelven Q100 de SUS PROPIAS comisiones (Juan comparte su parte, nunca pierde)
+          const entregasTotales = peds.filter(x => x.piloto && x.piloto.tel === tel && x.estado === 'entregado').length;
+          if (entregasTotales === 10 && !st2.bonoBienvenida) {
+            st2.bonoBienvenida = { total: 100, ts: now };
+            st2.bonosPend = dinero((st2.bonosPend || 0) + 100);
+            bonoTxt = '\n🎁 BONO DE BIENVENIDA: cumplió 10 entregas → Q100 de SUS PROPIAS comisiones vuelven a él en la próxima liquidación (no lo pagás vos, no perdés nada).';
+          }
+          try {
+            await ghPut('pilots.json', fp ? fp.sha : null, arr, 'entregado ' + id);
+            st = st2; gananciaPiloto = gp;
+          } catch (e) { /* 409: reintenta con datos frescos */ }
         }
-        st.ganadoHoy = dinero((st.ganadoHoy || 0) + gananciaPiloto);
-        st.ganadoSemana = dinero((st.ganadoSemana || 0) + gananciaPiloto);
-        st.pedidosHoy = (st.pedidosHoy || 0) + 1;
-        st.disponible = true; st.desde = now;
-        // 🎁 BONO DE BIENVENIDA: a la 10ma entrega vuelven Q100 de SUS PROPIAS comisiones (Juan comparte su parte, nunca pierde)
-        const entregasTotales = peds.filter(x => x.piloto && x.piloto.tel === tel && x.estado === 'entregado').length;
-        let bonoTxt = '';
-        if (entregasTotales === 10 && !st.bonoBienvenida) {
-          st.bonoBienvenida = { total: 100, ts: now };
-          st.bonosPend = dinero((st.bonosPend || 0) + 100);
-          bonoTxt = '\n🎁 BONO DE BIENVENIDA: cumplió 10 entregas → Q100 de SUS PROPIAS comisiones vuelven a él en la próxima liquidación (no lo pagás vos, no perdés nada).';
-        }
-        await ghPut('pilots.json', fp ? fp.sha : null, arr, 'entregado ' + id);
         await aviso(`🚀 DRAGOEXPRES — Pedido ${id} ENTREGADO ✅\n${o.piloto.nombre} completó ${o.tipo}\nEnvío Q${o.envio}${o.propina ? ' + propina Q' + o.propina : ''} → piloto gana Q${gananciaPiloto} · Comisión DragoExpres: Q${dinero(o.comision + (o.comisionLocal || 0))}${o.comisionLocal ? ' (envío Q' + o.comision + ' + local Q' + o.comisionLocal + ')' : ''}${flotaTxt}\nCliente: ${o.cliente.nombre}${bonoTxt}`);
+        if (!st) return res.status(200).json({ ok: false, error: 'Tu entrega quedó registrada pero no pudimos acreditar tu pago justo ahora. Avisale al administrador por WhatsApp para acreditarlo a mano.' });
         return res.status(200).json({ ok: true, pedido: o, ganadoHoy: st.ganadoHoy, ganadoSemana: st.ganadoSemana });
       } else return res.status(200).json({ ok: false, error: 'Estado inválido.' });
       await ghPut('pedidos.json', fpd.sha, peds, o.estado + ' ' + id);
@@ -810,7 +822,7 @@ module.exports = wrap(async (req, res) => {
     let nombre = tel, zona = '?', placa = '';
     try {
       const fr = await ghGet('registros.json'); const reg = fr ? fr.data : [];
-      const p = reg.find(r => r.tipo === 'piloto' && String(r.datos.tel).trim() === tel);
+      const p = reg.find(r => r.tipo === 'piloto' && dig(r.datos.tel) === dig(tel));
       if (p) { nombre = p.datos.nombre; zona = p.datos.zona; placa = p.datos.placa || ''; }
     } catch (e) { }
     const maps = 'https://maps.google.com/?q=' + lat + ',' + lng;
