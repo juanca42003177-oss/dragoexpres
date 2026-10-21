@@ -640,7 +640,7 @@ function abrirCat(tipo){
   document.getElementById('catLista').innerHTML=h;
 }
 function cerrarCat(){document.getElementById('veil').style.display='none';document.getElementById('catSheet').style.display='none'}
-function invitarLocalSheet(){var el=document.getElementById('inv-nombre');if(el){el.scrollIntoView({behavior:'smooth'});el.focus();toast('Escribí el nombre de tu local favorito y le mandamos la invitación')}}
+function invitarLocalSheet(){tab('promos');var el=document.getElementById('inv-nombre');if(el){el.scrollIntoView({behavior:'smooth'});el.focus();toast('Escribí el nombre de tu local favorito y le mandamos la invitación')}}
 var MENUQ_CACHE={};
 async function buscarProductos(q){
   var box=document.getElementById('prodRes');if(!box)return;
