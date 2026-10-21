@@ -680,7 +680,7 @@ function abrirCat(tipo){
     h+='<div class="loc"'+((cerrado||pausado)?' style="opacity:0.55"':'')+'><div class="avatar">'+(l.fotoLocal?'<img src="'+l.fotoLocal+'" style="width:100%;height:100%;object-fit:cover;border-radius:50%">':(l.nombre||'?').charAt(0).toUpperCase())+'</div>'
       +'<div class="info"><b>'+l.nombre+'</b><span><span class="chip">'+(l.rubro||'Local')+'</span>'+(u.zona&&l.zona&&l.zona!==u.zona?' · 📍 '+l.zona:'')+(pausado?' · <span style="color:#ffd479">⏸️ Saturado ahora</span>':cerrado?' · <span style="color:#ff8f8f">🔴 Cerrado · abre '+String(l.abre).padStart(2,'0')+':00</span>':' · <span style="color:#7ee2a8">🟢 Abierto</span>')+'</span></div>'
       +'<button class="btnW" onclick="verMenu('+idx+')">'+(String(((l||{}).rubro||'')).toLowerCase().indexOf('repuesto')>=0?'Catálogo 📋':'Menú 📋')+'</button>'
-      +(cerrado||pausado?'':'<button class="btnS" onclick="cerrarCat();abrirPedidoLocal('+idx+')">Pedir aquí</button>')+'</div>';
+      +(cerrado||pausado?'':'<button class="btnS" onclick="cerrarCat();verMenu('+idx+')">Pedir aquí</button>')+'</div>';
   });
   document.getElementById('catLista').innerHTML=h;
 }
@@ -729,7 +729,7 @@ function pintarLocales(){
       +'<div class="info"><b>'+l.nombre+'</b><span><span class="chip">'+(l.rubro||'Local')+'</span>✅ Verificado · '+(l.zona||'')+(pausado?' · <span style="color:#ffd479">⏸️ Saturado ahora</span>':cerrado?' · <span style="color:#ff8f8f">🔴 Cerrado · abre '+String(l.abre).padStart(2,'0')+':00</span>':' · <span style="color:#7ee2a8">🟢 Abierto</span>')+'</span></div>'
       +'<button class="btnW" onclick="window.open(\''+wa+'\',\'_blank\')">💬</button>'
       +'<button class="btnW" onclick="verMenu('+idx+')">'+(String(((l||{}).rubro||'')).toLowerCase().indexOf('repuesto')>=0?'Catálogo 📋':'Menú 📋')+'</button>'+
-      (cerrado||pausado?'<button class="btnS" style="opacity:0.5" onclick="alert(\''+(pausado?'Está saturado ahora, probá en unos minutos.':(l.nombre+' está cerrado. Abre a las '+String(l.abre).padStart(2,'0')+':00'))+'\')">Cerrado</button>':'<button class="btnS" onclick="abrirPedidoLocal('+idx+')">Pedir aquí</button>')+'</div>';
+      (cerrado||pausado?'<button class="btnS" style="opacity:0.5" onclick="alert(\''+(pausado?'Está saturado ahora, probá en unos minutos.':(l.nombre+' está cerrado. Abre a las '+String(l.abre).padStart(2,'0')+':00'))+'\')">Cerrado</button>':'<button class="btnS" onclick="verMenu('+idx+')">Pedir aquí</button>')+'</div>';
   });
   document.getElementById('lista-locales').innerHTML=h;
 }
@@ -1041,13 +1041,29 @@ function abrirPedido(tipo,local){
   if(u.zona&&ZONAS.includes(u.zona)){document.getElementById('f-zona').value=u.zona;}
   setTipo(tipo||'comida');
   LOCAL_PRE=local||'';
+  // AUTOLLENADO estilo apps grandes: tu direccion guardada ya viene puesta
+  if((tipo||'comida')!=='viaje'){
+    var dSel=(u.dire&&String(u.dire).trim())||'';
+    if(!dSel&&u.dires&&u.dires.length){var d0=u.dires[0];dSel=(typeof d0==='string')?d0:(d0.dir||'')}
+    var fDir=document.getElementById('f-dir');if(fDir&&dSel)fDir.value=dSel;
+    var fRef=document.getElementById('f-ref');if(fRef&&u.ref)fRef.value=u.ref;
+  }
   document.getElementById('veil').style.display='block';
   document.getElementById('sheet').style.display='block';
   var dg=document.getElementById('dirs-guardadas');
-  var dirTxt=function(d){return typeof d==='string'?d:(d?(d.dir||d.calle||d.direccion||d.texto||''):'')};var vistos={},uDirs=(u.dires||[]).filter(function(d){var t=dirTxt(d);if(!t||vistos[t])return false;vistos[t]=1;return true});u.dires=uDirs;dg.innerHTML=uDirs.length?'<label>Direcciones guardadas</label>'+uDirs.map(function(d){return '<span class="dirchip" onclick="usarDir(this.textContent)">'+dirTxt(d)+'</span>'}).join(''):'';
+  var dirTxt=function(d){return typeof d==='string'?d:(d?(d.dir||d.calle||d.direccion||d.texto||''):'')};var vistos={},uDirs=(u.dires||[]).filter(function(d){var t=dirTxt(d);if(!t||vistos[t])return false;vistos[t]=1;return true});u.dires=uDirs;var dIco=function(d){var lb=(d&&typeof d==='object')?(d.label||''):'';return lb==='Casa'?'🏠':lb==='Trabajo'?'🏢':(lb?'⭐':'📍')};
+  var dLb=function(d){var lb=(d&&typeof d==='object')?(d.label||''):'';return lb?dIco(d)+' '+lb+' · ':''};
+  dg.innerHTML=uDirs.length?'<label>Tus direcciones guardadas — tocá y se llena solo</label>'+uDirs.map(function(d,i){return '<span class="dirchip" data-di="'+i+'" onclick="usarDir('+i+')" title="'+dirTxt(d)+'">'+dLb(d)+String(dirTxt(d)).slice(0,34)+(String(dirTxt(d)).length>34?'…':'')+'</span>'}).join(''):'';
   pintarTotal();
 }
-function usarDir(d){document.getElementById('f-dir').value=d;}
+function usarDir(i){
+  var u=LS();var d=(u.dires||[])[i];if(d===undefined)return;
+  var t=(typeof d==='string')?d:(d.dir||d.direccion||d.calle||d.texto||'');
+  var el=document.getElementById('f-dir');if(el&&t)el.value=t;
+  var rf=document.getElementById('f-ref');if(rf){if(d&&typeof d==='object'&&d.ref)rf.value=d.ref;else rf.value=''}
+  u.dire=t;SS(u);
+  document.querySelectorAll('#dirs-guardadas .dirchip').forEach(function(c){c.style.borderColor=(c.getAttribute('data-di')===String(i))?'var(--rojo)':'#e0e0e0';c.style.background=(c.getAttribute('data-di')===String(i))?'#fdeeee':'#eef4fe'});
+}
 function cerrarSheet(){document.getElementById('veil').style.display='none';document.querySelectorAll('.sheet').forEach(function(x){x.style.display='none'});window.LMAP=null;pintarCartBtn();}
 function setTipo(t){
   TIPO=t;['comida','viaje','repuesto'].forEach(function(x){document.getElementById('pill-'+x).className='pill'+(x===t?' on':'')});extra();
@@ -1109,7 +1125,11 @@ async function enviar(){
   // guardar perfil para la proxima
   u.nombre=d.nombre;u.tel=d.tel;u.zona=d.zona;u.dires=u.dires||[];
   var _dt=function(x){return typeof x==='string'?x:(x?(x.dir||x.calle||x.direccion||x.texto||''):'')};
-  if(!u.dires.some(function(x){return _dt(x)===d.direccion})&&u.dires.length<6){u.dires.push(d.direccion);}
+  if(!u.dires.some(function(x){return _dt(x)===d.direccion})){
+    u.dires.unshift({label:u.dires.length?'Guardada':'Casa',dir:d.direccion,ref:d.referencia||''});
+    if(u.dires.length>6)u.dires.length=6;
+  }
+  u.dire=d.direccion;u.ref=d.referencia||'';
   SS(u);
   var b=document.querySelector('#sheet .btn');b.disabled=true;b.textContent='Enviando...';
   var j;
