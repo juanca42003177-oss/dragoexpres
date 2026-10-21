@@ -308,6 +308,17 @@ input,textarea,select{-webkit-user-select:text;user-select:text}
 </div>
 
 <!-- ============ FICHA DEL PRODUCTO ============ -->
+<div id="cartFab" onclick="abrirCart()" style="display:none;position:fixed;right:14px;bottom:78px;z-index:45;background:linear-gradient(135deg,#1a1a22,#0d0d12);color:#f0b90b;border:2px solid #f0b90b;border-radius:30px;padding:11px 18px;font-weight:900;font-size:14px;box-shadow:0 6px 18px rgba(0,0,0,.55);cursor:pointer"><span id="cartFabTxt"></span></div>
+
+<!-- ============ CARRITO ============ -->
+<div class="sheet" id="cartSheet" style="z-index:44">
+  <div class="asa" onclick="cerrarCart()"></div>
+  <h2 style="font-size:18px" id="cartTitulo">🛒 Tu carrito</h2>
+  <div id="cartBody"></div>
+  <button class="btn bA" onclick="cartCheckout()">HACER MI PEDIDO 🐉</button>
+  <button class="btn" style="background:#333;color:#fff;box-shadow:none" onclick="cerrarCart()">Cerrar</button>
+</div>
+
 <div class="sheet" id="prodSheet" style="z-index:43">
   <div class="asa" onclick="cerrarProd()"></div>
   <div id="prodBody"></div>
@@ -789,19 +800,100 @@ async function verMenu(idx){
 var SERVS_CACHE={},SERV=null;
 function addServ(idx,id){var s=(SERVS_CACHE[idx]||[]).find(function(x){return x.id===id});if(!s)return;SERV=s;cerrarMenu();abrirPedidoLocal(idx)}
 function quitarServ(){SERV=null;extra()}
+var QTY=1,PROD_NOW=null;
+function qtyN(n){
+  QTY=Math.max(1,Math.min(20,QTY+n));
+  document.getElementById('p-qty').textContent=QTY;
+  if(PROD_NOW)document.getElementById('p-add').innerHTML='🛒 AGREGAR AL CARRITO — Q'+(PROD_NOW.precio*QTY);
+}
 function verProducto(idxLocal,idProd){
   var it=(MENU_CACHE[idxLocal]||[]).find(function(x){return x.id===idProd});if(!it)return;
+  QTY=1;PROD_NOW={idx:idxLocal,id:idProd,precio:it.precio,nombre:it.nombre};
   document.getElementById('prodBody').innerHTML=
     (it.foto?'<img src="'+it.foto+'" style="width:100%;border-radius:16px;aspect-ratio:1;object-fit:cover;margin-bottom:12px">':'')
     +'<h2 style="font-size:19px;margin:0 0 4px">'+it.nombre+'</h2>'
     +'<p class="mini" style="margin:0 0 6px">'+(it.desc||'')+'</p>'
-    +'<div style="font-size:22px;font-weight:900;color:var(--rojo)">Q'+it.precio+'</div>'
-    +'<button class="btn bA" onclick="pedirProductoId('+idxLocal+',\''+idProd+'\')">PEDIR ESTE PRODUCTO</button>'
+    +'<div style="font-size:22px;font-weight:900;color:var(--rojo)">Q'+it.precio+' <span style="font-size:13px;color:#888">c/u</span></div>'
+    +'<label style="display:block;font-size:12px;font-weight:800;margin:12px 0 4px">📝 Anotaciones para el local (opcional)</label>'
+    +'<input id="p-nota" placeholder="Ej: sin cebolla, extra salsa, cortalo en trozos" style="width:100%">'
+    +'<div style="display:flex;align-items:center;gap:14px;margin:14px 0 4px"><span style="font-size:12px;font-weight:800">CANTIDAD</span>'
+    +'<button class="qBtn" onclick="qtyN(-1)" style="width:38px;height:38px;border-radius:10px;border:2px solid #f0b90b;background:#1a1a22;color:#f0b90b;font-size:20px;font-weight:900;cursor:pointer">−</button>'
+    +'<div id="p-qty" style="font-size:19px;font-weight:900;min-width:30px;text-align:center">1</div>'
+    +'<button class="qBtn" onclick="qtyN(1)" style="width:38px;height:38px;border-radius:10px;border:2px solid #f0b90b;background:#1a1a22;color:#f0b90b;font-size:20px;font-weight:900;cursor:pointer">+</button></div>'
+    +'<button class="btn bA" id="p-add" onclick="cartAdd('+idxLocal+',\''+idProd+'\')">🛒 AGREGAR AL CARRITO — Q'+it.precio+'</button>'
     +'<button class="btn" style="background:#333;color:#fff;box-shadow:none" onclick="cerrarProd()">Volver al menú</button>';
   document.getElementById('prodSheet').style.display='block';
   document.getElementById('menuSheet').style.display='none';
 }
 function cerrarProd(){document.getElementById('prodSheet').style.display='none';document.getElementById('menuSheet').style.display='block'}
+/* ---------- CARRITO (estilo PedidosYa, diseño dragón) ---------- */
+function cartGet(){try{return JSON.parse(localStorage.getItem('dx_cart'))||null}catch(e){return null}}
+function cartSave(c){try{if(c&&c.items&&c.items.length)localStorage.setItem('dx_cart',JSON.stringify(c));else localStorage.removeItem('dx_cart');}catch(e){}pintarCartBtn()}
+function cartTotal(c){return c.items.reduce(function(s,x){return s+x.precio*x.qty},0)}
+function cartAdd(idx,id){
+  var it=(MENU_CACHE[idx]||[]).find(function(x){return x.id===id});if(!it)return;
+  var l=LOCALES[idx]||{};
+  var tel=String(l.tel||LOCAL_TEL||'');
+  var nota=(document.getElementById('p-nota')||{}).value||'';nota=nota.trim().slice(0,120);
+  var c=cartGet();
+  if(c&&tel&&c.tel!==tel)c=null; // cambiaste de local: carrito nuevo
+  if(!c)c={tel:tel,nombre:l.nombre||LOCAL_PRE||'',idx:idx,items:[]};
+  var ex=nota?null:c.items.find(function(x){return x.id===id});
+  if(ex)ex.qty+=QTY;else c.items.push({id:id,nombre:it.nombre,precio:it.precio,qty:QTY,nota:nota});
+  cartSave(c);
+  document.getElementById('prodSheet').style.display='none';
+  document.getElementById('menuSheet').style.display='block';
+  toast('🛒 Agregado: '+it.nombre+(nota?' 📝':''));
+  QTY=1;PROD_NOW=null;
+}
+function cartQty(i,n){
+  var c=cartGet();if(!c)return;
+  c.items[i].qty=Math.max(1,Math.min(20,c.items[i].qty+n));
+  cartSave(c);abrirCart();
+}
+function cartDel(i){
+  var c=cartGet();if(!c)return;
+  c.items.splice(i,1);
+  if(!c.items.length){cartSave(null);cerrarCart();return}
+  cartSave(c);abrirCart();
+}
+function pintarCartBtn(){
+  var c=cartGet();var b=document.getElementById('cartFab');
+  if(!b)return;
+  if(c&&c.items.length){b.style.display='block';document.getElementById('cartFabTxt').textContent='🛒 '+c.items.reduce(function(s,x){return s+x.qty},0)+' producto(s) · Q'+cartTotal(c);}
+  else b.style.display='none';
+}
+function abrirCart(){
+  var c=cartGet();if(!c)return;
+  document.getElementById('cartTitulo').textContent='🛒 '+c.nombre;
+  var h='';
+  c.items.forEach(function(x,i){
+    h+='<div class="card" style="display:flex;gap:8px;align-items:center;padding:10px 12px"><div style="flex:1"><b>'+x.nombre+'</b><div class="s">Q'+x.precio+' c/u'+(x.nota?' · 📝 '+x.nota:'')+'</div></div>'
+      +'<div style="display:flex;align-items:center;gap:7px"><button style="width:32px;height:32px;border-radius:9px;border:2px solid #f0b90b;background:#1a1a22;color:#f0b90b;font-size:17px;font-weight:900;cursor:pointer" onclick="cartQty('+i+',-1)">−</button>'
+      +'<b style="min-width:20px;text-align:center">'+x.qty+'</b>'
+      +'<button style="width:32px;height:32px;border-radius:9px;border:2px solid #f0b90b;background:#1a1a22;color:#f0b90b;font-size:17px;font-weight:900;cursor:pointer" onclick="cartQty('+i+',1)">+</button>'
+      +'<button style="width:32px;height:32px;border-radius:9px;border:2px solid #a33;background:#2a1214;color:#f88;font-weight:900;cursor:pointer" onclick="cartDel('+i+')">✕</button></div></div>';
+  });
+  h+='<div class="card" style="display:flex;justify-content:space-between;padding:10px 12px"><b>TOTAL DE COMPRA</b><b style="color:var(--rojo)">Q'+cartTotal(c)+'</b></div>'
+    +'<p class="mini">El envío (tarifa fija) y la propina se suman en el paso final. Todo se paga en efectivo al recibir.</p>'
+    +'<button class="btn bA" onclick="verMenu('+c.idx+')" style="background:#333;color:#fff;box-shadow:none">+ Agregar más productos</button>';
+  document.getElementById('cartBody').innerHTML=h;
+  document.getElementById('veil').style.display='block';
+  document.getElementById('cartSheet').style.display='block';
+}
+function cerrarCart(){document.getElementById('veil').style.display='none';document.getElementById('cartSheet').style.display='none'}
+function cartCheckout(){
+  var c=cartGet();if(!c)return;
+  cerrarCart();
+  abrirPedidoLocal(c.idx);
+  setTimeout(function(){
+    var det=c.items.map(function(x){return x.qty+'x '+x.nombre+(x.nota?' ('+x.nota+')':'')+' — Q'+(x.precio*x.qty)}).join('\n');
+    var d=document.getElementById('f-det');if(d)d.value=det;
+    var cc=document.getElementById('f-compra');if(cc)cc.value=cartTotal(c);
+    window._CART_PED=c;
+    pintarTotal();
+  },140);
+}
 function pedirProductoId(idxLocal,idProd){
   var it=(MENU_CACHE[idxLocal]||[]).find(function(x){return x.id===idProd});if(!it)return;
   document.getElementById('prodSheet').style.display='none';
@@ -857,22 +949,34 @@ function zonaValor(){
 function extra(){
   var h='';
   var pre=LOCAL_PRE?' (ej: de '+LOCAL_PRE+')':'';
-  if(TIPO==='comida')h='<label>Dirección de entrega</label><textarea id="f-dir" rows="3" style="height:auto" placeholder="Calle, número, colonia... y contá con detalle exacto cómo te lo dejamos (portón, timbre, quién recibe): sin límite de texto"></textarea><label>Referencia (opcional)</label><textarea id="f-ref" rows="2" style="height:auto" placeholder="Casa azul, portón negro, timbre plateado... (opcional, escribí con confianza)"></textarea><label>¿Qué querés y de dónde?'+pre+'</label><textarea id="f-det" placeholder="Ej: 2 pizzas grandes de la pizzería El Horno"></textarea><label>Precio estimado de tu orden (Q) — se lo pagás al local</label><input id="f-compra" type="number" inputmode="decimal" placeholder="Ej: 120"><label>Envío (tarifa fija DragoExpres)</label><div class="tarifa" id="f-tarifa">Q15 · sin regatear<span class="nch"></span></div>';
+  if(TIPO==='comida')h='<label>Dirección de entrega</label><textarea id="f-dir" rows="3" style="height:auto" placeholder="Calle, número, colonia... y contá con detalle exacto cómo te lo dejamos (portón, timbre, quién recibe): sin límite de texto"></textarea><label>Referencia (opcional)</label><textarea id="f-ref" rows="2" style="height:auto" placeholder="Casa azul, portón negro, timbre plateado... (opcional, escribí con confianza)"></textarea><label>¿Qué querés y de dónde?'+pre+'</label><textarea id="f-det" placeholder="Ej: 2 pizzas grandes de la pizzería El Horno"></textarea><label>Precio estimado de tu orden (Q) — se lo pagás al local</label><input id="f-compra" type="number" inputmode="decimal" placeholder="Ej: 120" oninput="pintarTotal()"><label>Envío (tarifa fija DragoExpres)</label><div class="tarifa" id="f-tarifa">Q15 · sin regatear<span class="nch"></span></div>';
   if(TIPO==='viaje')h='<label>Dirección de recogida</label><textarea id="f-dir" rows="3" style="height:auto" placeholder="¿De dónde te recogemos? Punto exacto: frente a qué, color del edificio, etc. — sin límite de texto"></textarea><label>Referencia (opcional)</label><textarea id="f-ref" rows="2" style="height:auto" placeholder="Frente al parque, bajo el puente... (opcional)"></textarea><label>¿A dónde vas?</label><textarea id="f-det" placeholder="Ej: De Mixco Centro a Oakland Mall"></textarea><label>Envío (tarifa fija DragoExpres)</label><div class="tarifa" id="f-tarifa">Q25 · sin regatear<span class="nch"></span></div>';
-  if(TIPO==='repuesto')h='<label>Dirección de entrega</label><textarea id="f-dir" rows="3" style="height:auto" placeholder="Calle, número, colonia... y contá con detalle exacto cómo te lo dejamos (portón, timbre, quién recibe): sin límite de texto"></textarea><label>Referencia (opcional)</label><textarea id="f-ref" rows="2" style="height:auto" placeholder="Taller La Bendición, portón verde... (opcional)"></textarea><label>¿Qué repuesto necesitás y para qué vehículo?</label><textarea id="f-det" placeholder="Ej: Pastillas de freno para Honda Wave 110"></textarea><label>Precio estimado del repuesto (Q) — se lo pagás al local</label><input id="f-compra" type="number" inputmode="decimal" placeholder="Ej: 180"><label>Envío (tarifa fija DragoExpres)</label><div class="tarifa" id="f-tarifa">Q20 · sin regatear<span class="nch"></span></div>';
+  if(TIPO==='repuesto')h='<label>Dirección de entrega</label><textarea id="f-dir" rows="3" style="height:auto" placeholder="Calle, número, colonia... y contá con detalle exacto cómo te lo dejamos (portón, timbre, quién recibe): sin límite de texto"></textarea><label>Referencia (opcional)</label><textarea id="f-ref" rows="2" style="height:auto" placeholder="Taller La Bendición, portón verde... (opcional)"></textarea><label>¿Qué repuesto necesitás y para qué vehículo?</label><textarea id="f-det" placeholder="Ej: Pastillas de freno para Honda Wave 110"></textarea><label>Precio estimado del repuesto (Q) — se lo pagás al local</label><input id="f-compra" type="number" inputmode="decimal" placeholder="Ej: 180" oninput="pintarTotal()"><label>Envío (tarifa fija DragoExpres)</label><div class="tarifa" id="f-tarifa">Q20 · sin regatear<span class="nch"></span></div>';
   if(SERV)h+='<div style="background:#fff8e1;border:1px solid #f0d98a;border-radius:10px;padding:9px 12px;font-size:13px;margin:8px 0"><b>🔧 '+SERV.nombre+' (Q'+SERV.precio+')</b> — mecánico '+SERV.mecanico+', llega en '+SERV.veh+' '+SERV.color+' '+SERV.marca+' · placa '+SERV.placa+'<span onclick="quitarServ()" style="color:#c1121f;font-weight:900;float:right;cursor:pointer">✕</span></div>';
   h+='<label>Propina para el piloto (opcional)</label><div class="chips" id="f-propinas">'+[0,5,10,15].map(function(p){return '<div class="chip'+(p===0?' on':'')+'" onclick="elegirProp(this,'+p+')">Q'+p+'</div>'}).join('')+'</div><p class="mini" style="margin:4px 0 0">Como en las apps grandes: la propina es voluntaria. Con propina los pilotos suelen volar más rápido.</p>';
+  h+='<div id="totBox" class="tarifa" style="font-size:15px"></div>';
   document.getElementById('extra').innerHTML=h;
 }
 var ULT_TEL='',PROPINA=0;
 var TARIFA={comida:15,viaje:25,repuesto:20};
-function elegirProp(el,p){PROPINA=p;var t=document.querySelectorAll('#f-propinas .chip');for(var i=0;i<t.length;i++)t[i].classList.remove('on');el.classList.add('on');}
+function elegirProp(el,p){PROPINA=p;var t=document.querySelectorAll('#f-propinas .chip');for(var i=0;i<t.length;i++)t[i].classList.remove('on');el.classList.add('on');pintarTotal();}
+function pintarTotal(){
+  var b=document.getElementById('totBox');if(!b)return;
+  var c=document.getElementById('f-compra');
+  var compra=Math.max(0,parseFloat((c&&c.value)||0)||0);
+  var env=TARIFA[TIPO]||15;
+  var rec=esNocheGT()?5:0;
+  var t=compra+env+rec+PROPINA;
+  b.innerHTML='💵 <b>TOTAL EN EFECTIVO AL RECIBIR: Q'+t+'</b><br><span style="font-size:12px;opacity:.85">Compra Q'+compra+' + Envío Q'+(env+rec)+(rec?' (incluye Q5 nocturno)':'')+' + Propina Q'+PROPINA+'</span>';
+}
 
 async function enviar(){
   var v=function(id){var e=document.getElementById(id);return e?e.value.trim():''};
   var u=LS();
   var telCli=v('f-tel')||u.tel;MI_TEL=telCli;
-  var d={action:'crear',tipo:TIPO,local:(LOCAL_TEL?{nombre:LOCAL_PRE,tel:LOCAL_TEL}:undefined),nombre:v('f-nombre')||u.nombre,tel:telCli,zona:zonaValor(),direccion:v('f-dir'),referencia:v('f-ref'),detalle:v('f-det'),compra:v('f-compra')||0,servicio:SERV?SERV.id:undefined,envio:TARIFA[TIPO]||15,propina:PROPINA};SERV=null;
+  var d={action:'crear',tipo:TIPO,local:(LOCAL_TEL?{nombre:LOCAL_PRE,tel:LOCAL_TEL}:undefined),nombre:v('f-nombre')||u.nombre,tel:telCli,zona:zonaValor(),direccion:v('f-dir'),referencia:v('f-ref'),detalle:v('f-det'),compra:v('f-compra')||0,servicio:SERV?SERV.id:undefined,envio:TARIFA[TIPO]||15,propina:PROPINA};
+  if(window._CART_PED&&d.local&&window._CART_PED.tel===d.local.tel){d.items=window._CART_PED.items.map(function(x){return{nombre:x.nombre,precio:x.precio,qty:x.qty,nota:x.nota||''}})}
+  SERV=null;
   if(!d.nombre||!d.tel||!d.zona||!d.direccion||!d.detalle){alert('Completá tu nombre, WhatsApp, zona, dirección y qué pedís.');return}
   // guardar perfil para la proxima
   u.nombre=d.nombre;u.tel=d.tel;u.zona=d.zona;u.dires=u.dires||[];
@@ -881,7 +985,8 @@ async function enviar(){
   var b=document.querySelector('#sheet .btn');b.disabled=true;b.textContent='Enviando...';
   var r=await fetch(api('orders'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(d)});
   var j=await r.json();b.disabled=false;b.textContent='ENVIAR PEDIDO';
-  if(!j.ok){alert(j.error||'No se pudo crear el pedido.');return}
+  if(!j.ok){b.disabled=false;b.textContent='ENVIAR PEDIDO';toast(j.error||'No se pudo crear el pedido.');return}
+  if(d.items){window._CART_PED=null;cartSave(null);}
   cerrarSheet();
   document.getElementById('trk').style.display='block';
   document.getElementById('oid').textContent=j.pedido.id;
@@ -1080,7 +1185,7 @@ function repetir(j){
 (function(){
   var u=LS();
   if(u.zona)document.getElementById('zonaTag').textContent=u.zona;
-  cargarZonas();cargarLocales();extra();
+  cargarZonas();cargarLocales();extra();pintarCartBtn();
 })();
 </script>
 </body>
