@@ -698,8 +698,9 @@ async function buscarProductos(q){
     m.forEach(function(it){if(!it.agotado&&String(it.nombre+' '+(it.desc||'')+' '+(it.categoria||'')).toLowerCase().indexOf(q)>=0)res.push({it:it,l:l,idx:idx})});
   }
   if(!res.length){box.innerHTML='';return}
-  box.innerHTML='<p class="mini" style="font-weight:900;margin:14px 2px 6px">🍳 PLATOS Y PRODUCTOS QUE COINCIDEN</p>'+res.slice(0,12).map(function(r){
-    return '<div class="loc"><div class="avatar">'+(r.it.foto?'<img src="'+r.it.foto+'" style="width:100%;height:100%;object-fit:cover;border-radius:50%">':'🍽️')+'</div><div class="info"><b>'+r.it.nombre+'</b><span>'+r.l.nombre+' · <b style="color:var(--rojo)">Q'+r.it.precio+'</b></span></div><button class="btnS" onclick="verProducto('+r.idx+',\''+r.it.id+'\')">Pedir</button></div>';
+  box.innerHTML='<p class="mini" style="font-weight:900;margin:14px 2px 6px">🔍 COINCIDENCIAS EN TU ZONA</p>'+res.slice(0,12).map(function(r){
+    var ph=((r.l.rubro==='repuestos'||r.l.rubro==='taller')?'<img src="img/repuestos.png" style="width:100%;height:100%;object-fit:contain;padding:5px">':((r.l.rubro==='tienda')?'🛒':'🍽️'));
+    return '<div class="loc"><div class="avatar">'+(r.it.foto?'<img src="'+r.it.foto+'" style="width:100%;height:100%;object-fit:cover;border-radius:50%">':ph)+'</div><div class="info"><b>'+r.it.nombre+'</b><span>'+r.l.nombre+' · <b style="color:var(--rojo)">Q'+r.it.precio+'</b></span></div><button class="btnS" onclick="verProducto('+r.idx+',\''+r.it.id+'\')">Pedir</button></div>';
   }).join('');
 }
 function alBuscar(){
@@ -881,11 +882,13 @@ async function verMenu(idx){
   var j=await r.json();var items=j.ok?j.items:[];var promos=j.ok?(j.promos||[]):[];SERVS_CACHE[idx]=j.ok?(j.servicios||[]):[];
   document.getElementById('menuLista').innerHTML=promos.length?promos.map(function(p){return '<div style="background:linear-gradient(135deg,#c1121f,#7a0c15);color:#fff;border-radius:12px;padding:10px 14px;margin:0 0 8px">'+(p.foto?'<img src="'+p.foto+'" style="width:100%;max-height:140px;object-fit:cover;border-radius:8px;margin-bottom:8px">':'')+'<b>🎉 '+p.titulo+'</b>'+(p.detalle?'<div style="font-size:12.5px;opacity:.9">'+p.detalle+'</div>':'')+'</div>'}).join(''):'';
   var sv=SERVS_CACHE[idx]||[];var shServ=sv.length?'<div style="font-weight:900;font-size:13px;margin:16px 2px 6px">SERVICIOS MECÁNICOS A DOMICILIO</div>'+sv.map(function(s){return '<div style="background:linear-gradient(135deg,#16161f,#0d0d14);color:#fff;border:1px solid #f0b90b;border-radius:12px;padding:10px 14px;margin:0 0 8px"><b style="color:#f0b90b">🔧 '+s.nombre+' — Q'+s.precio+'</b><div style="font-size:12.5px;opacity:.92;margin-top:3px">Mecánico: '+s.mecanico+'<br>Llega en '+s.veh+' '+s.color+' '+s.marca+' · placa '+s.placa+'</div><button class="btn bA" style="margin-top:8px;width:auto;padding:9px 16px;font-size:13px" onclick="addServ('+idx+',\''+s.id+'\')">➕ AGREGAR A MI PEDIDO</button></div>'}).join('')+'<p class="mini" style="margin:2px 0 8px">Como el postre del restaurante: se suma aparte y lo pagás junto con tu pedido.</p>':'';
-  if(!items.length){document.getElementById('menuLista').innerHTML+=shServ+'<p class="mini">Este local todavía no cargó su menú. Podés pedirle lo que querás escribiéndolo.</p><button class="btn bA" onclick="cerrarMenu();abrirPedidoLocal('+idx+')">Escribir mi pedido</button>';return}
+  if(!items.length){var lcV=LOCALES[idx]||{};var lcEsRep=(lcV.rubro==='repuestos'||lcV.rubro==='taller');document.getElementById('menuLista').innerHTML+=shServ+'<p class="mini">'+(lcEsRep?'Este taller todavía no cargó su catálogo. Podés pedirle lo que querás escribiéndolo.':'Este local todavía no cargó su menú. Podés pedirle lo que querás escribiéndolo.')+'</p><button class="btn bA" onclick="cerrarMenu();abrirPedidoLocal('+idx+')">Escribir mi pedido</button>';return}
   MENU_CACHE[idx]=items;
   var g={};items.forEach(function(it){var c=it.categoria||'Otros';(g[c]=g[c]||[]).push(it)});
   var orden=['Platos fuertes','Combos','Entradas','Bebidas','Postres','Repuestos','Otros'].concat(Object.keys(g).filter(function(c){return ['Platos fuertes','Combos','Entradas','Bebidas','Postres','Repuestos','Otros'].indexOf(c)<0}));
   var pos={};var fila=0;items.forEach(function(it){pos[it.id]=fila++});
+  var lc=LOCALES[idx]||{};
+  var avPh=((lc.rubro==='repuestos'||lc.rubro==='taller')?'<img src="img/repuestos.png" style="width:100%;height:100%;object-fit:contain;padding:5px">':((lc.rubro==='tienda')?'🛒':'🍽️'));
   var h2='';
   orden.forEach(function(c){
     if(!g[c]||!g[c].length)return;
@@ -893,7 +896,7 @@ async function verMenu(idx){
     h2+=g[c].map(function(it){
       var p=pos[it.id];
       return '<div class="loc" style="cursor:pointer'+(it.agotado?';opacity:.45':'')+'" onclick="'+(it.agotado?'':'verProducto('+idx+',\''+it.id+'\')')+'">'
-      +(it.foto?'<img src="'+it.foto+'" style="width:64px;height:64px;border-radius:12px;object-fit:cover;flex:none">':'<div class="avatar">🍽️</div>')
+      +(it.foto?'<img src="'+it.foto+'" style="width:64px;height:64px;border-radius:12px;object-fit:cover;flex:none">':'<div class="avatar">'+avPh+'</div>')
       +'<div class="info"><b>'+it.nombre+'</b><span>'+(it.desc?it.desc+'<br>':'')+(it.agotado?'<span class="chip" style="background:#fde3e3;color:#b02a2a">AGOTADO</span>':'<b style="color:var(--rojo)">Q'+it.precio+'</b> · Tocá para ver')+'</span></div>'
       +(it.agotado?'':'<div style="font-weight:900;color:var(--rojo)">›</div>')+'</div>';
     }).join('');

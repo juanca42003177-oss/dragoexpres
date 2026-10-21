@@ -262,7 +262,11 @@ function adaptarRubro(){
 }
 function itemRow(it){
   return '<div style="display:flex;gap:10px;align-items:center;background:#14151c;border:1px solid #2a2b38;border-radius:12px;padding:8px;margin:8px 0">'+
-  (it.foto?'<img src="'+it.foto+'" style="width:58px;height:58px;object-fit:cover;border-radius:10px">':'<div style="width:58px;height:58px;border-radius:10px;background:#241a05;display:flex;align-items:center;justify-content:center;font-size:24px">🍽️</div>')+
+  (it.foto?'<img src="'+it.foto+'" style="width:58px;height:58px;object-fit:cover;border-radius:10px">':(esRep()
+    ?'<div style="width:58px;height:58px;border-radius:10px;background:linear-gradient(145deg,#0e1622,#1a2332);border:1px solid #2a3a4a;display:flex;align-items:center;justify-content:center"><img src="img/repuestos.png" style="width:44px;height:44px;object-fit:contain" alt=""></div>'
+    :(RUBRO==='tienda'
+      ?'<div style="width:58px;height:58px;border-radius:10px;background:#10231a;display:flex;align-items:center;justify-content:center;font-size:24px">🛒</div>'
+      :'<div style="width:58px;height:58px;border-radius:10px;background:#241a05;display:flex;align-items:center;justify-content:center;font-size:24px">🍽️</div>')))+
   '<div style="flex:1;min-width:0"><b style="font-size:13.5px">'+it.nombre+'</b><div class="mini">'+(it.desc?it.desc+' · ':'')+'Q'+it.precio+(it.agotado?' · <b style="color:#ff8f8f">AGOTADO</b>':'')+'</div></div>'+
   '<button class="bMini" onclick="menuToggle(\''+it.id+'\')">'+(it.agotado?'Habilitar':'Agotar')+'</button>'+
   '<button class="bMini bX" onclick="menuDel(\''+it.id+'\')">✕</button></div>';
