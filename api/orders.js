@@ -33,7 +33,7 @@ async function compensarPiloto(tel, id) {
 }
 const semana = () => 'S' + Math.floor((Date.now() - TZ) / (7 * 864e5));
 const dinero = (q) => { const n = Number(q); return (isNaN(n) || !isFinite(n) || n < 0) ? 0 : Math.round(n * 100) / 100; };
-const dig = (t) => String(t || '').replace(/\D/g, '');
+const dig = (t) => { const d = String(t || '').replace(/\D/g, ''); return d.length > 8 ? d.slice(-8) : d; };
 
 async function ghGet(path) {
   await ensureBranch();
