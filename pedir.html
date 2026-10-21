@@ -647,7 +647,7 @@ function invitarLocal(){
   if(nom.length<3){alert('Escribí el nombre del local.');return}
   var tel=document.getElementById('inv-tel').value.replace(/\D/g,'');
   if(tel.length>=8&&tel.indexOf('502')!==0&&tel.length<=8)tel='502'+tel;
-  var msg='¡Hola '+nom+'! 👋\n\nLos clientes te están buscando en *DragoExpres*, la app de reparto que está creciendo en Guatemala. Te invitamos a poner tu local, mirá lo que ganás:\n\n✅ *90 DÍAS SIN COMISIÓN* — vendés de prueba gratis\n✅ Después solo *10%* (las otras apps te cobran hasta 25-30%)\n✅ *Vos ponés tus precios y tus promos*\n✅ Registro gratis y rápido: dragoexpres.vercel.app\n\nTus pedidos llegan a la puerta de tus clientes. No perdés nada, más bien ganás clientes nuevos 💰';
+  var msg='¡Hola '+nom+'! 👋\n\nLos clientes te están buscando en *DragoExpres*, la app de reparto que está creciendo en Guatemala. Te invitamos a poner tu local, mirá lo que ganás:\n\n✅ *90 DÍAS SIN COMISIÓN* — vendés de prueba gratis\n✅ Después solo *10% en comida y repuestos* (las otras apps te cobran hasta 25-30%)\n✅ *Vos ponés tus precios y tus promos*\n✅ Registro gratis y rápido: dragoexpres.vercel.app\n\nTus pedidos llegan a la puerta de tus clientes. No perdés nada, más bien ganás clientes nuevos 💰';
   var url='https://wa.me/'+(tel.length>=8?tel:'')+'?text='+encodeURIComponent(msg);
   window.open(url,'_blank');
   var u=datosUsuario();

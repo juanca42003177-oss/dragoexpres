@@ -5,7 +5,7 @@
 // de la zona (FIFO por disponibilidad). Si no hay, queda 'buscando' y los
 // pilotos de la zona pueden tomarlo desde su pantalla. Efectivo directo
 // usuario↔piloto↔local: DragoExpres no toca el dinero; las comisiones
-// (10% comida, 8% repuestos, Q2-Q5 viajes) se registran para liquidación.
+// Comisiones: 5% del envío comida/repuestos + Q2-Q5 viajes; al local 10% de la compra en comida y repuestos tras 90 días de zona.
 const wrap = require('./_cors');
 // horario de atencion: null/undefined = abierto siempre; soporta cruce de medianoche
 const abiertoAhora = (h, abre, cierra) => {
@@ -228,7 +228,7 @@ module.exports = wrap(async (req, res) => {
     }
     const compra = dinero(b.compra || 0);
     let comisionLocal = 0;
-    if (tipo === 'comida' && compra > 0) {
+    if ((tipo === 'comida' || tipo === 'repuesto') && compra > 0) { // 10% al local en comida Y repuestos (mercado virgen), con 90 dias de gracia por zona
       const fprev = await ghGet('pedidos.json');
       const prev = (fprev ? fprev.data : []).filter(x => x.zona === zona && x.ts);
       const primera = prev.length ? Math.min(...prev.map(x => x.ts)) : now;
@@ -270,7 +270,7 @@ module.exports = wrap(async (req, res) => {
     peds.push(pedido);
     await ghPut('pedidos.json', fpd ? fpd.sha : null, peds, 'pedido nuevo ' + id);
     const ic = { comida: '🍔', viaje: '🛺', repuesto: '🔧' }[tipo];
-    await aviso(`🚀 DRAGOEXPRES — PEDIDO NUEVO ${ic}\n${id} · ${tipo.toUpperCase()} · ${zona}\nCliente: ${nombre} (${tel})\n${pedido.local ? 'Local: ' + pedido.local.nombre + ' · ' : ''}Detalle: ${String(b.detalle).slice(0, 120)}\nEnvío: Q${envio} (tarifa fija)${recargo ? ' · 🌙 Incluye recargo nocturno Q' + recargo + ' (100% piloto, sin comisión)' : ''}${propina ? ' · Propina voluntaria: Q' + propina + ' (100% piloto)' : ''} · Comisión DragoExpres: Q${pedido.comision}${pedido.comisionLocal ? ' · 🍽️ 5% al local (zona operativa >3 meses): Q' + pedido.comisionLocal : ''}\n${pago === 'transferencia' ? '💳 Pago: TRANSFERENCIA al Banco Industrial' + (referencia ? ' · Ref: ' + referencia : ' · (sin referencia, verificar)') : '💵 Pago: EFECTIVO al piloto'}\n${pedido.piloto ? '→ Asignado AUTOMÁTICAMENTE a: ' + pedido.piloto.nombre + ' (' + pedido.piloto.tel + ')' : '→ SIN piloto disponible ahora, queda BUSCANDO'}`);
+    await aviso(`🚀 DRAGOEXPRES — PEDIDO NUEVO ${ic}\n${id} · ${tipo.toUpperCase()} · ${zona}\nCliente: ${nombre} (${tel})\n${pedido.local ? 'Local: ' + pedido.local.nombre + ' · ' : ''}Detalle: ${String(b.detalle).slice(0, 120)}\nEnvío: Q${envio} (tarifa fija)${recargo ? ' · 🌙 Incluye recargo nocturno Q' + recargo + ' (100% piloto, sin comisión)' : ''}${propina ? ' · Propina voluntaria: Q' + propina + ' (100% piloto)' : ''} · Comisión DragoExpres: Q${pedido.comision}${pedido.comisionLocal ? ' · 10% al local (zona operativa >90 días): Q' + pedido.comisionLocal : ''}\n${pago === 'transferencia' ? '💳 Pago: TRANSFERENCIA al Banco Industrial' + (referencia ? ' · Ref: ' + referencia : ' · (sin referencia, verificar)') : '💵 Pago: EFECTIVO al piloto'}\n${pedido.piloto ? '→ Asignado AUTOMÁTICAMENTE a: ' + pedido.piloto.nombre + ' (' + pedido.piloto.tel + ')' : '→ SIN piloto disponible ahora, queda BUSCANDO'}`);
     return res.status(200).json({ ok: true, pedido });
   }
 
