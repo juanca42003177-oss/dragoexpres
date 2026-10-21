@@ -165,6 +165,12 @@ input,textarea,select{-webkit-user-select:text;user-select:text}
     <div class="e"><img src="img/dragon-paquete.webp" alt="Dragón" style="width:44px;height:44px;object-fit:contain"></div>
     <h4 id="okT">¡Listo!</h4>
     <p id="okM"></p>
+    <div id="okAvisos" style="display:none;margin-top:12px">
+      <button class="btn bA" id="okPushBtn" onclick="okPush()">🔔 AVISARME EN MI CELULAR (gratis)</button>
+      <p class="mini" style="margin:6px 0 10px">Así te llega al instante el aviso cuando el admin dé el OK. Sin costo, directo a tu teléfono.</p>
+      <button class="btn" style="background:#25D366;color:#04310f" onclick="okWa()">📩 ENVIARME LA CONFIRMACIÓN POR WHATSAPP</button>
+      <p class="mini" style="margin:6px 0 0">Se abre tu WhatsApp con el mensaje listo: mandátelo a vos mismo y quedás con el comprobante guardado en tu celular.</p>
+    </div>
   </div>
 
   <div class="bene">
@@ -471,16 +477,47 @@ function intentarEnviar() {
       .catch(function(){ mostrarOkLocal(reg.tipo); });
   } catch(e) {}
 }
+var OK_DATOS=null;
+var DX_VAPID_PUB='BIcaKWGp2wy-DfqCHtjKlf3jaPMPfqevaxxKxDqEk9mVWq6w6aNPGG-IJPnOSHuDz45w6Mcn8KDStnn7lfP7mq8';
+function b64uAUint8(b64){var pad='='.repeat((4-b64.length%4)%4);var b=(b64+pad).replace(/-/g,'+').replace(/_/g,'/');var raw=atob(b);var out=new Uint8Array(raw.length);for(var i=0;i<raw.length;i++)out[i]=raw.charCodeAt(i);return out}
+function okTel(){var t=String((OK_DATOS&&OK_DATOS.datos&&OK_DATOS.datos.tel)||'').replace(/\D/g,'');if(t.length===8)t='502'+t;return t}
+function okPushSub(){
+  if(!('serviceWorker' in navigator)||!('PushManager' in window))return;
+  navigator.serviceWorker.ready.then(function(reg){return reg.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:b64uAUint8(DX_VAPID_PUB)})}).then(function(sub){
+    return fetch(apiBase()+'/orders',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'pushSub',tel:okTel(),zona:(OK_DATOS&&OK_DATOS.datos&&OK_DATOS.datos.zona)||'',sub:sub.toJSON()})});
+  }).catch(function(){});
+}
+async function okPush(){
+  if(!('serviceWorker' in navigator)||!('PushManager' in window)||!('Notification' in window)){alert('Tu navegador no soporta avisos automáticos. En Android usá Chrome.');return}
+  var perm=await Notification.requestPermission();
+  if(perm==='granted'){
+    okPushSub();
+    var b=document.getElementById('okPushBtn');
+    if(b){b.textContent='✅ AVISOS ACTIVADOS';b.disabled=true}
+    alert('¡Listo! Te avisamos en tu celular 🔔');
+  }else{alert('Sin el permiso no te podemos avisar. Activá las notificaciones de tu navegador para DragoExpres y volvé a intentar.')}
+}
+function okWa(){
+  var t=okTel();
+  if(!t){alert('No tenemos tu número en esta pantalla.');return}
+  var d=(OK_DATOS&&OK_DATOS.datos)||{};
+  var rol={usuario:'Cliente 👤',piloto:'Piloto 🏍️',local:'Local 🏪',flota:'Flotista 🚚'}[(OK_DATOS&&OK_DATOS.tipo)||'usuario'];
+  var msg='✅ DRAGOEXPRES — Confirmación de registro\n'+rol+'\nNombre: '+(d.nombre||'-')+'\nWhatsApp: '+(d.tel||t)+'\nZona: '+(d.zona||'-')+'\n\n'+(((OK_DATOS&&OK_DATOS.estado)==='aprobado')?'Ya estás APROBADO ✅ Entrá y empezá a trabajar.':'Tu registro quedó guardado. Te avisamos apenas el admin dé el OK.')+'\nEntrá desde: https://dragoexpres.vercel.app';
+  window.open('https://wa.me/'+t+'?text='+encodeURIComponent(msg),'_blank');
+}
 function mostrarOk(t, estado, datos) {
   var instante = estado === 'aprobado';
   var m = {
     usuario:'¡Quedaste verificado! 🤳✅ Con tu selfie y tu WhatsApp ya podés pedir comida, viajes y repuestos. Y con 30 pedidos, tu envío 31 va gratis: promo LIMITADA, sé de los primeros en reclamarla.',
-    piloto: instante ? '¡APROBADO AL INSTANTE! 🎉🎉 Todo pasó la verificación automática. Entrá YA con tu WhatsApp y placa, marcate disponible y empezá a recibir pedidos.' : 'Tu registro quedó en revisión rápida 📋 (licencia en trámite o algo por confirmar): el admin te da el OK, suele tardar poco. Te avisamos por WhatsApp.',
-    local: instante ? '¡APROBADO AL INSTANTE! 🎉 Entrá YA a tu panel de local con tu WhatsApp para subir tu menú, precios, promos y la foto del frente de tu negocio.' : 'Tu local quedó registrado y en revisión rápida: el admin te da el OK y te avisamos.',
-    flota: instante ? '¡APROBADO AL INSTANTE! 🎉 Entrá YA a tu pantalla de flota con tu WhatsApp para asignar tu vehículo a un conductor aprobado.' : 'Tu vehículo quedó registrado y en revisión rápida: el admin te da el OK y te avisamos.'
+    piloto: instante ? '¡APROBADO AL INSTANTE! 🎉🎉 Todo pasó la verificación automática. Entrá YA con tu WhatsApp y placa, marcate disponible y empezá a recibir pedidos.' : 'Tu registro quedó en revisión rápida 📋 (licencia en trámite o algo por confirmar): el admin te da el OK, suele tardar poco. Activá los avisos 👇 y te enterás al instante en tu celular.',
+    local: instante ? '¡APROBADO AL INSTANTE! 🎉 Entrá YA a tu panel de local con tu WhatsApp para subir tu menú, precios, promos y la foto del frente de tu negocio.' : 'Tu local quedó registrado y en revisión rápida: activá los avisos 👇 y te enterás al instante cuando el admin dé el OK.',
+    flota: instante ? '¡APROBADO AL INSTANTE! 🎉 Entrá YA a tu pantalla de flota con tu WhatsApp para asignar tu vehículo a un conductor aprobado.' : 'Tu vehículo quedó registrado y en revisión rápida: activá los avisos 👇 y te enterás al instante cuando el admin dé el OK.'
   };
   document.getElementById('okT').textContent = '¡Listo, quedaste registrado!';
   document.getElementById('okM').textContent = m[t] || m.usuario;
+  OK_DATOS={tipo:t,estado:estado,datos:datos||{}};
+  document.getElementById('okAvisos').style.display='block';
+  try{ if(('Notification' in window)&&Notification.permission==='granted') okPushSub(); }catch(e){}
   ['usuario','piloto','local','flota'].forEach(function(x){ document.getElementById('f'+x.charAt(0).toUpperCase()+x.slice(1)).classList.remove('on'); });
   document.getElementById('okBox').style.display='block';
   if (t === 'usuario' && datos && datos.nombre && datos.tel) { try { localStorage.setItem('dx_user', JSON.stringify({ nombre: datos.nombre, tel: datos.tel, zona: datos.zona || '', onboarded: true, regEnv: 1 })); } catch (e) { } }
@@ -488,10 +525,10 @@ function mostrarOk(t, estado, datos) {
 }
 function mostrarOkLocal(t) {
   var m = {
-    usuario:'Quedaste en la fila de tu zona. Cuando confirmemos tu registro por WhatsApp, tu envío gratis es tuyo.',
-    piloto:'Quedaste en la fila de pilotos. Guardamos tu registro en tu teléfono y lo enviamos apenas activemos el sistema; te contactamos por WhatsApp.',
-    local:'Quedaste en la fila de locales. Tu registro está guardado y se envía solo; te contactamos por WhatsApp.',
-    flota:'Quedaste en la fila. Tu registro está guardado y se envía solo; te contactamos por WhatsApp.'
+    usuario:'Quedaste en la fila de tu zona. Cuando confirmemos tu registro, tu envío gratis es tuyo.',
+    piloto:'Quedaste en la fila de pilotos. Guardamos tu registro en tu teléfono y lo enviamos apenas haya internet; activá los avisos 👇 para enterarte.',
+    local:'Quedaste en la fila de locales. Tu registro está guardado y se envía solo; activá los avisos 👇 para enterarte.',
+    flota:'Quedaste en la fila. Tu registro está guardado y se envía solo; activá los avisos 👇 para enterarte.'
   };
   document.getElementById('okT').textContent = '¡Quedaste en la fila de tu zona!';
   document.getElementById('okM').textContent = m[t] || m.usuario;

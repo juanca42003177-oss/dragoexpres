@@ -89,12 +89,27 @@ input,textarea,select{-webkit-user-select:text;user-select:text}
 
     <div id="pedidoActivo" style="display:none"></div>
     <p class="mini" style="text-align:center;margin-top:16px">El cliente te paga en efectivo: la compra va al local, el envío es tuyo. DragoExpres nunca toca tu dinero.</p>
+    <p class="mini" style="text-align:center;margin-top:16px"><span style="color:#ff8f8f;text-decoration:underline;cursor:pointer" onclick="eliminarMiCuenta()">🗑️ Eliminar mi cuenta y mis datos para siempre</span></p>
   </div>
 </div>
 <script>
 var PILOTO=null,POLL=null,PCALIF=null,ESTADOS={asignado:'NUEVO PEDIDO — ACEPTALO',aceptado:'PEDIDO ACEPTADO — marcá CUANDO SALGAS',en_camino:'EN CAMINO — marcá ENTREGADO al llegar',contraoferta:'ESPERANDO AL CLIENTE — decidís con tu precio'};
 
 var OF=null,OFINT=null;
+
+function eliminarMiCuenta(){
+  var tel=(PILOTO&&PILOTO.tel)||'';
+  if(!tel){alert('Primero entrá con tu cuenta.');return}
+  if(!confirm('¿Seguro que querés ELIMINAR tu cuenta de piloto?\n\nSe borran para siempre: tu registro, tu billetera, tus ganancias y tu historial. Tu WhatsApp queda LIBRE para registrarte de nuevo en DragoExpres, en el rol que quieras. No se puede deshacer.'))return;
+  if(!confirm('ÚLTIMA PALABRA: se borra TODO. ¿Eliminar?'))return;
+  fetch(api('orders'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'eliminarCuenta',rol:'piloto',tel:tel})})
+  .then(function(r){return r.json()})
+  .then(function(j){
+    if(j.ok){try{localStorage.clear()}catch(e){};alert('Cuenta eliminada. Tu WhatsApp ya puede registrarse de nuevo en DragoExpres.');location.href='index.html'}
+    else{alert(j.error||'No pudimos eliminar tu cuenta. Escribile al administrador por WhatsApp.')}
+  })
+  .catch(function(){alert('Revisá tu internet e intentá de nuevo.')});
+}
 function cerrarOferta(){document.getElementById('oferta').style.display='none';if(OFINT){clearInterval(OFINT);OFINT=null}OF=null}
 function mostrarOferta(o){
   OF=o;

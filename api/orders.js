@@ -825,26 +825,47 @@ module.exports = wrap(async (req, res) => {
   // y anonimiza sus pedidos y chats. Irreversible.
   if (action === 'eliminarCuenta') {
     const tel = String(b.tel || '').replace(/\D/g, '').slice(0, 25);
+    const rol = ['usuario', 'piloto', 'local', 'flotista'].includes(b.rol) ? b.rol : 'usuario';
+    const rolReg = rol === 'flotista' ? 'flota' : rol; // en registros.json el flotista se guarda como tipo 'flota'
+    const rolTxt = { usuario: 'cliente', piloto: 'piloto', local: 'local', flotista: 'flotista' }[rol];
     if (!tel) return res.status(200).json({ ok: false, error: 'Decinos tu WhatsApp para eliminar la cuenta correcta.' });
+    // proteccion: no borrar cuentas con pedidos en curso
+    const fpd0 = await ghGet('pedidos.json');
+    const activos = ['buscando', 'asignado', 'aceptado', 'en_camino'];
+    if (fpd0 && fpd0.data.some(o => activos.includes(o.estado) && (
+      (rol === 'usuario' && o.cliente && dig(o.cliente.tel) === dig(tel)) ||
+      (rol === 'piloto' && o.piloto && dig(o.piloto.tel) === dig(tel)) ||
+      (rol === 'local' && o.local && dig(o.local.tel) === dig(tel))))) {
+      return res.status(200).json({ ok: false, error: 'Tenés un pedido en curso: esperá a que se entregue y volvé a intentar.' });
+    }
     const fr = await ghGet('registros.json');
     const regs = fr ? fr.data : [];
     const antes = regs.length;
-    const quedan = regs.filter(r => !(r.tipo === 'usuario' && String((r.datos || {}).tel || '').replace(/\D/g, '') === tel));
-    if (quedan.length === antes) return res.status(200).json({ ok: false, error: 'No encontramos una cuenta de cliente con ese WhatsApp.' });
-    await ghPut('registros.json', fr ? fr.sha : null, quedan, 'cuenta eliminada ' + tel);
-    const fpd = await ghGet('pedidos.json');
-    if (fpd) {
-      let toc = 0;
-      fpd.data.forEach(o => {
-        if (o.cliente && String(o.cliente.tel || '').replace(/\D/g, '') === tel) {
-          o.cliente = { nombre: 'Cliente eliminado', tel: '', direccion: '' };
-          if (Array.isArray(o.chat)) o.chat = o.chat.filter(m => m.de !== 'cliente');
-          toc++;
-        }
-      });
-      if (toc) await ghPut('pedidos.json', fpd.sha, fpd.data, 'anonimizados pedidos de cuenta eliminada');
+    const quedan = regs.filter(r => !(r.tipo === rolReg && dig((r.datos || {}).tel) === dig(tel)));
+    if (quedan.length === antes) return res.status(200).json({ ok: false, error: 'No encontramos una cuenta de ' + rolTxt + ' con ese WhatsApp.' });
+    await ghPut('registros.json', fr ? fr.sha : null, quedan, 'cuenta eliminada ' + rol + ' ' + tel);
+    // estado y datos por rol: al borrarlos, el WhatsApp queda LIBRE para registrarse de nuevo
+    if (rol === 'piloto') { const fp = await ghGet('pilots.json'); if (fp) await ghPut('pilots.json', fp.sha, fp.data.filter(x => dig(x.tel) !== dig(tel)), 'estado piloto eliminado ' + tel); }
+    if (rol === 'local') {
+      const fl = await ghGet('locales.json'); if (fl) await ghPut('locales.json', fl.sha, fl.data.filter(x => dig(x.tel) !== dig(tel)), 'estado local eliminado ' + tel);
+      const fm = await ghGet('menus.json'); if (fm) await ghPut('menus.json', fm.sha, fm.data.filter(x => dig(x.tel) !== dig(tel)), 'menu/promos/servicios local eliminado ' + tel);
     }
-    await aviso(`🗑️ DRAGOEXPRES — CUENTA ELIMINADA\nUsuario ${tel} borró su cuenta y todos sus datos. Sus pedidos quedaron anonimizados.`);
+    if (rol === 'flotista') { const ff = await ghGet('flotas.json'); if (ff) await ghPut('flotas.json', ff.sha, ff.data.filter(x => !(x.flotista && dig(x.flotista.tel) === dig(tel))), 'flota eliminada ' + tel); }
+    // suscripciones de avisos push del numero
+    const fps = await ghGet('pushsubs.json');
+    if (fps) { const q2 = fps.data.filter(x2 => dig(x2.tel) !== dig(tel)); if (q2.length !== fps.data.length) await ghPut('pushsubs.json', fps.sha, q2, 'push subs eliminadas ' + tel); }
+    // pedidos: anonimizados (quedan para contabilidad, sin datos personales)
+    const fpd = await ghGet('pedidos.json');
+    let toc = 0;
+    if (fpd) {
+      fpd.data.forEach(o => {
+        if (rol === 'usuario' && o.cliente && dig(o.cliente.tel) === dig(tel)) { o.cliente = { nombre: 'Cliente eliminado', tel: '', direccion: '' }; if (Array.isArray(o.chat)) o.chat = o.chat.filter(m => m.de !== 'cliente'); toc++; }
+        if (rol === 'piloto' && o.piloto && dig(o.piloto.tel) === dig(tel)) { o.piloto = { nombre: 'Piloto eliminado', tel: '' }; if (Array.isArray(o.chat)) o.chat = o.chat.filter(m => m.de !== 'piloto'); toc++; }
+        if (rol === 'local' && o.local && dig(o.local.tel) === dig(tel)) { o.local = { nombre: 'Local eliminado', tel: '' }; if (Array.isArray(o.chat)) o.chat = o.chat.filter(m => m.de !== 'local'); toc++; }
+      });
+      if (toc) await ghPut('pedidos.json', fpd.sha, fpd.data, 'anonimizados pedidos de cuenta eliminada ' + rol);
+    }
+    await aviso(`🗑️ DRAGOEXPRES — CUENTA ELIMINADA\n${rolTxt} ${tel} borró su cuenta y todos sus datos.${toc ? ' Sus pedidos quedaron anonimizados.' : ''} Su WhatsApp queda libre para registrarse de nuevo.`);
     return res.status(200).json({ ok: true, mensaje: 'Tu cuenta y tus datos fueron eliminados.' });
   }
 

@@ -1,6 +1,8 @@
 // Panel de administracion DragoExpres (solo Juan). Requiere ADMIN_PASS en Vercel.
 const wrap = require('./_cors');
 const { ensureBranch } = require('./_dx');
+const { pushA } = require('./_push');
+const dig = (t) => { const d = String(t || '').replace(/\D/g, ''); return d.length > 8 ? d.slice(-8) : d; };
 const REPO = process.env.GITHUB_DATA_REPO || 'juanca42003177-oss/dragon-labs-data';
 const BRANCH = 'dragoexpres-data';
 const TOKEN = () => process.env.GITHUB_TOKEN || '';
@@ -46,6 +48,22 @@ module.exports = wrap(async (req, res) => {
       data2[i].estado = action === 'aprobar' ? 'aprobado' : 'rechazado';
       try {
         await ghPut(PATH, f2 ? f2.sha : null, data2, 'admin: actualizar registro');
+        // AVISO PUSH al registrado: le llega al celular apenas el admin da el OK
+        if (action === 'aprobar') {
+          try {
+            const r2 = data2[i] || {};
+            const telP = dig((r2.datos || {}).tel || '');
+            if (telP) {
+              const fps = await ghGet('pushsubs.json');
+              const subs = (fps ? fps.data : []).filter(x => x && x.endpoint && dig(x.tel) === telP);
+              if (subs.length) {
+                const url = r2.tipo === 'local' ? 'https://dragoexpres.vercel.app/local.html' : (r2.tipo === 'flota' ? 'https://dragoexpres.vercel.app/flotista.html' : 'https://dragoexpres.vercel.app/piloto.html');
+                const ico = r2.tipo === 'local' ? '🏪' : (r2.tipo === 'flota' ? '🚚' : '🏍️');
+                await pushA(subs, { title: ico + ' ¡Quedaste APROBADO en DragoExpres!', body: 'Ya podés entrar con tu WhatsApp y empezar a trabajar. Tocá para abrir tu panel.', tag: 'dx-aprobado', url });
+              }
+            }
+          } catch (e) { }
+        }
         return res.status(200).json({ ok: true, estado: data2[i].estado });
       } catch (e) {
         if (intento === 2) return res.status(200).json({ ok: false, error: 'El sistema se estaba actualizando justo ahora. Tocá de nuevo en 5 segundos.' });
