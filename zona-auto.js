@@ -11,6 +11,16 @@ function zonaAuto(selId){
   inp.style.cssText='width:100%;box-sizing:border-box;border:1.5px solid #ccc;border-radius:10px;padding:10px 12px;font-size:15px;background:#fff;color:#111;outline:none';
   var dd=document.createElement('div');
   dd.style.cssText='display:none;position:absolute;left:0;right:0;top:100%;z-index:99999;background:#fff;border:1px solid #ccc;border-radius:10px;margin-top:4px;max-height:260px;overflow-y:auto;box-shadow:0 10px 24px rgba(0,0,0,.3)';
+  function pos(){
+    var r=inp.getBoundingClientRect();
+    var abajo=window.innerHeight-r.bottom, arriba=r.top;
+    if(abajo<200&&arriba>220){
+      dd.style.top='auto';dd.style.bottom='100%';dd.style.marginTop='0';dd.style.marginBottom='4px';
+      dd.style.maxHeight=Math.max(150,Math.min(260,arriba-16))+'px';
+    }else{
+      dd.style.top='100%';dd.style.bottom='auto';dd.style.marginTop='4px';dd.style.marginBottom='0';dd.style.maxHeight='260px';
+    }
+  }
   wrap.appendChild(inp); wrap.appendChild(dd);
   var esc=function(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;')};
   var norm=function(s){return String(s).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'')};
@@ -40,7 +50,7 @@ function zonaAuto(selId){
     res.forEach(function(i){
       var r=document.createElement('div');
       r.style.cssText='padding:10px 12px;cursor:pointer;font-size:14.5px;border-bottom:1px solid #eee;color:#111;line-height:1.35';
-      r.innerHTML='<b>'+esc(i.z)+'</b> <span style="color:#888">— '+esc(i.g)+'</span>'+(activa(i.z)?' <b style="color:#1a7a2e">🐉 pilotos</b>':'');
+      r.innerHTML='<b>'+esc(i.z)+'</b> <span style="color:#888">— '+esc(i.g)+'</span>'+(activa(i.z)?' <b style="color:#1a7a2e;white-space:nowrap"><img src="img/dragon-volando.png" alt="" style="width:18px;height:16px;object-fit:contain;vertical-align:-3px"> pilotos</b>':'');
       r.onmousedown=function(e){e.preventDefault();elegir(i.z)};
       dd.appendChild(r);
     });
@@ -58,6 +68,7 @@ function zonaAuto(selId){
         dd.appendChild(n);
       }
     }
+    pos();
     dd.style.display='block';
   }
   inp.addEventListener('input',function(){
@@ -67,11 +78,13 @@ function zonaAuto(selId){
   });
   inp.addEventListener('focus',function(){
     var q=inp.value.trim();
+    try{setTimeout(function(){pos();inp.scrollIntoView({block:'center',behavior:'smooth'})},250)}catch(e){}
     if(q.length>=2)pintar(q);
   });
   document.addEventListener('click',function(e){if(!wrap.contains(e.target))dd.style.display='none'});
   /* sync: si otra parte del codigo setea el select (restaurar zona guardada), el buscador la refleja */
   setInterval(function(){
+    if(dd.style.display==='block')pos();
     if(document.activeElement===inp)return;
     var cur=sel.value;
     if(cur==='__otra'){var li=libre(); if(li&&li.style.display!=='none'&&li.value&&inp.value!==li.value)inp.value=li.value;}
