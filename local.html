@@ -53,7 +53,7 @@ input,textarea,select{-webkit-user-select:text;user-select:text}
     <div id="pausaCard" class="card" style="display:none;background:#2a230f;border-color:#6b5a10;color:#ffe08a;text-align:center"></div>
     <div class="card" id="horarioCard" style="background:#14151c">
       <b>🕐 Tu horario de atención</b>
-      <p class="mini" style="margin:4px 0 8px">Fuera de este horario no te entran pedidos: el cliente ve "Cerrado, abre a las X". Así no suena el dragón cuando ya guardaste.</p>
+      <p class="mini" style="margin:4px 0 8px">Tus horas las decidís VOS, nadie te las impone. Fuera de tu horario no te entran pedidos: el cliente ve "Cerrado, abre a las X". Así no suena el dragón cuando ya guardaste.</p>
       <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
         <span class="mini">Abro a las</span>
         <select id="h-abre" style="background:#0d0e14;color:#fff;border:1px solid #2a2b38;border-radius:8px;padding:6px"></select>
@@ -90,8 +90,8 @@ input,textarea,select{-webkit-user-select:text;user-select:text}
     <input id="loc-foto" type="file" accept="image/*" capture="environment" style="background:#0d0e14">
     <button class="btn bA" id="locFotoBtn" style="margin-top:8px" onclick="guardarFotoLocal()">📸 GUARDAR FOTO DEL LOCAL</button>
 <div id="secPromos">
-    <h3 style="color:#f0b90b;margin:16px 0 4px;font-size:15px">🎉 Mis promos</h3>
-    <p class="mini" style="margin:4px 0 8px">Hasta 5 promos activas. Aparecen arriba del menú para los clientes: 2x1, descuentos, combos... Vos las creás y las quitás cuando querés.</p>
+    <h3 style="color:#f0b90b;margin:16px 0 4px;font-size:15px">🎉 Mis promos (si querés)</h3>
+    <p class="mini" style="margin:4px 0 8px">Promos 100% opcionales: DragoExpres <b>jamás te obliga a dar ofertas</b> — cada local decide las suyas o ninguna. Si querés destacar una (2x1, descuento, lo que sea), la creás acá, aparece arriba de tu menú y la quitás cuando querés. Hasta 5 activas.</p>
     <div id="promosBox"></div>
     <div class="card">
       <b style="font-size:14px">Crear promo</b>
@@ -159,7 +159,7 @@ function hh(x){return x===null||x===undefined?'':String(x).padStart(2,'0')+':00'
 function pintarHorario(){
   var a=document.getElementById('h-abre'),c=document.getElementById('h-cierra');
   if(!a.options.length){for(var i=0;i<24;i++){var op=new Option(hh(i),i);a.add(op);c.add(new Option(hh(i),i))}}
-  if(HORARIO.abre===null){a.value='';c.value='';document.getElementById('h-estado').textContent='Atendés 24 horas (no configuraste horario).'}
+  if(HORARIO.abre===null){a.value='';c.value='';document.getElementById('h-estado').textContent='Sin horario configurado: aparecés abierto siempre. Tu horario lo decidís VOS — si querés descansar a ciertas horas, ponelo abajo.'}
   else{a.value=HORARIO.abre;c.value=HORARIO.cierra;
     var h=new Date(Date.now()-21600000).getUTCHours();
     var abi=(HORARIO.abre<HORARIO.cierra)?(h>=HORARIO.abre&&h<HORARIO.cierra):(h>=HORARIO.abre||h<HORARIO.cierra);
@@ -294,7 +294,7 @@ var PROMOS=[];
 function pintarPromos(){
   var h='';
   if(PROMOS.length)h=PROMOS.map(function(p){return '<div class="pedido" style="display:flex;justify-content:space-between;align-items:center;gap:8px"><div style="flex:1">'+(p.foto?'<img src="'+p.foto+'" style="width:100%;max-height:120px;object-fit:cover;border-radius:10px;margin-bottom:6px">':'')+'<b>🎉 '+p.titulo+'</b>'+(p.detalle?'<div class="mini">'+p.detalle+'</div>':'')+'</div><button class="bMini bX" onclick="promoDel(\''+p.id+'\')">Quitar</button></div>'}).join('');
-  else h='<div class="mini" style="padding:4px 2px">Sin promos activas. Creá una abajo.</div>';
+  else h='<div class="mini" style="padding:4px 2px">Sin promos — está perfecto. Las ofertas son decisión tuya, nunca obligación. Si algún día querés una, la creás abajo.</div>';
   document.getElementById('promosBox').innerHTML=h;
 }
 var SERVS=[];
