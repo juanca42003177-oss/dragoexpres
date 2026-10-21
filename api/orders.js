@@ -278,7 +278,7 @@ module.exports = wrap(async (req, res) => {
       detalle: String(b.detalle).slice(0, 800),
       items: Array.isArray(b.items) ? b.items.slice(0, 30).map(x => ({ nombre: String(x.nombre || '').slice(0, 60), qty: Math.max(1, Math.min(50, +x.qty || 1)), precio: dinero(x.precio || 0), nota: String(x.nota || '').slice(0, 120) })) : undefined,
       compra: dinero(b.compra || 0), servicio: servicio || undefined, envio, promoFiel: promoFiel || undefined, promoTarifa: promoFiel ? envioTarifa : undefined, propina, comision: promoFiel ? 0 : comisionDe(tipo, envioTarifa - recargo), comisionLocal, nocturno, recargo,
-      estado: 'buscando', piloto: null, ts: now, pago, referencia, local: localObj || undefined
+      estado: 'buscando', piloto: null, ts: now, pago, referencia, local: localObj || undefined, avisoWa: b.avisoWa !== false
     };
     // dispatch: primer piloto disponible de la zona
     const fp = await ghGet('pilots.json'); const pilots = fp ? fp.data : [];

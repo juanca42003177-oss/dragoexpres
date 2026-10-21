@@ -4,6 +4,8 @@
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="theme-color" content="#d1121f">
 <title>DragoExpres — Pedí ya</title>
+<script>window.ZONA_AUTO_IDS=["f-zona","mi-zona","onb-zona","shDir-zona"];</script>
+<script src="zona-auto.js?v=20261021"></script>
 <link rel="manifest" href="manifest.json">
 <link rel="icon" href="img/icono.png">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
@@ -252,6 +254,11 @@ input,textarea,select{-webkit-user-select:text;user-select:text}
       <label>Nombre</label><input id="mi-nombre" placeholder="Ej: María López">
       <label>WhatsApp</label><input id="mi-tel" type="tel" placeholder="Ej: 55501234">
       <label>Mi zona</label><select id="mi-zona"><option value="">Cargando zonas...</option></select>
+      <label style="margin-top:10px">🔔 Notificaciones por WhatsApp</label>
+      <div style="display:flex;align-items:center;gap:10px;padding:10px;border:1.5px solid #ccc;border-radius:10px">
+        <input type="checkbox" id="mi-wa" style="width:20px;height:20px;flex:none">
+        <span style="font-size:13.5px;line-height:1.35">Avisarme por WhatsApp cuando mi pedido avance (piloto lo toma, va en camino y llega), como las apps grandes</span>
+      </div>
       <button class="btn bA" onclick="guardarPerfil()">Guardar</button>
     </div>
     <div class="pcard">
@@ -727,6 +734,7 @@ function pintarPerfil(){
   if(u.nombre){document.getElementById('pavatar').textContent=u.nombre.trim().charAt(0).toUpperCase();}
   document.getElementById('mi-nombre').value=u.nombre||'';
   document.getElementById('mi-tel').value=u.tel||'';
+  document.getElementById('mi-wa').checked=(u.avisoWa!==false);
   pintarDirs();
 }
 function esNocheGT(){var h=(new Date().getUTCHours()+18)%24;return h>=23||h<6}
@@ -794,6 +802,7 @@ function guardarPerfil(){
   var u=LS();
   u.nombre=document.getElementById('mi-nombre').value.trim();
   u.tel=document.getElementById('mi-tel').value.trim();
+  u.avisoWa=document.getElementById('mi-wa').checked;
   u.zona=document.getElementById('mi-zona').value;
   SS(u);
   document.getElementById('zonaTag').textContent=u.zona||'Elegí tu zona';
@@ -1037,7 +1046,7 @@ async function enviar(){
   var v=function(id){var e=document.getElementById(id);return e?e.value.trim():''};
   var u=LS();
   var telCli=v('f-tel')||u.tel;MI_TEL=telCli;
-  var d={action:'crear',tipo:TIPO,local:(LOCAL_TEL?{nombre:LOCAL_PRE,tel:LOCAL_TEL}:undefined),nombre:v('f-nombre')||u.nombre,tel:telCli,zona:zonaValor(),direccion:v('f-dir'),referencia:v('f-ref'),detalle:v('f-det'),compra:v('f-compra')||0,servicio:SERV?SERV.id:undefined,envio:TARIFA[TIPO]||15,propina:PROPINA};
+  var d={action:'crear',tipo:TIPO,local:(LOCAL_TEL?{nombre:LOCAL_PRE,tel:LOCAL_TEL}:undefined),nombre:v('f-nombre')||u.nombre,tel:telCli,zona:zonaValor(),direccion:v('f-dir'),referencia:v('f-ref'),detalle:v('f-det'),compra:v('f-compra')||0,servicio:SERV?SERV.id:undefined,envio:TARIFA[TIPO]||15,propina:PROPINA,avisoWa:(LS().avisoWa!==false)};
   if(window._CART_PED&&d.local&&window._CART_PED.tel===d.local.tel){d.items=window._CART_PED.items.map(function(x){return{nombre:x.nombre,precio:x.precio,qty:x.qty,nota:x.nota||''}})}
   var tt=(parseFloat(d.compra)||0)+(window.PROMO_FIEL?0:(TARIFA[TIPO]||15)+(esNocheGT()?5:0))+PROPINA;
   if(BILLETE>0&&BILLETE<tt){alert('Tu billete de Q'+BILLETE+' no cubre el total de Q'+tt+'. Elegí otro billete o marcá “Tengo exacto”.');return}
