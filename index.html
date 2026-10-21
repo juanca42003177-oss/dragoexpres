@@ -121,7 +121,11 @@ input,textarea,select{-webkit-user-select:text;user-select:text}
     <label style="margin-top:10px">Foto de tu caja térmica 📦 <b style="color:#c1121f">(OBLIGATORIA)</b></label>
     <input type="file" accept="image/*" capture="environment" id="pMochila" style="padding:8px">
     <p class="desc" style="font-size:11px;margin:0 0 8px">La caja cuadrada de reparto para llevar la comida CALIENTE. Sirve CUALQUIER marca, aunque sea de otra app: lo importante es que la comida llegue calentita. La comprás vos, es tuya y dura años.</p>
-    <p class="desc" style="font-size:11px;margin:0 0 8px">La verificación es automática: DPI bien escrito + tus fotos + tu caja térmica = quedás APROBADO AL INSTANTE y podés trabajar ya. Sin papeleo, sin esperar.</p>
+    <label style="margin-top:10px">¿Qué querés hacer con DragoExpres? <b style="color:#c1121f">(marcá lo tuyo)</b></label>
+    <label style="display:flex;gap:8px;align-items:center"><input type="checkbox" id="p-sv-comida" style="width:auto" checked> <span>🍔 Repartir comida (con tu caja térmica)</span></label>
+    <label style="display:flex;gap:8px;align-items:center"><input type="checkbox" id="p-sv-repuestos" style="width:auto"> <span>🔧 Repartir repuestos de moto/carro</span></label>
+    <label style="display:flex;gap:8px;align-items:center" id="p-sv-viajes-wrap"><input type="checkbox" id="p-sv-viajes" style="width:auto"> <span>🛺 Hacer viajes de personas (solo moto o carro)</span></label>
+    <p class="desc" style="font-size:11px;margin:0 0 8px">La verificación es automática: DPI bien escrito + tus fotos + tu caja térmica = quedás APROBADO AL INSTANTE y podés trabajar ya. Sin papeleo, sin esperar. Solo te llegan los pedidos de lo que elegiste.</p>
     <label>Tu área</label><input id="pZona" placeholder="Ej: Zona 11, Mixco, Villa Nueva...">
     <label style="display:flex;gap:8px;align-items:flex-start;margin-top:14px"><input type="checkbox" id="p24" style="width:auto;margin-top:3px"> <span>Me animo a turnos de <b>24 horas</b> <span style="color:#f0b90b">(prioridad en pedidos nocturnos + el cliente paga Q5 extra de noche que es 100% tuyo + boletos extra para tu devolución dominical)</span></span></label>
     <label style="display:flex;gap:8px;align-items:flex-start;margin-top:8px;font-size:12px;border:1px solid #f5b942;border-radius:10px;padding:10px;background:#16130a"><input type="checkbox" id="pContrato" style="width:auto;margin-top:2px"> He leído y acepto el <a href="contrato.html" target="_blank"><b>Contrato Digital de DragoExpres</b></a> (C-2026.5 · licencia en trámite con OK · cero tolerancia al fraude)</label>
@@ -363,11 +367,12 @@ function verVeh() {
   var bici = document.getElementById('pVeh').value === 'bicicleta';
   document.getElementById('biciNota').style.display = bici ? 'block' : 'none';
   document.getElementById('pLicWrap').style.display = bici ? 'none' : 'block'; // bicicleta no requiere licencia
+  var vwrap = document.getElementById('p-sv-viajes-wrap'); if (vwrap) { vwrap.style.display = bici ? 'none' : 'flex'; var vc = document.getElementById('p-sv-viajes'); if (bici && vc) vc.checked = false; } // bicicleta no hace viajes
 }
 function campos(t) {
   var v = function(id){ return (document.getElementById(id).value||'').trim(); };
   if (t==='usuario') return { nombre:v('uNombre'), tel:v('uTel'), zona:v('uZona') };
-  if (t==='piloto') return { nombre:v('pNombre'), tel:v('pTel'), vehiculo:v('pVeh'), marca:v('pMarca'), color:v('pColor'), placa:v('pPlaca'), dpi:v('pDpi'), zona:v('pZona'), equipo: document.getElementById('pEquipo').checked, h24: document.getElementById('p24').checked, propio: !!(document.getElementById('pPropio') && document.getElementById('pPropio').checked), licenciaEnTramite: !!(document.getElementById('pLicTramite') && document.getElementById('pLicTramite').checked), contrato: document.getElementById('pContrato').checked, referido: (document.getElementById('pRef')||{}).value||'' };
+  if (t==='piloto') return { servicios:['comida','repuestos','viajes'].filter(function(s){var c=document.getElementById('p-sv-'+s);return c&&c.checked}), nombre:v('pNombre'), tel:v('pTel'), vehiculo:v('pVeh'), marca:v('pMarca'), color:v('pColor'), placa:v('pPlaca'), dpi:v('pDpi'), zona:v('pZona'), equipo: document.getElementById('pEquipo').checked, h24: document.getElementById('p24').checked, propio: !!(document.getElementById('pPropio') && document.getElementById('pPropio').checked), licenciaEnTramite: !!(document.getElementById('pLicTramite') && document.getElementById('pLicTramite').checked), contrato: document.getElementById('pContrato').checked, referido: (document.getElementById('pRef')||{}).value||'' };
   if (t==='local') return { nombre:v('lNombre'), tipo:v('lTipo'), tel:v('lTel'), zona:v('lZona'), contrato: document.getElementById('lContrato').checked };
   return { nombre:v('flNombre'), tel:v('flTel'), vehiculo:v('flVeh'), marca:v('flMarca'), color:v('flColor'), placa:v('flPlaca'), zona:v('flZona') };
 }
@@ -378,6 +383,7 @@ function validar(t,d) {
   if (t==='piloto' && d.vehiculo==='bicicleta' && !d.equipo) return 'Para bicicleta necesitás confirmar que trabajás con casco y rodilleras';
   if (t==='piloto' && String(d.dpi||'').replace(/\D/g,'').length!==13) return 'Poné el número de tu DPI completo (13 dígitos, sin espacios)';
   if (t==='piloto') { var mo=document.getElementById('pMochila'); if(!mo||!mo.files||!mo.files[0]) return 'Falta la foto de tu caja térmica 📦 — es obligatoria para llevar la comida caliente (como los repartidores de las apps grandes)'; }
+  if (t==='piloto') { var svs=['comida','repuestos','viajes'].filter(function(s){var c=document.getElementById('p-sv-'+s);return c&&c.checked}); if(!svs.length) return 'Marcá qué querés hacer (repartir comida, repartir repuestos o hacer viajes)'; }
   if (t==='piloto' && d.vehiculo!=='bicicleta' && !d.licenciaEnTramite) {
     var lf = document.getElementById('pLicencia');
     if (!lf || !lf.files || !lf.files[0]) return 'Falta la foto de tu licencia (o marcá que está en trámite)';

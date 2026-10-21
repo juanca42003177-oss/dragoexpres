@@ -46,6 +46,7 @@ function normalizar(body) {
     h24: src.h24 || undefined,
     propio: src.propio === true || src.propio === 'true',
     licenciaEnTramite: src.licenciaEnTramite === true || src.licenciaEnTramite === 'true',
+    servicios: Array.isArray(src.servicios) ? src.servicios.filter(s2 => ['comida', 'repuestos', 'viajes'].indexOf(s2) >= 0).slice(0, 3) : undefined,
     dpi: String(src.dpi || '').replace(/\D/g, '').slice(0, 13) || undefined,
     contrato: src.contrato === true || src.contrato === 'true',
     docs: Array.isArray(src.docs) ? src.docs.slice(0, 4).map(y => ({ tipo: String(y.tipo || '').replace(/[^a-z]/g, '').slice(0, 10), archivo: String(y.archivo || '').replace(/[^a-z0-9_\/.-]/gi, '').slice(0, 120) })) : undefined,

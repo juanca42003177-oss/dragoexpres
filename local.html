@@ -65,7 +65,7 @@ input,textarea,select{-webkit-user-select:text;user-select:text}
       <div class="mini" id="h-estado" style="margin-top:6px;color:#ffd479"></div>
     </div>
     <button class="btn bR" id="pausaBtn" onclick="pausar(30)">⏸️ Cocina saturada: pausar 30 min</button>
-    <h3 style="color:#f0b90b;margin:16px 0 4px;font-size:15px">📋 Mi menú</h3>
+    <h3 style="color:#f0b90b;margin:16px 0 4px;font-size:15px" id="h-menu">📋 Mi menú</h3>
     <p class="mini" style="margin:4px 0 8px">Cargá tus productos con foto y precio. Si algo se te acaba, marcá AGOTADO con un toque: el cliente lo ve gris y no lo puede pedir. Sin foto también funciona.</p>
     <div id="menuBox"></div>
     <div class="card">
@@ -81,7 +81,7 @@ input,textarea,select{-webkit-user-select:text;user-select:text}
       <input id="m-foto" type="file" accept="image/*" capture="environment" style="background:#0d0e14">
       <img id="m-preview" style="display:none;width:90px;height:90px;object-fit:cover;border-radius:10px;margin-top:6px;border:1px solid #2a2b38">
       <button class="btn bA" id="m-add" onclick="menuAdd()">➕ AGREGAR AL MENÚ</button>
-      <p class="mini" style="margin-top:10px"><b style="color:#ffe08a">📸 Tips para que tu foto venda (los usa PedidosYa):</b><br>• Un solo plato por foto, centrado y completo<br>• Fondo limpio: una mesa o paño liso<br>• Sin texto, precios ni marcas de agua encima<br>• Luz de ventana o de día, sin flash directo<br>• Que sea lo MISMO que le llega al cliente<br>• Primero fotografiá tus 10 más vendidos</p>
+      <p class="mini" style="margin-top:10px" id="tipsFoto"><b style="color:#ffe08a">📸 Tips para que tu foto venda (los usa PedidosYa):</b><br>• Un solo plato por foto, centrado y completo<br>• Fondo limpio: una mesa o paño liso<br>• Sin texto, precios ni marcas de agua encima<br>• Luz de ventana o de día, sin flash directo<br>• Que sea lo MISMO que le llega al cliente<br>• Primero fotografiá tus 10 más vendidos</p>
     </div>
     <h3 style="color:#f0b90b;margin:16px 0 4px;font-size:15px">🏪 Foto de mi local</h3>
     <p class="mini" style="margin:4px 0 8px">Sacale una foto al frente de tu negocio (con tu letrero si tenés): es la primera cosa que ven los clientes en la app. Le da confianza y ventas.</p>
@@ -101,6 +101,7 @@ input,textarea,select{-webkit-user-select:text;user-select:text}
       <button class="btn bA" onclick="promoAdd()">🎉 ACTIVAR PROMO</button>
     </div>
 
+<div id="secServicios">
     <h3 style="color:#f0b90b;margin:16px 0 4px;font-size:15px">🔧 Mis servicios mecánicos</h3>
     <p class="mini" style="margin:4px 0 8px">¿Tenés taller? Ofrecé instalación y reparación A DOMICILIO como extra de tus repuestos (como el postre de un restaurante): el cliente lo agrega a su pedido y <b>VOS ponés el precio porque es extra</b>. Decí quién va y en qué vehículo llega para que el cliente lo reconozca.</p>
     <div id="servsBox"></div>
@@ -121,6 +122,7 @@ input,textarea,select{-webkit-user-select:text;user-select:text}
       <label style="margin-top:8px">Placa</label>
       <input id="sv-placa" placeholder="Ej: C123BBC">
       <button class="btn bA" onclick="servAdd()">🔧 ACTIVAR SERVICIO</button>
+    </div>
     </div>
     <h3 style="color:#f0b90b;margin:16px 0 4px;font-size:15px">Pedidos de tu local</h3>
     <div id="pedidos"></div>
@@ -239,7 +241,22 @@ function ticket(o){
 }
 
 var MENU=[],FOTOB64='';
-var CATORD=['Platos fuertes','Combos','Entradas','Bebidas','Postres','Repuestos','Otros'];
+var RUBRO='comida';
+var CATFOOD=['Platos fuertes','Combos','Entradas','Bebidas','Postres','Otros'];
+var CATREP=['Repuestos de moto','Repuestos de carro','Aceites y líquidos','Llantas y ruedas','Baterías','Accesorios','Herramientas','Otros'];
+var CATTIE=['Productos','Abarrotería','Snacks','Bebidas','Higiene y limpieza','Otros'];
+function CATORD(){return esRep()?CATREP:(RUBRO==='tienda'?CATTIE:CATFOOD)}
+function esRep(){return RUBRO==='repuestos'||RUBRO==='taller'}
+function adaptarRubro(){
+  document.getElementById('secServicios').style.display=esRep()?'block':'none';
+  document.getElementById('m-cat').innerHTML=CATORD().map(function(c){return '<option>'+c+'</option>'}).join('');
+  document.getElementById('h-menu').textContent=esRep()?'🔧 Mi catálogo de repuestos':(RUBRO==='tienda'?'🛒 Mi catálogo':'📋 Mi menú');
+  document.getElementById('m-nombre').placeholder=esRep()?'Ej: Bujía NGK para moto':'Ej: Pepián';
+  document.getElementById('m-desc').placeholder=esRep()?'Ej: pack x4, para Honda Wave':'Ej: con arroz, frijoles y 3 tortillas';
+  document.getElementById('m-add').textContent=esRep()?'➕ AGREGAR AL CATÁLOGO':'➕ AGREGAR AL MENÚ';
+  document.getElementById('pausaBtn').textContent=esRep()?'⏸️ Taller saturado: pausar 30 min':'⏸️ Cocina saturada: pausar 30 min';
+  document.getElementById('tipsFoto').innerHTML=esRep()?'<b style="color:#ffe08a">📸 Tips para que tu foto venda:</b><br>• La pieza completa y centrada<br>• Fondo limpio y parejo<br>• Sin texto ni precios encima de la foto<br>• Luz de día, sin flash directo<br>• Que sea lo MISMO que le llega al cliente':'<b style="color:#ffe08a">📸 Tips para que tu foto venda (los usa PedidosYa):</b><br>• Un solo plato por foto, centrado y completo<br>• Fondo limpio: una mesa o paño liso<br>• Sin texto, precios ni marcas de agua encima<br>• Luz de ventana o de día, sin flash directo<br>• Que sea lo MISMO que le llega al cliente<br>• Primero fotografiá tus 10 más vendidos';
+}
 function itemRow(it){
   return '<div style="display:flex;gap:10px;align-items:center;background:#14151c;border:1px solid #2a2b38;border-radius:12px;padding:8px;margin:8px 0">'+
   (it.foto?'<img src="'+it.foto+'" style="width:58px;height:58px;object-fit:cover;border-radius:10px">':'<div style="width:58px;height:58px;border-radius:10px;background:#241a05;display:flex;align-items:center;justify-content:center;font-size:24px">🍽️</div>')+
@@ -252,7 +269,7 @@ function pintarMenu(){
   if(!MENU.length){h='<div class="mini" style="padding:8px 2px">Tu menú está vacío. Agregá tu primer producto abajo para que los clientes lo vean con foto y precio.</div>';}
   else{
     var g={};MENU.forEach(function(it){var c=it.categoria||'Otros';(g[c]=g[c]||[]).push(it)});
-    var orden=CATORD.concat(Object.keys(g).filter(function(c){return CATORD.indexOf(c)<0}));
+    var orden=CATORD().concat(Object.keys(g).filter(function(c){return CATORD().indexOf(c)<0}));
     orden.forEach(function(c){
       if(!g[c]||!g[c].length)return;
       h+='<div style="font-weight:900;color:#f0b90b;font-size:13px;margin:14px 0 2px">'+c.toUpperCase()+'</div>'+g[c].map(itemRow).join('');
@@ -392,6 +409,7 @@ async function login(){
   if(!j.ok){document.getElementById('lerr').textContent=j.error;return}
   TEL=tel.replace(/\D/g,'');
   FOTO_LOCAL=(j.local&&j.local.fotoLocal)||'';pintarFotoLocal();
+  RUBRO=String((j.local&&j.local.rubro)||'comida');adaptarRubro();
   localStorage.setItem('dxLocal',TEL);
   pintar(j);
   document.getElementById('login').style.display='none';document.getElementById('app').style.display='block';
@@ -400,7 +418,7 @@ async function login(){
 function pintar(j){
   HORARIO={abre:j.local.abre!==undefined&&j.local.abre!==null?j.local.abre:null,cierra:j.local.cierra!==undefined&&j.local.cierra!==null?j.local.cierra:null};pintarHorario();
   document.getElementById('l-nombre').textContent=j.local.nombre.split(' ')[0];
-  document.getElementById('l-zona').innerHTML='Zona: '+j.local.zona+' · Local verificado ✅ · Cada pedido suena acá, confirmalo con un toque <button class="bMini" id="sonidoBtn" style="padding:3px 8px" onclick="toggleSonido()">'+(SONIDO?'🔔':'🔇')+'</button> <span id="alarmChip" class="chip" style="display:none;background:#3a1414;color:#ff9f9f"></span>';
+  document.getElementById('l-zona').innerHTML='Zona: '+j.local.zona+' · '+(esRep()?'Taller':'Local')+' verificado ✅ · Cada pedido suena acá, confirmalo con un toque <button class="bMini" id="sonidoBtn" style="padding:3px 8px" onclick="toggleSonido()">'+(SONIDO?'🔔':'🔇')+'</button> <span id="alarmChip" class="chip" style="display:none;background:#3a1414;color:#ff9f9f"></span>';
   PAUSA=j.pausa;
   var pc=document.getElementById('pausaCard'),pb=document.getElementById('pausaBtn');
   if(PAUSA&&PAUSA>Date.now()){
@@ -470,11 +488,12 @@ async function pausar(min){
 var DEMO=false,DEMODATA=null;
 function entrarVista(){
   DEMO=true;TEL='0';
-  DEMODATA={local:{nombre:'Tu Local (ejemplo)',zona:'Tu zona'},pausa:null,totalEntregados:0,
-    activos:[{id:'DX-EJEMPLO',tipo:'comida',estado:'aceptado',detalle:'2 platos del día (ejemplo)',compra:80,envio:15,
+  RUBRO=location.search.indexOf('rubro=repuestos')>-1?'repuestos':'comida';adaptarRubro();
+  DEMODATA={local:{nombre:esRep()?'Taller El Dragón (ejemplo)':'Tu Local (ejemplo)',zona:'Tu zona'},pausa:null,totalEntregados:0,
+    activos:[{id:'DX-EJEMPLO',tipo:esRep()?'repuesto':'comida',estado:'aceptado',detalle:esRep()?'2 bujías + aceite (ejemplo)':'2 platos del día (ejemplo)',compra:80,envio:esRep()?20:15,
       cliente:{nombre:'Cliente (ejemplo)',direccion:'6a Calle 4-20 (ejemplo)'},prep:null}]};
   pintar(DEMODATA);
-  MENU=[{id:'ej1',nombre:'Pepián con arroz (ejemplo)',precio:35,foto:'',agotado:false},{id:'ej2',nombre:'Tamalitos (ejemplo)',precio:18,foto:'',agotado:true}];pintarMenu();
+  MENU=esRep()?[{id:'ej1',nombre:'Bujías NGK x4 (ejemplo)',precio:35,foto:'',agotado:false,categoria:'Repuestos de moto'},{id:'ej2',nombre:'Aceite 10W-40 (ejemplo)',precio:85,foto:'',agotado:true,categoria:'Aceites y líquidos'}]:[{id:'ej1',nombre:'Pepián con arroz (ejemplo)',precio:35,foto:'',agotado:false},{id:'ej2',nombre:'Tamalitos (ejemplo)',precio:18,foto:'',agotado:true}];pintarMenu();
   document.getElementById('login').style.display='none';document.getElementById('app').style.display='block';
   var bn=document.createElement('div');bn.style.cssText='background:#241a05;border:1px solid #f0b90b;color:#ffe08a;font-size:12.5px;padding:9px 12px;border-radius:10px;margin:10px 0;text-align:center;font-weight:800';
   bn.textContent='👁 VISTA PREVIA — pantalla del local con 0 pedidos reales (el pedido mostrado es de ejemplo y los botones no guardan nada).';

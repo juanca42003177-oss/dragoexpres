@@ -663,8 +663,8 @@ function abrirCat(tipo){
   document.getElementById('catSheet').style.display='block';
   var u=LS();
   var loc=LOCALES.filter(function(l){
-    var r=String(l.rubro||'').toLowerCase();
-    var es=tipo==='comida'?(r.indexOf('repuesto')<0):(r.indexOf('repuesto')>=0);
+    var r=String(l.rubro||'comida').toLowerCase();
+    var es=tipo==='comida'?(r==='comida'||r===''):(r.indexOf('repuesto')>=0||r==='taller');
     if(u.zona&&l.zona&&l.zona!==u.zona)return false;
     return es;
   });

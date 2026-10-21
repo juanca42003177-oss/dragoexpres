@@ -106,6 +106,8 @@ function vehInfo(d) {
   return { vehiculo: d.vehiculo || '', marca: d.marca || '', color: d.color || '', placa: d.placa || '' };
 }
 const ESTADOS = ['buscando', 'asignado', 'aceptado', 'en_camino', 'entregado', 'cancelado'];
+// cada piloto trabaja SOLO en lo que eligió al registrarse (sin servicios definidos = todos, compatibilidad)
+const svOk = (r, tipo) => { const sv = { comida: 'comida', repuesto: 'repuestos', viaje: 'viajes' }[tipo] || 'comida'; const s = r && r.datos && r.datos.servicios; return !Array.isArray(s) || !s.length || s.indexOf(sv) >= 0; };
 
 // ---- CONTRAOFERTA DE VIAJES (estilo InDrive): el piloto pide mas, el cliente decide en 30s (60s si hay pocos pilotos) ----
 async function candidatosViaje(zona, excluir) {
@@ -115,7 +117,7 @@ async function candidatosViaje(zona, excluir) {
   const fpd = await ghGet('pedidos.json');
   const ocupados = new Set((fpd ? fpd.data : []).filter(o => o.piloto && ['asignado', 'aceptado', 'en_camino', 'contraoferta'].includes(o.estado)).map(o => dig(o.piloto.tel)));
   return pilots.filter(x => x.disponible && !(x.pendiente && !x.pendiente.pagado) && aprobados.has(dig(x.tel)) && !ocupados.has(dig(x.tel)) && !excluir.includes(x.tel))
-    .filter(x => { const r = reg.find(y => y.tipo === 'piloto' && dig(y.datos.tel) === dig(x.tel)); return r && r.datos.zona === zona; });
+    .filter(x => { const r = reg.find(y => y.tipo === 'piloto' && dig(y.datos.tel) === dig(x.tel)); return r && r.datos.zona === zona && svOk(r, 'viaje') && r.datos.vehiculo !== 'bicicleta'; });
 }
 
 async function redispatchViaje(o, peds, sha) {
@@ -223,7 +225,7 @@ module.exports = wrap(async (req, res) => {
     const califs = peds.filter(o => o.piloto && o.piloto.tel === tel && o.califCliente > 0);
     const calif = califs.length ? Math.round(califs.reduce((x, o) => x + o.califCliente, 0) / califs.length * 10) / 10 : null;
     const zonaF = zona.filter(o => !(o.rechazadoPor || []).includes(tel));
-    return res.status(200).json({ ok: true, piloto: { nombre: p.datos.nombre, zona: p.datos.zona, vehiculo: p.datos.vehiculo, marca: p.datos.marca || '', color: p.datos.color || '', placa: p.datos.placa || '', propio: !!p.datos.propio, disponible: st.disponible, ganadoHoy: st.ganadoHoy || 0, ganadoSemana: st.ganadoSemana || 0, pedidosHoy: st.pedidosHoy || 0, racha: st.racha || 0, boletosExtra: st.boletosExtra || 0, compensa: st.compensa || 0, compensaN: st.compensaN || 0, calif: calif, pendiente: st.pendiente || null, saldoChico: st.saldoChico || 0, pendienteActivo: debePend, avisoPendiente: debePend ? ('Tenés Q' + st.pendiente.monto + ' de comisiones por liquidar. Depositá o transferí a: ' + CUENTA_LIQ + '. Después avisale al admin por WhatsApp con tu nombre. En cuanto confirme volvés a recibir pedidos como si nada. Si tuviste un motivo del retraso, contáselo: puede devolverte la racha del pozo.') : null, retraso: !!st.retraso }, activo: mio[0] || null, zonaBuscando: zonaF });
+    return res.status(200).json({ ok: true, piloto: { nombre: p.datos.nombre, zona: p.datos.zona, servicios: (p.datos && Array.isArray(p.datos.servicios)) ? p.datos.servicios : null, vehiculo: p.datos.vehiculo, marca: p.datos.marca || '', color: p.datos.color || '', placa: p.datos.placa || '', propio: !!p.datos.propio, disponible: st.disponible, ganadoHoy: st.ganadoHoy || 0, ganadoSemana: st.ganadoSemana || 0, pedidosHoy: st.pedidosHoy || 0, racha: st.racha || 0, boletosExtra: st.boletosExtra || 0, compensa: st.compensa || 0, compensaN: st.compensaN || 0, calif: calif, pendiente: st.pendiente || null, saldoChico: st.saldoChico || 0, pendienteActivo: debePend, avisoPendiente: debePend ? ('Tenés Q' + st.pendiente.monto + ' de comisiones por liquidar. Depositá o transferí a: ' + CUENTA_LIQ + '. Después avisale al admin por WhatsApp con tu nombre. En cuanto confirme volvés a recibir pedidos como si nada. Si tuviste un motivo del retraso, contáselo: puede devolverte la racha del pozo.') : null, retraso: !!st.retraso }, activo: mio[0] || null, zonaBuscando: zonaF });
   }
 
   // ---- PILOTO: ponerse disponible / no disponible ----
@@ -318,7 +320,7 @@ module.exports = wrap(async (req, res) => {
     const fpd = await ghGet('pedidos.json'); const peds = fpd ? fpd.data : [];
     const ocupados = new Set(peds.filter(o => o.piloto && ['asignado', 'aceptado', 'en_camino'].includes(o.estado)).map(o => dig(o.piloto.tel)));
     const cand = pilots.filter(x => x.disponible && !(x.pendiente && !x.pendiente.pagado) && aprobados.has(dig(x.tel)) && !ocupados.has(dig(x.tel)))
-      .filter(x => { const r = reg.find(y => y.tipo === 'piloto' && dig(y.datos.tel) === dig(x.tel)); return r && r.datos.zona === zona; })
+      .filter(x => { const r = reg.find(y => y.tipo === 'piloto' && dig(y.datos.tel) === dig(x.tel)); return r && r.datos.zona === zona && svOk(r, tipo) && (tipo !== 'viaje' || r.datos.vehiculo !== 'bicicleta'); })
       .sort((a, b2) => {
         if (nocturno) { // de noche: primero los turnos 24hrs, después los demás (FIFO)
           const ra = reg.find(y => y.tipo === 'piloto' && dig(y.datos.tel) === dig(a.tel));
@@ -364,7 +366,7 @@ module.exports = wrap(async (req, res) => {
     const entSem = mios.filter(x => x.estado === 'entregado' && (x.tsEntregado || x.ts) >= iniSemL);
     const ventasSemana = dinero(entSem.reduce((s2, x) => s2 + (+x.compra || 0), 0));
     const rowH = (fl ? fl.data : []).find(x => x.tel === tel) || {};
-    return res.status(200).json({ ok: true, local: { nombre: r.datos.nombre, zona: r.datos.zona, tel, fotoLocal: r.datos.fotoLocal || '', abre: rowH.horarioAbre !== undefined ? rowH.horarioAbre : null, cierra: rowH.horarioCierra !== undefined ? rowH.horarioCierra : null }, activos: activos.slice(-10).reverse(), totalEntregados: mios.filter(x => x.estado === 'entregado').length, ventasSemana, entregasSemana: entSem.length, pausa: pausa ? pausa.hasta : null, cancelHoy });
+    return res.status(200).json({ ok: true, local: { nombre: r.datos.nombre, zona: r.datos.zona, tel, rubro: String((r.datos && (r.datos.rubro || r.datos.tipo)) || 'comida'), fotoLocal: r.datos.fotoLocal || '', abre: rowH.horarioAbre !== undefined ? rowH.horarioAbre : null, cierra: rowH.horarioCierra !== undefined ? rowH.horarioCierra : null }, activos: activos.slice(-10).reverse(), totalEntregados: mios.filter(x => x.estado === 'entregado').length, ventasSemana, entregasSemana: entSem.length, pausa: pausa ? pausa.hasta : null, cancelHoy });
   }
 
   // ---- LOCAL: confirmar pedido con tiempo de preparacion ----
