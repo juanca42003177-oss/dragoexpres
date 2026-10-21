@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Generá ganancias · DragoExpres</title>
+<style>
+*{box-sizing:border-box;font-family:system-ui,-apple-system,'Segoe UI',Roboto,sans-serif}
+body{margin:0;background:#fff;color:#111;min-height:100vh}
+.top{display:flex;align-items:center;gap:12px;padding:18px 20px 4px;position:sticky;top:0;background:#fff;z-index:5}
+.top img{width:34px;height:34px;border-radius:9px}
+.top b{font-size:19px;letter-spacing:.3px}
+.top .ay{margin-left:auto;background:#f2f2f2;border:0;border-radius:20px;padding:7px 16px;font-weight:700;cursor:pointer;color:#111;text-decoration:none}
+.paso{display:none;padding:10px 20px 120px;max-width:480px;margin:0 auto}
+.paso.on{display:block}
+h1{font-size:23px;margin:14px 0 18px;line-height:1.25}
+label.lb{display:block;font-size:13px;color:#666;margin:16px 0 6px;font-weight:600}
+.pill{width:100%;background:#f5f5f5;border:0;border-radius:12px;padding:15px 16px;font-size:15.5px;outline:0}
+.pillS{width:100%;background:#f5f5f5;border:0;border-radius:12px;padding:14px 16px;font-size:15.5px;outline:0;appearance:auto}
+.legal{font-size:11.5px;color:#8a8a8a;line-height:1.55;margin-top:22px}
+.barra{position:fixed;left:0;right:0;bottom:0;background:#fff;padding:12px 20px calc(12px + env(safe-area-inset-bottom));box-shadow:0 -4px 18px rgba(0,0,0,.07)}
+.vamos{width:100%;background:#111;border:0;border-radius:26px;padding:16px;color:#fff;font-size:16px;font-weight:900;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px}
+.vamos:active{transform:scale(.99)}
+.card{border:1.5px solid #e4e4e4;border-radius:15px;padding:15px 16px;margin-bottom:12px;cursor:pointer;position:relative;transition:.12s}
+.card.sel{border-color:#111;box-shadow:0 0 0 1.5px #111}
+.card .bads{display:flex;gap:6px;margin-bottom:7px}
+.bad{font-size:11px;font-weight:800;padding:3px 9px;border-radius:11px}
+.bEnt{background:#e6f4ea;color:#188038}.bVia{background:#e8f0fe;color:#1a73e8}.bOro{background:#fdf3d3;color:#8a6a00}.bFlo{background:#f3e8fd;color:#6b2ca8}
+.card b.tt{font-size:15.5px;display:block}
+.card .meta{font-size:12.5px;color:#555;margin-top:5px;line-height:1.55}
+.card .em{position:absolute;right:14px;top:14px;font-size:26px}
+.card .check{position:absolute;right:14px;bottom:14px;width:22px;height:22px;border-radius:50%;background:#111;color:#fff;display:none;align-items:center;justify-content:center;font-size:13px}
+.card.sel .check{display:flex}
+.prog{display:flex;gap:6px;margin:14px 0 20px}
+.prog span{flex:1;height:5px;border-radius:4px;background:#e0e0e0}
+.prog span.on{background:#111}
+.item{display:flex;align-items:center;justify-content:space-between;padding:17px 2px;border-bottom:1px solid #e8e8e8;cursor:pointer}
+.item b{font-size:14.5px}
+.item .sub{font-size:12px;color:#1e73be;font-weight:700}
+.item .chev{color:#b5b5b5;font-size:20px;font-weight:300}
+.back{background:none;border:0;font-size:24px;cursor:pointer;color:#111;padding:0 6px 0 0}
+</style>
+</head>
+<body>
+<div class="top"><img src="img/dragon-fuego.webp" alt="DragoExpres"><b>Drago<b style="color:#c1121f">Expres</b></b><a class="ay" href="https://wa.me/50240001234?text=Hola%2C%20necesito%20ayuda%20para%20registrarme%20de%20piloto" target="_blank">Ayuda</a></div>
+
+<!-- PASO 1: ciudad -->
+<div class="paso on" id="g1">
+  <button class="back" onclick="history.length>1?history.back():location.href='index.html'">‹</button>
+  <h1>¿Dónde querés generar ganancias?</h1>
+  <label class="lb">Seleccioná tu ciudad o municipio</label>
+  <select class="pillS" id="gCiudad"><option value="">Elegí tu ciudad...</option></select>
+  <input class="pill" id="gCiudadLibre" placeholder="¿No salió? Escribí tu zona acá" style="margin-top:8px;display:none">
+  <label class="lb">Código de referido (opcional)</label>
+  <input class="pill" id="gRef" placeholder="Si un piloto te invitó, poné su nombre o número">
+  <p class="legal">Al continuar, acepto que DragoExpres o sus representantes pueden ponerse en contacto conmigo por WhatsApp, teléfono o SMS al número que indique, incluso con avisos de pedidos y novedades del equipo.</p>
+  <div class="barra"><button class="vamos" onclick="paso2()">Vamos &nbsp;›</button></div>
+</div>
+
+<!-- PASO 2: como queres ganar -->
+<div class="paso" id="g2">
+  <button class="back" onclick="go(1)">‹</button>
+  <h1>Elegí cómo querés generar ganancias con DragoExpres</h1>
+  <div class="card" data-k="bici" onclick="elige('bici')"><div class="bads"><span class="bad bEnt">🛍️ Entregas</span></div><b class="tt">Entregas en bicicleta</b><div class="meta">Edad: 18+<br>Vehículo: bici con casco y rodilleras<br>Licencia: <b>no necesita</b></div><span class="em">🚴</span><span class="check">✓</span></div>
+  <div class="card" data-k="moto" onclick="elige('moto')"><div class="bads"><span class="bad bEnt">🛍️ Entregas</span><span class="bad bVia">🛺 Viajes</span></div><b class="tt">Entregas y viajes en moto</b><div class="meta">Edad: 18+<br>Vehículo: moto de cualquier año<br>Licencia: tipo M (o en trámite)</div><span class="em">🏍️</span><span class="check">✓</span></div>
+  <div class="card" data-k="carro" onclick="elige('carro')"><div class="bads"><span class="bad bEnt">🛍️ Entregas</span><span class="bad bVia">🛺 Viajes</span></div><b class="tt">Entregas y viajes en carro</b><div class="meta">Edad: 18+<br>Vehículo: carro o pickup, 4 puertas<br>Licencia: tipo P (o en trámite)<br>Bonus: rutas largas y viajes mejor pagados</div><span class="em">🚗</span><span class="check">✓</span></div>
+  <div class="card" data-k="dueno" onclick="elige('dueno')"><div class="bads"><span class="bad bOro">👑 100% tuyo</span></div><b class="tt">Mi vehículo, lo manejo YO</b><div class="meta">Sos el dueño: ganás el <b>100%</b> de cada entrega, sin split de flota. Con chequecito especial en tu registro.</div><span class="em">🛺</span><span class="check">✓</span></div>
+  <div class="card" data-k="flota" onclick="elige('flota')"><div class="bads"><span class="bad bFlo">🚚 Flotista</span></div><b class="tt">Tengo vehículos para otros</b><div class="meta">Registralas, les asignás pilotos verificados y ganás el <b>25%</b> de cada entrega sin manejar.</div><span class="em">🚚</span><span class="check">✓</span></div>
+  <div class="barra"><button class="vamos" onclick="paso3()">Continuar</button></div>
+</div>
+
+<!-- PASO 3: bienvenida + checklist -->
+<div class="paso" id="g3">
+  <button class="back" onclick="go(2)">‹</button>
+  <h1>Te damos la bienvenida al equipo 🐉</h1>
+  <p style="color:#555;font-size:14px;margin-top:-8px">Completá estos pasos para empezar a generar ganancias. Todo se sube desde tu celular.</p>
+  <div class="prog"><span class="on"></span><span class="on"></span><span class="on"></span><span></span></div>
+  <div class="item" onclick="fin()"><div><b>Documento Personal de Identificación (DPI)</b><div class="sub">Próximo paso recomendado</div></div><span class="chev">›</span></div>
+  <div class="item" onclick="fin()"><div><b>Foto de perfil (selfie)</b></div><span class="chev">›</span></div>
+  <div class="item" onclick="fin()"><div><b>Licencia de conducir</b><div style="font-size:12px;color:#888">Solo moto y carro (bici no necesita)</div></div><span class="chev">›</span></div>
+  <div class="item" onclick="fin()"><div><b>Contrato digital del equipo</b><div style="font-size:12px;color:#888">Lo firmás con un chequecito, sin papeleo</div></div><span class="chev">›</span></div>
+  <div class="barra"><button class="vamos" onclick="fin()">Continuar al registro &nbsp;›</button></div>
+</div>
+
+<script>
+var ZGT=[
+ {g:'Ciudad de Guatemala',z:['Zona 1','Zona 2','Zona 3','Zona 4','Zona 5','Zona 6','Zona 7','Zona 8','Zona 9','Zona 10','Zona 11','Zona 12','Zona 13','Zona 14','Zona 15','Zona 16','Zona 17','Zona 18','Zona 19','Zona 20','Zona 21','Zona 22','Zona 23','Zona 24','Zona 25']},
+ {g:'Alta Verapaz',z:['Chahal','Chisec','Cobán','Fray Bartolomé de Las Casas','Panzós','Raxruhá','San Agustín Lanquín','San Cristóbal Verapaz','San Juan Chamelco','San Miguel Tucurú','San Pedro Carchá','Santa Catalina La Tinta','Santa Cruz Verapaz','Santa María Cahabón','Senahú','Tactic','Tamahú']},
+ {g:'Baja Verapaz',z:['Cubulco','Granados','Purulhá','Rabinal','Salamá','San Jerónimo','San Miguel Chicaj','Santa Cruz El Chol']},
+ {g:'Chimaltenango',z:['Acatenango','Chimaltenango','El Tejar','Parramos','Patzicía','Patzún','San Andrés Itzapa','San José Poaquil','San Juan Comalapa','San Martín Jilotepeque','San Miguel Pochuta','San Pedro Yepocapa','Santa Apolonia','Santa Cruz Balanyá','Tecpán Guatemala','Zaragoza']},
+ {g:'Chiquimula',z:['Camotán','Chiquimula','Concepción Las Minas','Esquipulas','Ipala','Jocotán','Olopa','Quezaltepeque','San Jacinto','San José La Arada','San Juan Ermita']},
+ {g:'El Progreso',z:['El Jícaro','Guastatoya','Morazán','San Agustín Acasaguastlan','San Antonio La Paz','San Cristóbal Acasaguastlan','Sanarate','Sansare']},
+ {g:'Escuintla',z:['Escuintla','Guanagazapa','Iztapa','La Democracia','La Gomera','Masagua','Nueva Concepción','Palín','San José','San Vicente Pacaya','Santa Lucía Cotzumalguapa','Sipacate','Siquinalá','Tiquisate']},
+ {g:'Departamento de Guatemala',z:['Amatitlán','Chinautla','Chuarrancho','Fraijanes','Mixco','Palencia','San José Pinula','San José del Golfo','San Juan Sacatepéquez','San Miguel Petapa','San Pedro Ayampuc','San Pedro Sacatepéquez','San Raymundo','Santa Catarina Pinula','Villa Canales','Villa Nueva']},
+ {g:'Huehuetenango',z:['Aguacatán','Chiantla','Colotenango','Concepción Huista','Cuilco','Huehuetenango','Jacaltenango','La Democracia','La Libertad','Malacatancito','Nentón','Petatán','San Antonio Huista','San Gaspar Ixchil','San Ildefonso Ixtahuacán','San Juan Atitán','San Juan Ixcoy','San Mateo Ixtatán','San Miguel Acatán','San Pedro Necta','San Pedro Soloma','San Rafael La Independencia','San Rafael Petzal','San Sebastián Coatán','San Sebastián Huehuetenango','Santa Ana Huista','Santa Bárbara','Santa Cruz Barillas','Santa Eulalia','Santiago Chimaltenango','Tectitán','Todos Santos Cuchumatán','Unión Cantinil']},
+ {g:'Izabal',z:['El Estor','Livingston','Los Amates','Morales','Puerto Barrios']},
+ {g:'Jalapa',z:['Jalapa','Mataquescuintla','Monjas','San Carlos Alzatate','San Luis Jilotepeque','San Manuel Chaparrón','San Pedro Pinula']},
+ {g:'Jutiapa',z:['Agua Blanca','Asunción Mita','Atescatempa','Comapa','Conguaco','El Adelanto','El Progreso','Jalpatagua','Jerez','Jutiapa','Moyuta','Pasaco','Quesada','San José Acatempa','Santa Catarina Mita','Yupiltepeque','Zapotitlán']},
+ {g:'Petén',z:['Dolores','El Chal','Flores','La Libertad','Las Cruces','Melchor de Mencos','Poptún','San Andrés','San Benito','San Francisco','San José','San Luis','Santa Ana','Sayaxché']},
+ {g:'Quetzaltenango',z:['Almolonga','Cabricán','Cajolá','Cantel','Coatepeque','Colomba Costa Cuca','Concepción Chiquirichapa','El Palmar','Flores Costa Cuca','Génova','Huitán','La Esperanza','Palestina de Los Altos','Quetzaltenango','Salcajá','San Carlos Sija','San Francisco La Unión','San Juan Olintepeque','San Juan Ostuncalco','San Martín Sacatepéquez','San Mateo','San Miguel Sigüilá','Sibilia','Zunil']},
+ {g:'Quiché',z:['Canillá','Chajul','Chicamán','Chiché','Chinique','Cunén','Joyabaj','Pachalum','Patzité','Playa Grande Ixcán','Sacapulas','San Andrés Sajcabajá','San Antonio Ilotenango','San Bartolomé Jocotenango','San Juan Cotzal','San Miguel Uspantán','San Pedró Jocopilas','Santa Cruz del Quiché','Santa María Nebaj','Santo Tomás Chichicastenango','Zacualpa']},
+ {g:'Retalhuleu',z:['Champerico','El Asintal','Nuevo San Carlos','Retalhuleu','San Andrés Villa Seca','San Felipe','San Martín Zapotitlán','San Sebastián','Santa Cruz Muluá']},
+ {g:'Sacatepéquez',z:['Antigua Guatemala','Ciudad Vieja','Jocotenango','Magdalena Milpas Altas','Pastores','San Antonio Aguas Calientes','San Bartolomé Milpas Altas','San Juan Alotenango','San Lucas Sacatepéquez','San Miguel Dueñas','Santa Catarina Barahona','Santa Lucía Milpas Altas','Santa María de Jesús','Santiago Sacatepéquez','Santo Domingo Xenacoj','Sumpango']},
+ {g:'San Marcos',z:['Ayutla','Catarina','Comitancillo','Concepción Tutuapa','El Quetzal','El Tumbador','Esquipulas Palo Gordo','Ixchiguán','La Blanca','La Reforma','Malacatán','Nuevo Progreso','Ocós','Pajapita','Río Blanco','San Antonio Sacatepéquez','San Cristobal Cucho','San José El Rodeo','San José Ojetenam','San Lorenzo','San Marcos','San Miguel Ixtahuacán','San Pablo','San Pedro Sacatepéquez','San Rafael Pie de La Cuesta','Sibinal','Sipacapa','Tacaná','Tajumulco','Tejutla']},
+ {g:'Santa Rosa',z:['Barberena','Casillas','Chiquimulilla','Cuilapa','Guazacapán','Nueva Santa Rosa','Oratorio','Pueblo Nuevo Viñas','San Juan Tecuaco','San Rafael Las Flores','Santa Cruz Naranjo','Santa María Ixhuatán','Santa Rosa de Lima','Taxisco']},
+ {g:'Sololá',z:['Concepción','Nahualá','Panajachel','San Andrés Semetabaj','San Antonio Palopó','San José Chacayá','San Juan La Laguna','San Lucas Tolimán','San Marcos La Laguna','San Pablo La Laguna','San Pedro La Laguna','Santa Catarina Ixtahuacán','Santa Catarina Palopó','Santa Clara La Laguna','Santa Cruz La Laguna','Santa Lucía Utatlán','Santa María Visitación','Santiago Atitlán','Sololá']},
+ {g:'Suchitepéquez',z:['Chicacao','Cuyotenango','Mazatenango','Patulul','Pueblo Nuevo','Río Bravo','Samayac','San Antonio Suchitepéquez','San Bernardino','San Francisco Zapotitlán','San Gabriel','San José El Ídolo','San José La Máquina','San Juan Bautista','San Lorenzo','San Miguel Panán','San Pablo Jocopilas','Santa Bárbara','Santo Domingo Suchitepéquez','Santo Tomás La Unión','Zunilito']},
+ {g:'Totonicapán',z:['Momostenango','San Andrés Xecul','San Bartolo Aguas Calientes','San Cristóbal Totonicapán','San Francisco El Alto','Santa Lucía La Reforma','Santa María Chiquimula','Totonicapán']},
+ {g:'Zacapa',z:['Cabañas','Estanzuela','Gualán','Huité','La Unión','Río Hondo','San Diego','San Jorge','Teculután','Usumatlán','Zacapa']},
+ {g:'Puntos conocidos y aldeas',z:['Puerto Quetzal','San José El Golfo','Poptún Norte','Nebaj']}
+];
+
+function pintarZonasSel(sel,zonasActivas,conOtra){
+  var h='';
+  ZGT.forEach(function(g){
+    h+='<optgroup label="'+g.g+'">';
+    g.z.forEach(function(x){var act=zonasActivas.indexOf(x)>=0;h+='<option value="'+x+'">'+x+(act?' — ya tiene pilotos 🐉':'')+'</option>'});
+    h+='</optgroup>';
+  });
+  var extra=(zonasActivas||[]).filter(function(x){return !ZGT.some(function(g){return g.z.indexOf(x)>=0})});
+  if(extra.length){h+='<optgroup label="Zonas activas de tu equipo">';extra.forEach(function(x){h+='<option value="'+x+'">'+x+' — ya tiene pilotos 🐉</option>'});h+='</optgroup>'}
+  if(conOtra)h+='<option value="__otra">Otra (escribo mi zona)</option>';
+  sel.innerHTML=h;
+}
+
+var CIUDAD='',ELE='';
+function go(n){document.querySelectorAll('.paso').forEach(function(p,i){p.className='paso'+(i===n-1?' on':'')});window.scrollTo(0,0)}
+var sel=document.getElementById('gCiudad');
+var hOpt='<option value="">Elegí tu ciudad...</option>';
+sel.innerHTML=hOpt;pintarZonasSel(sel,[],false);sel.insertAdjacentHTML('afterbegin',hOpt);sel.value='';
+sel.insertAdjacentHTML('beforeend','<option value="__otra">Otra (escribo mi zona)</option>');
+sel.onchange=function(){document.getElementById('gCiudadLibre').style.display=(sel.value==='__otra')?'block':'none'};
+function paso2(){
+  CIUDAD=sel.value==='__otra'?document.getElementById('gCiudadLibre').value.trim():sel.value;
+  if(!CIUDAD){alert('Elegí tu ciudad o escribí tu zona.');return}
+  go(2);
+}
+function elige(k){ELE=k;document.querySelectorAll('.card').forEach(function(c){c.className='card'+(c.dataset.k===k?' sel':'')})}
+function paso3(){if(!ELE){alert('Elegí cómo querés generar ganancias.');return}go(3)}
+function fin(){
+  var q=[];
+  if(ELE==='bici')q.push('rol=piloto','veh=bicicleta');
+  else if(ELE==='moto')q.push('rol=piloto','veh=moto');
+  else if(ELE==='carro')q.push('rol=piloto','veh=carro');
+  else if(ELE==='dueno')q.push('rol=dueno','veh=moto');
+  else if(ELE==='flota')q.push('rol=flota');
+  q.push('zona='+encodeURIComponent(CIUDAD));
+  var ref=document.getElementById('gRef').value.trim();if(ref)q.push('ref='+encodeURIComponent(ref));
+  location.href='index.html?'+q.join('&');
+}
+</script>
+</body>
+</html>
