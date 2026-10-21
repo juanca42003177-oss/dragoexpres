@@ -489,7 +489,7 @@ function initMapa(){
 <script>
 // preabrir formulario segun ?rol= (ej: pedir.html "Registrar mi local" -> index.html?rol=local)
 try{var _qr=new URLSearchParams(location.search).get('rol');
-if(_qr==='local'||_qr==='usuario'||_qr==='flota'){abrir(_qr);document.getElementById('t'+_qr.charAt(0).toUpperCase()+_qr.slice(1)).scrollIntoView({behavior:'smooth'});}}
+if(_qr==='local'||_qr==='usuario'||_qr==='flota'||_qr==='piloto'){abrir(_qr);document.getElementById('t'+_qr.charAt(0).toUpperCase()+_qr.slice(1)).scrollIntoView({behavior:'smooth'});}}
 catch(e){}
 </script>
 </body>
