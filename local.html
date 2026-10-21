@@ -172,6 +172,50 @@ async function borrarHorario(){
 }
 
 // ===== TICKET IMPRIMIBLE (cualquier impresora, incluida Bluetooth) =====
+var BTJS=`
+function b64d(s){return decodeURIComponent(Array.prototype.map.call(atob(s),function(c){return '%'+('00'+c.charCodeAt(0).toString(16)).slice(-2)}).join(''))}
+function txb(s){s=String(s).normalize('NFD').replace(/[\u0300-\u036f]/g,'');var a=[];for(var i=0;i<s.length;i++){var c=s.charCodeAt(i);a.push(c<256?c:63)}return a}
+function wrp(t,n){t=String(t||'');var w=[],l='';String(t).split(/\s+/).forEach(function(x){x=String(x);while(x.length>n){w.push(x.slice(0,n));x=x.slice(n)}if((l+' '+x).trim().length>n){if(l)w.push(l);l=x}else{l=(l+' '+x).trim()}});if(l)w.push(l);return w.length?w:[' ']}
+function escInit(){return [27,64]}
+function ctr(on){return [27,97,on?1:0]}
+function bld(on){return [27,69,on?1:0]}
+function nl(){return [10]}
+function feed(n){var a=[];for(var i=0;i<n;i++)a.push(10);return a}
+function cut(){return [29,86,66,0]}
+function epTicket(o){
+  var W=30;
+  var out=[].concat(escInit(),ctr(1),bld(1),txb('DRAGOEXPRES'),nl(),bld(0),txb('PEDIDO '+o.id),nl(),txb(new Date(o.ts||Date.now()).toLocaleString('es-GT')),nl(),ctr(0),feed(2));
+  out=out.concat(bld(1),txb('CLIENTE'),bld(0),nl());
+  out=out.concat(wrp(((o.cliente&&o.cliente.nombre)||'')+' '+((o.cliente&&o.cliente.direccion)||''),W).map(function(x){return txb(x).concat(nl())}));
+  if(o.cliente&&o.cliente.referencia)out=out.concat(wrp('REF: '+o.cliente.referencia,W).map(function(x){return txb(x).concat(nl())}));
+  out=out.concat(feed(2),bld(1),txb('PEDIDO'),bld(0),nl());
+  wrp(o.detalle||'',W).forEach(function(x){out=out.concat(txb(x),nl())});
+  if(o.items&&o.items.length)o.items.forEach(function(it){out=out.concat(bld(1),txb((it.qty||1)+'x '+it.nombre),bld(0),txb(' Q'+it.precio),nl());if(it.nota)out=out.concat(wrp('  * '+it.nota,W).map(function(x){return txb(x).concat(nl())}))});
+  out=out.concat(feed(2),txb('Tu venta          Q'+(o.compra||0)),nl());
+  if(o.servicio)out=out.concat(txb('Servicio: '+o.servicio.nombre+'  Q'+o.servicio.precio),nl(),wrp('  Mecanico: '+o.servicio.mecanico,W).map(function(x){return txb(x).concat(nl())}));
+  out=out.concat(txb('Envio (piloto)    Q'+(o.envio||0)),nl(),feed(2),bld(1),txb('CLIENTE PAGA      Q'+(+ (o.compra||0)+ +((o.servicio&&o.servicio.precio)||0)+ +(o.envio||0))),bld(0),nl(),feed(2));
+  out=out.concat(ctr(1),txb(o.prep?('LISTO EN ~'+o.prep.min+' MIN'):'SIN CONFIRMAR'),nl(),feed(1),txb('Confirma el tiempo en tu'),nl(),txb('pantalla DragoExpres'),nl(),ctr(0),feed(4),cut());
+  var total=[];out.forEach(function(x){total=total.concat(x)});
+  var u=new Uint8Array(total.length);for(var i=0;i<total.length;i++)u[i]=total[i]&255;return u;
+}
+async function btImprimir(){
+  var st=document.getElementById('btStatus');
+  try{
+    if(!navigator.bluetooth){alert('Este navegador no soporta Bluetooth directo. Usá el boton de opciones del sistema.');return}
+    st.textContent='Buscando tu impresora... (elegila en la lista)';
+    var dev=await navigator.bluetooth.requestDevice({acceptAllDevices:true,optionalServices:['000018f0-0000-1000-8000-00805f9b34fb','0000ff00-0000-1000-8000-00805f9b34fb']});
+    st.textContent='Conectando a '+(dev.name||'impresora')+'...';
+    var g=await dev.gatt.connect();var ch=null;
+    try{ch=await (await g.getPrimaryService('000018f0-0000-1000-8000-00805f9b34fb')).getCharacteristic('00002af1-0000-1000-8000-00805f9b34fb')}catch(e){
+      try{ch=await (await g.getPrimaryService('0000ff00-0000-1000-8000-00805f9b34fb')).getCharacteristic('0000ff02-0000-1000-8000-00805f9b34fb')}catch(e2){}}
+    if(!ch){alert('No se encontro el canal de impresion. Proba con el boton de opciones del sistema.');return}
+    var o=JSON.parse(b64d(D64));var data=epTicket(o);
+    for(var i=0;i<data.length;i+=180){await ch.writeValue(data.slice(i,i+180));await new Promise(function(r){setTimeout(r,40)})}
+    st.textContent=' Ticket enviado a la impresora';
+    setTimeout(function(){try{g.disconnect()}catch(e){}},1500);
+  }catch(e){st.textContent='No se pudo: '+(e.message||e)}
+}
+`;
 function ticket(o){
   var w=window.open('','_blank','width=380,height=600');
   if(!w){alert('Permití las ventanas emergentes para imprimir el ticket.');return}
@@ -179,15 +223,19 @@ function ticket(o){
   var filas=(o.detalle||'').replace(/</g,'&lt;').replace(/\n/g,'<br>');
   var cli=(o.cliente&&o.cliente.nombre)||'';var dir=(o.cliente&&(o.cliente.direccion||''))||'';
   var ref=(o.cliente&&(o.cliente.referencia||''))||'';
-  w.document.write('<!DOCTYPE html><html><head><title>Ticket '+o.id+'</title><style>body{font-family:monospace;font-size:13px;margin:12px;width:280px}.c{text-align:center}hr{border:0;border-top:1px dashed #000;margin:6px 0}b{font-size:15px}</style></head><body>'
+  var D64=btoa(unescape(encodeURIComponent(JSON.stringify(o))));
+  w.document.write('<!DOCTYPE html><html><head><title>Ticket '+o.id+'</title><meta name="viewport" content="width=device-width,initial-scale=1"><script>var D64="'+D64+'";'+BTJS+'<\/script><style>body{font-family:monospace;font-size:13px;margin:12px;max-width:320px}.c{text-align:center}hr{border:0;border-top:1px dashed #000;margin:6px 0}b{font-size:15px}button{font-family:sans-serif;font-size:14px;font-weight:700;border:0;border-radius:10px;padding:12px;margin:5px;width:100%;cursor:pointer}#btStatus{font-size:12px}</style></head><body>'
    +'<div class="c"><img src="https://dragoexpres.vercel.app/img/dragon-fuego.png" style="height:44px"><br><b>DRAGOEXPRES</b></div><hr>'
    +'<div class="c">Pedido <b>'+o.id+'</b></div><div class="c">'+fecha.toLocaleString('es-GT')+'</div><hr>'
    +'<b>CLIENTE:</b> '+cli+'<br><b>DIRECCIÓN:</b> '+dir+(ref?'<br><b>REF:</b> '+ref:'')+'<hr>'
    +'<b>PEDIDO:</b><br>'+filas+'<hr>'
    +'<table style="width:100%"><tr><td>Tu venta</td><td style="text-align:right">Q'+o.compra+'</td></tr>'+(o.servicio?'<tr><td>Servicio: '+o.servicio.nombre+' (mecánico '+o.servicio.mecanico+')</td><td style="text-align:right">Q'+o.servicio.precio+'</td></tr>':'')+'<tr><td>Envío (piloto)</td><td style="text-align:right">Q'+o.envio+'</td></tr><tr><td><b>Cliente paga</b></td><td style="text-align:right"><b>Q'+(+o.compra+ +(o.servicio?o.servicio.precio:0)+ +o.envio)+'</b></td></tr></table><hr>'
    +'<div class="c">'+(o.prep?('Listo en ~'+o.prep.min+' min'):'SIN CONFIRMAR')+'</div><hr>'
-   +'<div class="c">Confirmá el tiempo de preparación<br>en tu pantalla DragoExpres</div>'
-   +'</body></html>');w.document.close();setTimeout(function(){w.print()},300)
+   +'<div class="c">Confirmá el tiempo de preparación<br>en tu pantalla DragoExpres</div><hr>'
+   +'<button style="background:#0d2015;color:#7ee2a8" onclick="btImprimir()">🖨️ IMPRIMIR POR BLUETOOTH (impresora térmica)</button>'
+   +'<button style="background:#333;color:#fff" onclick="window.print()">📱 OPCIONES DEL SISTEMA (PDF / otras impresoras)</button>'
+   +'<div class="c" id="btStatus">Bluetooth: <b>activá tu impresora</b> y tocá arriba.</div>'
+   +'</body></html>');w.document.close()
 }
 
 var MENU=[],FOTOB64='';
