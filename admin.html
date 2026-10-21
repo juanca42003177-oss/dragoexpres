@@ -89,10 +89,12 @@ function cargar(){
   fetch(apiBase()+'/admin',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({pass:PASS,action:'list'})})
   .then(r=>r.json()).then(j=>{pintar((j&&j.ok&&j.registros)||[]);});
 }
+var PED_CACHE={};
+function setIf(id,html){var el=document.getElementById(id);if(!el)return;if(PED_CACHE[id]===html)return;PED_CACHE[id]=html;el.innerHTML=html;}
 function cargarPedidos(){
   fetch(apiBase()+'/admin',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({pass:PASS,action:'pedidos'})})
   .then(r=>r.json()).then(function(j){
-    if(!j||!j.ok){document.getElementById('pedidosBox').innerHTML='<div class="aviso">No se pudieron cargar los pedidos.</div>';return;}
+    if(!j||!j.ok){setIf('pedidosBox','<div class="aviso">No se pudieron cargar los pedidos.</div>');return;}
     var E={buscando:['Buscando piloto','pend'],asignado:['Asignado','pend'],aceptado:['Aceptado','apro'],en_camino:['En camino','apro'],entregado:['Entregado','apro'],cancelado:['Cancelado','recha']};
     var html='<div class="stats"><div class="stat"><div class="n">'+j.total+'</div><div class="l">PEDIDOS</div></div><div class="stat"><div class="n">Q'+j.comisiones.toFixed(2)+'</div><div class="l">COMISIONES ENTREGADAS</div></div></div>';
     if(!j.pedidos.length)html+='<div class="card"><div class="av">📦</div><div><b>Sin pedidos todavía</b><div class="s">Los pedidos de usuarios aparecen acá en vivo</div></div></div>';
@@ -100,29 +102,31 @@ function cargarPedidos(){
     .then(r2=>r2.json()).then(function(z){
       if(!z||!z.ok)return;
       var tabla=z.pilotos.map(function(p){return '<div class="s">• '+p.nombre+': '+p.entregas+'/'+p.meta+' entregas · devolución si cumple: <b style="color:#ffc107">Q'+p.premio.toFixed(2)+'</b>'+(p.entregas>=z.meta?' ✅ meta cumplida':'')+'</div>'}).join('')||'<div class="s">Sin entregas esta semana</div>';
-      document.getElementById('pozoCard').innerHTML='<div class="card"><div class="av">🏆</div><div><b>Devolución semanal (cashback 25%)</b><div class="s">Meta global: '+z.meta+' (auto-ajustable 10-40 según demanda, para que el 75% llegue) · Meta personal sube +2 tras 4 domingos seguidos cumpliendo · Cada piloto que cumple recibe la DEVOLUCIÓN del 25% de sus comisiones de la semana — se acredita sola domingo 20:00 </div>'+tabla+'</div></div>';
+      setIf('pozoCard','<div class="card"><div class="av">🏆</div><div><b>Devolución semanal (cashback 25%)</b><div class="s">Meta global: '+z.meta+' (auto-ajustable 10-40 según demanda, para que el 75% llegue) · Meta personal sube +2 tras 4 domingos seguidos cumpliendo · Cada piloto que cumple recibe la DEVOLUCIÓN del 25% de sus comisiones de la semana — se acredita sola domingo 20:00 </div>'+tabla+'</div></div>');
     });
     fetch(apiBase()+'/admin',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({pass:PASS,action:'sugerencias'})})
     .then(r2=>r2.json()).then(function(sg){
       var sc=document.getElementById('sugCard');if(!sc)return;
       if(!sg||!sg.ok)return;
-      if(!sg.sugerencias.length){sc.innerHTML='';return}
-      sc.innerHTML='<div class="card"><div class="av">✉️</div><div><b>Buzón de sugerencias ('+sg.sugerencias.length+')</b><div class="s">Mensajes de usuarios, pilotos y locales. Si piden un local nuevo, agregalo cuando se registre.</div></div></div>'+sg.sugerencias.map(function(x){
+      if(!sg.sugerencias.length){setIf('sugCard','');return}
+      setIf('sugCard','<div class="card"><div class="av">✉️</div><div><b>Buzón de sugerencias ('+sg.sugerencias.length+')</b><div class="s">Mensajes de usuarios, pilotos y locales. Si piden un local nuevo, agregalo cuando se registre.</div></div></div>'+sg.sugerencias.map(function(x){
         var f=new Date(x.ts-21600000).toISOString().slice(0,16).replace('T',' ');
         var nom=String(x.texto).replace(/^.*local:\s*/i,'').split('(')[0].trim().slice(0,40);
         return '<div class="card"><div class="av">'+({usuario:'👤',piloto:'🏍️',local:'🏪',flotista:'🚚'}[x.rol]||'✉️')+'</div><div style="flex:1"><b>'+(x.nombre||'Anónimo')+(x.tel?' ('+x.tel+')':'')+'</b> <span class="pill pend">'+x.rol+'</span><div class="s" style="white-space:pre-wrap">'+String(x.texto).slice(0,300)+'</div><div class="s" style="opacity:.6">'+f+'</div><div style="display:flex;gap:6px;margin-top:6px;flex-wrap:wrap"><a href="https://www.facebook.com/search/top?q='+encodeURIComponent(nom)+'" target="_blank" style="text-decoration:none;background:#1c2a3a;border:1px solid #2f4a6b;color:#7fb3ff;border-radius:8px;padding:6px 10px;font-size:12px;font-weight:700">🔎 Facebook</a><a href="https://www.google.com/search?q='+encodeURIComponent(nom+' Guatemala WhatsApp')+'" target="_blank" style="text-decoration:none;background:#1c2a1c;border:1px solid #3f7a3f;color:#8fe28f;border-radius:8px;padding:6px 10px;font-size:12px;font-weight:700">🔎 Google</a></div></div><button style="margin:auto 0 0 8px;background:#3a1414;border:1px solid #6b2a2a;color:#ff8f8f;border-radius:8px;padding:8px 12px;cursor:pointer;font-weight:700" onclick="sugDel(\''+x.id+'\')">✕</button></div>';
-      }).join('');
+      }).join(''));
     });
     fetch(apiBase()+'/admin',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({pass:PASS,action:'liquidaciones'})})
     .then(r2=>r2.json()).then(function(l){
-      if(!l||!l.ok||!l.pendientes.length)return;
-      document.getElementById('liqCard').innerHTML='<div class="card"><div class="av">💰</div><div><b>Liquidaciones pendientes</b><div class="s">Pilotos que te deben comisiones. Cuando confirmes el depósito en tu banco, tocá ✅</div></div></div>'+(l.rachasPerdidas&&l.rachasPerdidas.length?'<div class="card"><div class="av"><img src="img/dragon-fuego.webp" style="width:34px;border-radius:8px"></div><div><b>Rachas perdidas por pago tardío</b><div class="s">Si el piloto te explicó su motivo, dale el chance y devolvé su racha para su devolución semanal</div></div></div>'+l.rachasPerdidas.map(function(p){return '<div class="card"><div class="av">🏍️</div><div><b>'+p.nombre+' ('+p.tel+')</b><div class="s">Racha guardada: '+p.racha+' entregas seguidas · '+p.boletos+' boletos</div></div><button style="margin:auto 0 0 8px;background:#3a2a1c;border:1px solid #8a6a2f;color:#ffd479;border-radius:8px;padding:8px 12px;cursor:pointer;font-weight:700" onclick="rachaOk(\''+p.tel+'\')">Devolver racha</button></div>'}).join(''):'')+l.pendientes.map(function(p){return '<div class="card"><div class="av">🏍️</div><div><b>'+p.nombre+' ('+p.tel+')</b><div class="s">Debe Q'+p.monto+(p.retraso?' · ⏳ pago tardío (perderá su racha al liquidar)':'')+'</div></div><button style="margin:auto 0 0 8px;background:#1c3a1c;border:1px solid #3f7a3f;color:#8fe28f;border-radius:8px;padding:8px 12px;cursor:pointer;font-weight:700" onclick="liqOk(\''+p.tel+'\')">✅ LIQUIDADO</button></div>'}).join('');
+      if(!l||!l.ok)return;
+      if(!l.pendientes.length){setIf('liqCard','');return}
+      setIf('liqCard','<div class="card"><div class="av">💰</div><div><b>Liquidaciones pendientes</b><div class="s">Pilotos que te deben comisiones. Cuando confirmes el depósito en tu banco, tocá ✅</div></div></div>'+(l.rachasPerdidas&&l.rachasPerdidas.length?'<div class="card"><div class="av"><img src="img/dragon-fuego.webp" style="width:34px;border-radius:8px"></div><div><b>Rachas perdidas por pago tardío</b><div class="s">Si el piloto te explicó su motivo, dale el chance y devolvé su racha para su devolución semanal</div></div></div>'+l.rachasPerdidas.map(function(p){return '<div class="card"><div class="av">🏍️</div><div><b>'+p.nombre+' ('+p.tel+')</b><div class="s">Racha guardada: '+p.racha+' entregas seguidas · '+p.boletos+' boletos</div></div><button style="margin:auto 0 0 8px;background:#3a2a1c;border:1px solid #8a6a2f;color:#ffd479;border-radius:8px;padding:8px 12px;cursor:pointer;font-weight:700" onclick="rachaOk(\''+p.tel+'\')">Devolver racha</button></div>'}).join(''):'')+l.pendientes.map(function(p){return '<div class="card"><div class="av">🏍️</div><div><b>'+p.nombre+' ('+p.tel+')</b><div class="s">Debe Q'+p.monto+(p.retraso?' · ⏳ pago tardío (perderá su racha al liquidar)':'')+'</div></div><button style="margin:auto 0 0 8px;background:#1c3a1c;border:1px solid #3f7a3f;color:#8fe28f;border-radius:8px;padding:8px 12px;cursor:pointer;font-weight:700" onclick="liqOk(\''+p.tel+'\')">✅ LIQUIDADO</button></div>'}).join(''));
     });
     html+='<div id="pozoCard"></div><div id="liqCard"></div><div id="sugCard"></div>';
     j.pedidos.forEach(function(o){
       html+='<div class="card"><div class="av">'+({comida:'🍔',viaje:'🛺',repuesto:'🔧'}[o.tipo]||'📦')+'</div><div style="flex:1"><b>'+o.id+' · '+({comida:'Comida',viaje:'Viaje',repuesto:'Repuesto'}[o.tipo]||o.tipo)+'</b> <span class="pill '+(E[o.estado]?E[o.estado][1]:'pend')+'">'+(E[o.estado]?E[o.estado][0]:o.estado)+'</span><div class="s">'+o.zona+' · '+o.cliente.nombre+' ('+o.cliente.tel+')<br>'+String(o.detalle).slice(0,100)+'<br>Envío Q'+o.envio+' · Comisión Q'+o.comision+(o.piloto?' · Piloto: '+o.piloto.nombre:'')+(o.califCliente?' · Cliente: ⭐'+o.califCliente:'')+(o.pago==='transferencia'?' · 💳 '+o.referencia:'')+'</div></div></div>';
     });
-    document.getElementById('pedidosBox').innerHTML=html;
+    delete PED_CACHE['pozoCard'];delete PED_CACHE['liqCard'];delete PED_CACHE['sugCard'];
+    setIf('pedidosBox',html);
   });
 }
 async function liqOk(tel){
