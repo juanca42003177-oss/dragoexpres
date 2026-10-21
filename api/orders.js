@@ -131,7 +131,7 @@ module.exports = wrap(async (req, res) => {
 
 
   // ---- PROMOS auto-gestionadas del local ----
-  if (action === 'promoAdd' || action === 'promoDel') {
+  if (['promoAdd','promoDel','servAdd','servDel'].includes(action)) {
     const tel = String(b.tel || '').replace(/\D/g, '');
     const fr = await ghGet('registros.json');
     const reg = fr ? fr.data : [];
@@ -147,11 +147,27 @@ module.exports = wrap(async (req, res) => {
       m.promos = m.promos || [];
       if (m.promos.length >= 5) return res.status(200).json({ ok: false, error: 'Máximo 5 promos activas.' });
       m.promos.push({ id: String(now) + String(Math.floor(Math.random() * 90) + 10), titulo, detalle, foto: String(b.foto || '').slice(0, 300), ts: now });
+    } else if (action === 'servAdd') {
+      const nombre = String(b.nombre || '').trim().slice(0, 90);
+      const precio = dinero(b.precio || 0);
+      const mecanico = String(b.mecanico || '').trim().slice(0, 60);
+      const veh = b.veh === 'moto' ? 'moto' : 'carro';
+      const marca = String(b.marca || '').trim().slice(0, 40);
+      const color = String(b.color || '').trim().slice(0, 40);
+      const placa = String(b.placa || '').trim().slice(0, 20);
+      if (!nombre || !precio) return res.status(200).json({ ok: false, error: 'Poné el nombre del servicio y su precio.' });
+      m.servicios = m.servicios || [];
+      if (m.servicios.length >= 6) return res.status(200).json({ ok: false, error: 'Máximo 6 servicios activos.' });
+      m.servicios.push({ id: String(now) + String(Math.floor(Math.random() * 90) + 10), nombre, precio, mecanico, veh, marca, color, placa, ts: now });
+    } else if (action === 'servDel') {
+      const sid = String(b.servId || '');
+      m.servicios = (m.servicios || []).filter(x => x.id !== sid);
     } else {
       const pid = String(b.promoId || '');
       m.promos = (m.promos || []).filter(x => x.id !== pid);
     }
-    await ghPut('menus.json', fm ? fm.sha : null, arr, 'promo ' + action + ' ' + tel);
+    await ghPut('menus.json', fm ? fm.sha : null, arr, action + ' ' + tel);
+    if (action.startsWith('serv')) return res.status(200).json({ ok: true, servicios: m.servicios || [] });
     return res.status(200).json({ ok: true, promos: m.promos || [] });
   }
 
@@ -227,18 +243,26 @@ module.exports = wrap(async (req, res) => {
       }
     }
     const compra = dinero(b.compra || 0);
+    // servicio mecanico del taller (extra, como el postre): lo elige el cliente, el taller puso su precio
+    let servicio = null;
+    if (localObj && b.servicio) {
+      const fms = await ghGet('menus.json');
+      const mm = fms ? fms.data.find(x => x.tel === localObj.tel) : null;
+      servicio = (mm && (mm.servicios || []).find(s => s.id === String(b.servicio))) || null;
+    }
     let comisionLocal = 0;
-    if ((tipo === 'comida' || tipo === 'repuesto') && compra > 0) { // 10% al local en comida Y repuestos (mercado virgen), con 90 dias de gracia por zona
+    const baseLocal = compra + (servicio ? servicio.precio : 0);
+    if ((tipo === 'comida' || tipo === 'repuesto') && baseLocal > 0) { // 10% al local en comida Y repuestos (mercado virgen), con 90 dias de gracia por zona
       const fprev = await ghGet('pedidos.json');
       const prev = (fprev ? fprev.data : []).filter(x => x.zona === zona && x.ts);
       const primera = prev.length ? Math.min(...prev.map(x => x.ts)) : now;
-      if (now - primera >= GRACIA_LOCAL_MS) comisionLocal = dinero(compra * PCT_LOCAL);
+      if (now - primera >= GRACIA_LOCAL_MS) comisionLocal = dinero(baseLocal * PCT_LOCAL);
     }
     const pedido = {
       id, tipo, zona,
       cliente: { nombre, tel, direccion: String(b.direccion).slice(0, 500), referencia: String(b.referencia || '').slice(0, 500) },
       detalle: String(b.detalle).slice(0, 800),
-      compra: dinero(b.compra || 0), envio, propina, comision: comisionDe(tipo, envio - recargo), comisionLocal, nocturno, recargo,
+      compra: dinero(b.compra || 0), servicio: servicio || undefined, envio, propina, comision: comisionDe(tipo, envio - recargo), comisionLocal, nocturno, recargo,
       estado: 'buscando', piloto: null, ts: now, pago, referencia, local: localObj || undefined
     };
     // dispatch: primer piloto disponible de la zona
@@ -270,7 +294,7 @@ module.exports = wrap(async (req, res) => {
     peds.push(pedido);
     await ghPut('pedidos.json', fpd ? fpd.sha : null, peds, 'pedido nuevo ' + id);
     const ic = { comida: '🍔', viaje: '🛺', repuesto: '🔧' }[tipo];
-    await aviso(`🚀 DRAGOEXPRES — PEDIDO NUEVO ${ic}\n${id} · ${tipo.toUpperCase()} · ${zona}\nCliente: ${nombre} (${tel})\n${pedido.local ? 'Local: ' + pedido.local.nombre + ' · ' : ''}Detalle: ${String(b.detalle).slice(0, 120)}\nEnvío: Q${envio} (tarifa fija)${recargo ? ' · 🌙 Incluye recargo nocturno Q' + recargo + ' (100% piloto, sin comisión)' : ''}${propina ? ' · Propina voluntaria: Q' + propina + ' (100% piloto)' : ''} · Comisión DragoExpres: Q${pedido.comision}${pedido.comisionLocal ? ' · 10% al local (zona operativa >90 días): Q' + pedido.comisionLocal : ''}\n${pago === 'transferencia' ? '💳 Pago: TRANSFERENCIA al Banco Industrial' + (referencia ? ' · Ref: ' + referencia : ' · (sin referencia, verificar)') : '💵 Pago: EFECTIVO al piloto'}\n${pedido.piloto ? '→ Asignado AUTOMÁTICAMENTE a: ' + pedido.piloto.nombre + ' (' + pedido.piloto.tel + ')' : '→ SIN piloto disponible ahora, queda BUSCANDO'}`);
+    await aviso(`🚀 DRAGOEXPRES — PEDIDO NUEVO ${ic}\n${id} · ${tipo.toUpperCase()} · ${zona}\nCliente: ${nombre} (${tel})\n${pedido.local ? 'Local: ' + pedido.local.nombre + ' · ' : ''}Detalle: ${String(b.detalle).slice(0, 120)}${servicio ? '\n🔧 Servicio mecánico: ' + servicio.nombre + ' Q' + servicio.precio + ' (mecánico: ' + servicio.mecanico + ', llega en ' + servicio.veh + ' ' + servicio.color + ' ' + servicio.marca + ', placa ' + servicio.placa + ')' : ''}\nEnvío: Q${envio} (tarifa fija)${recargo ? ' · 🌙 Incluye recargo nocturno Q' + recargo + ' (100% piloto, sin comisión)' : ''}${propina ? ' · Propina voluntaria: Q' + propina + ' (100% piloto)' : ''} · Comisión DragoExpres: Q${pedido.comision}${pedido.comisionLocal ? ' · 10% al local (zona operativa >90 días): Q' + pedido.comisionLocal : ''}\n${pago === 'transferencia' ? '💳 Pago: TRANSFERENCIA al Banco Industrial' + (referencia ? ' · Ref: ' + referencia : ' · (sin referencia, verificar)') : '💵 Pago: EFECTIVO al piloto'}\n${pedido.piloto ? '→ Asignado AUTOMÁTICAMENTE a: ' + pedido.piloto.nombre + ' (' + pedido.piloto.tel + ')' : '→ SIN piloto disponible ahora, queda BUSCANDO'}`);
     return res.status(200).json({ ok: true, pedido });
   }
 
@@ -349,7 +373,7 @@ module.exports = wrap(async (req, res) => {
     if (!tel) return res.status(200).json({ ok: false, error: 'Decinos de qué local el menú.' });
     const fm = await ghGet('menus.json');
     const m = (fm ? fm.data : []).find(x => x.tel === tel);
-    return res.status(200).json({ ok: true, items: (m && m.items) || [], promos: (m && m.promos) || [] });
+    return res.status(200).json({ ok: true, items: (m && m.items) || [], promos: (m && m.promos) || [], servicios: (m && m.servicios) || [] });
   }
   if (['menuAdd', 'menuEdit', 'menuDel'].includes(action)) {
     const tel = String(b.tel || '').replace(/\D/g, '');

@@ -314,6 +314,7 @@ input,textarea,select{-webkit-user-select:text;user-select:text}
       <div class="big" id="oid"></div>
       <div style="margin:12px 0"><span class="st sBus" id="oestado">Buscando piloto...</span></div>
       <p class="mini" id="oinfo"></p>
+      <div id="servBox" style="display:none;text-align:left;background:#eef4ff;border:1px solid #bcd4f5;border-radius:12px;padding:11px 13px;margin-top:12px"></div>
       <div id="vehBox" style="display:none;text-align:left;background:#fff8e1;border:1px solid #f0d98a;border-radius:12px;padding:11px 13px;margin-top:12px"></div>
       <a class="wa" id="owa" style="display:none" href="#" target="_blank">💬 Escribille al piloto por WhatsApp</a>
       <div id="chatBox" style="display:none;text-align:left;margin-top:12px">
@@ -702,9 +703,10 @@ async function verMenu(idx){
   document.getElementById('menuSheet').style.display='block';
   document.getElementById('menuLista').innerHTML='<p class="mini">Cargando el menú...</p>';
   try{var r=await fetch(api('orders'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'menu',tel:l.tel})});
-  var j=await r.json();var items=j.ok?j.items:[];var promos=j.ok?(j.promos||[]):[];
+  var j=await r.json();var items=j.ok?j.items:[];var promos=j.ok?(j.promos||[]):[];SERVS_CACHE[idx]=j.ok?(j.servicios||[]):[];
   document.getElementById('menuLista').innerHTML=promos.length?promos.map(function(p){return '<div style="background:linear-gradient(135deg,#c1121f,#7a0c15);color:#fff;border-radius:12px;padding:10px 14px;margin:0 0 8px">'+(p.foto?'<img src="'+p.foto+'" style="width:100%;max-height:140px;object-fit:cover;border-radius:8px;margin-bottom:8px">':'')+'<b>🎉 '+p.titulo+'</b>'+(p.detalle?'<div style="font-size:12.5px;opacity:.9">'+p.detalle+'</div>':'')+'</div>'}).join(''):'';
-  if(!items.length){document.getElementById('menuLista').innerHTML+='<p class="mini">Este local todavía no cargó su menú. Podés pedirle lo que querás escribiéndolo.</p><button class="btn bA" onclick="cerrarMenu();abrirPedidoLocal('+idx+')">Escribir mi pedido</button>';return}
+  var sv=SERVS_CACHE[idx]||[];var shServ=sv.length?'<div style="font-weight:900;font-size:13px;margin:16px 2px 6px">SERVICIOS MECÁNICOS A DOMICILIO</div>'+sv.map(function(s){return '<div style="background:linear-gradient(135deg,#16161f,#0d0d14);color:#fff;border:1px solid #f0b90b;border-radius:12px;padding:10px 14px;margin:0 0 8px"><b style="color:#f0b90b">🔧 '+s.nombre+' — Q'+s.precio+'</b><div style="font-size:12.5px;opacity:.92;margin-top:3px">Mecánico: '+s.mecanico+'<br>Llega en '+s.veh+' '+s.color+' '+s.marca+' · placa '+s.placa+'</div><button class="btn bA" style="margin-top:8px;width:auto;padding:9px 16px;font-size:13px" onclick="addServ('+idx+',\''+s.id+'\')">➕ AGREGAR A MI PEDIDO</button></div>'}).join('')+'<p class="mini" style="margin:2px 0 8px">Como el postre del restaurante: se suma aparte y lo pagás junto con tu pedido.</p>':'';
+  if(!items.length){document.getElementById('menuLista').innerHTML+=shServ+'<p class="mini">Este local todavía no cargó su menú. Podés pedirle lo que querás escribiéndolo.</p><button class="btn bA" onclick="cerrarMenu();abrirPedidoLocal('+idx+')">Escribir mi pedido</button>';return}
   MENU_CACHE[idx]=items;
   var g={};items.forEach(function(it){var c=it.categoria||'Otros';(g[c]=g[c]||[]).push(it)});
   var orden=['Platos fuertes','Combos','Entradas','Bebidas','Postres','Repuestos','Otros'].concat(Object.keys(g).filter(function(c){return ['Platos fuertes','Combos','Entradas','Bebidas','Postres','Repuestos','Otros'].indexOf(c)<0}));
@@ -721,10 +723,13 @@ async function verMenu(idx){
       +(it.agotado?'':'<div style="font-weight:900;color:var(--rojo)">›</div>')+'</div>';
     }).join('');
   });
-  document.getElementById('menuLista').innerHTML=h2;
+  document.getElementById('menuLista').innerHTML=h2+shServ;
   }catch(e){document.getElementById('menuLista').innerHTML='<p class="mini">No pudimos cargar el menú. Revisá internet.</p>'}
 }
 
+var SERVS_CACHE={},SERV=null;
+function addServ(idx,id){var s=(SERVS_CACHE[idx]||[]).find(function(x){return x.id===id});if(!s)return;SERV=s;cerrarMenu();abrirPedidoLocal(idx)}
+function quitarServ(){SERV=null;extra()}
 function verProducto(idxLocal,idProd){
   var it=(MENU_CACHE[idxLocal]||[]).find(function(x){return x.id===idProd});if(!it)return;
   document.getElementById('prodBody').innerHTML=
@@ -762,7 +767,7 @@ function pedirProducto(idxLocal,idxItem){
   },90);
 }
 
-function abrirPedidoLocal(idx){var l=LOCALES[idx];if(!l)return;LOCAL_PRE=l.nombre;LOCAL_TEL=l.tel;abrirPedido('comida')}
+function abrirPedidoLocal(idx){var l=LOCALES[idx];if(!l)return;LOCAL_PRE=l.nombre;LOCAL_TEL=l.tel;abrirPedido(String(l.rubro||'').toLowerCase().indexOf('repuesto')>=0?'repuesto':'comida')}
 function abrirPedido(tipo,local){
   if(!local){LOCAL_PRE='';LOCAL_TEL=''}
   var u=LS();
@@ -796,6 +801,7 @@ function extra(){
   if(TIPO==='comida')h='<label>Dirección de entrega</label><textarea id="f-dir" rows="3" style="height:auto" placeholder="Calle, número, colonia... y contá con detalle exacto cómo te lo dejamos (portón, timbre, quién recibe): sin límite de texto"></textarea><label>Referencia (opcional)</label><textarea id="f-ref" rows="2" style="height:auto" placeholder="Casa azul, portón negro, timbre plateado... (opcional, escribí con confianza)"></textarea><label>¿Qué querés y de dónde?'+pre+'</label><textarea id="f-det" placeholder="Ej: 2 pizzas grandes de la pizzería El Horno"></textarea><label>Precio estimado de tu orden (Q) — se lo pagás al local</label><input id="f-compra" type="number" inputmode="decimal" placeholder="Ej: 120"><label>Envío (tarifa fija DragoExpres)</label><div class="tarifa" id="f-tarifa">Q15 · sin regatear<span class="nch"></span></div>';
   if(TIPO==='viaje')h='<label>Dirección de recogida</label><textarea id="f-dir" rows="3" style="height:auto" placeholder="¿De dónde te recogemos? Punto exacto: frente a qué, color del edificio, etc. — sin límite de texto"></textarea><label>Referencia (opcional)</label><textarea id="f-ref" rows="2" style="height:auto" placeholder="Frente al parque, bajo el puente... (opcional)"></textarea><label>¿A dónde vas?</label><textarea id="f-det" placeholder="Ej: De Mixco Centro a Oakland Mall"></textarea><label>Envío (tarifa fija DragoExpres)</label><div class="tarifa" id="f-tarifa">Q25 · sin regatear<span class="nch"></span></div>';
   if(TIPO==='repuesto')h='<label>Dirección de entrega</label><textarea id="f-dir" rows="3" style="height:auto" placeholder="Calle, número, colonia... y contá con detalle exacto cómo te lo dejamos (portón, timbre, quién recibe): sin límite de texto"></textarea><label>Referencia (opcional)</label><textarea id="f-ref" rows="2" style="height:auto" placeholder="Taller La Bendición, portón verde... (opcional)"></textarea><label>¿Qué repuesto necesitás y para qué vehículo?</label><textarea id="f-det" placeholder="Ej: Pastillas de freno para Honda Wave 110"></textarea><label>Precio estimado del repuesto (Q) — se lo pagás al local</label><input id="f-compra" type="number" inputmode="decimal" placeholder="Ej: 180"><label>Envío (tarifa fija DragoExpres)</label><div class="tarifa" id="f-tarifa">Q20 · sin regatear<span class="nch"></span></div>';
+  if(SERV)h+='<div style="background:#fff8e1;border:1px solid #f0d98a;border-radius:10px;padding:9px 12px;font-size:13px;margin:8px 0"><b>🔧 '+SERV.nombre+' (Q'+SERV.precio+')</b> — mecánico '+SERV.mecanico+', llega en '+SERV.veh+' '+SERV.color+' '+SERV.marca+' · placa '+SERV.placa+'<span onclick="quitarServ()" style="color:#c1121f;font-weight:900;float:right;cursor:pointer">✕</span></div>';
   h+='<label>Propina para el piloto (opcional)</label><div class="chips" id="f-propinas">'+[0,5,10,15].map(function(p){return '<div class="chip'+(p===0?' on':'')+'" onclick="elegirProp(this,'+p+')">Q'+p+'</div>'}).join('')+'</div><p class="mini" style="margin:4px 0 0">Como en las apps grandes: la propina es voluntaria. Con propina los pilotos suelen volar más rápido.</p>';
   document.getElementById('extra').innerHTML=h;
 }
@@ -807,7 +813,7 @@ async function enviar(){
   var v=function(id){var e=document.getElementById(id);return e?e.value.trim():''};
   var u=LS();
   var telCli=v('f-tel')||u.tel;MI_TEL=telCli;
-  var d={action:'crear',tipo:TIPO,local:(LOCAL_TEL?{nombre:LOCAL_PRE,tel:LOCAL_TEL}:undefined),nombre:v('f-nombre')||u.nombre,tel:telCli,zona:zonaValor(),direccion:v('f-dir'),referencia:v('f-ref'),detalle:v('f-det'),compra:v('f-compra')||0,envio:TARIFA[TIPO]||15,propina:PROPINA};
+  var d={action:'crear',tipo:TIPO,local:(LOCAL_TEL?{nombre:LOCAL_PRE,tel:LOCAL_TEL}:undefined),nombre:v('f-nombre')||u.nombre,tel:telCli,zona:zonaValor(),direccion:v('f-dir'),referencia:v('f-ref'),detalle:v('f-det'),compra:v('f-compra')||0,servicio:SERV?SERV.id:undefined,envio:TARIFA[TIPO]||15,propina:PROPINA};SERV=null;
   if(!d.nombre||!d.tel||!d.zona||!d.direccion||!d.detalle){alert('Completá tu nombre, WhatsApp, zona, dirección y qué pedís.');return}
   // guardar perfil para la proxima
   u.nombre=d.nombre;u.tel=d.tel;u.zona=d.zona;u.dires=u.dires||[];
@@ -910,6 +916,9 @@ async function actualizar(){
     }
   }else{cf.style.display='none'}
 
+  // mecanico del taller (servicio extra)
+  var sb=document.getElementById('servBox');
+  if(sb){if(o.servicio){sb.style.display='block';sb.innerHTML='<div style="font-size:11px;font-weight:800;color:#3a5a8c;margin-bottom:4px">🔧 TU MECÁNICO VA EN</div><div style="font-size:14px;font-weight:900">'+o.servicio.nombre+' — Q'+o.servicio.precio+'</div><div style="font-size:13px;margin-top:2px">'+o.servicio.mecanico+' · '+(o.servicio.veh==='moto'?'🏍️':'🚗')+' '+o.servicio.color+' '+o.servicio.marca+'</div>'+(o.servicio.placa?'<div style="display:inline-block;margin-top:6px;background:#fff;border:2px solid #1a1a22;border-radius:6px;padding:2px 12px;font-weight:900;letter-spacing:2px">'+String(o.servicio.placa).toUpperCase()+'</div>':'');}else{sb.style.display='none'}}
   // vehiculo del piloto: marca, color y placa
   var vb=document.getElementById('vehBox');
   if(o.piloto&&(o.piloto.marca||o.piloto.color||o.piloto.placa)){

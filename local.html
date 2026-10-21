@@ -98,6 +98,28 @@ input,textarea,select{-webkit-user-select:text;user-select:text}
       <label style="margin-top:8px">Foto de la promo (opcional — un combo, un 2x1 que se vea rico)</label>
       <input id="pr-foto" type="file" accept="image/*" capture="environment" style="background:#0d0e14">
       <button class="btn bA" onclick="promoAdd()">🎉 ACTIVAR PROMO</button>
+
+    <h3 style="color:#f0b90b;margin:16px 0 4px;font-size:15px">🔧 Mis servicios mecánicos</h3>
+    <p class="mini" style="margin:4px 0 8px">¿Tenés taller? Ofrecé instalación y reparación A DOMICILIO como extra de tus repuestos (como el postre de un restaurante): el cliente lo agrega a su pedido y <b>VOS ponés el precio porque es extra</b>. Decí quién va y en qué vehículo llega para que el cliente lo reconozca.</p>
+    <div id="servsBox"></div>
+    <div class="pedido">
+      <b style="font-size:14px">Crear servicio</b>
+      <label style="margin-top:8px">Servicio (ej: Cambio de pastillas a domicilio)</label>
+      <input id="sv-nombre" placeholder="Qué hacés y dónde">
+      <label style="margin-top:8px">Precio (Q) — vos lo ponés</label>
+      <input id="sv-precio" type="number" inputmode="decimal" placeholder="Ej: 50">
+      <label style="margin-top:8px">Nombre del mecánico</label>
+      <input id="sv-mecanico" placeholder="Quién hace el trabajo">
+      <label style="margin-top:8px">¿En qué vehículo llega?</label>
+      <select id="sv-veh"><option value="carro">Carro</option><option value="moto">Moto</option></select>
+      <label style="margin-top:8px">Marca del vehículo</label>
+      <input id="sv-marca" placeholder="Ej: Toyota">
+      <label style="margin-top:8px">Color del vehículo</label>
+      <input id="sv-color" placeholder="Ej: Rojo">
+      <label style="margin-top:8px">Placa</label>
+      <input id="sv-placa" placeholder="Ej: C123BBC">
+      <button class="btn bA" onclick="servAdd()">🔧 ACTIVAR SERVICIO</button>
+    </div>
     </div>
     <h3 style="color:#f0b90b;margin:16px 0 4px;font-size:15px">Pedidos de tu local</h3>
     <div id="pedidos"></div>
@@ -162,7 +184,7 @@ function ticket(o){
    +'<div class="c">Pedido <b>'+o.id+'</b></div><div class="c">'+fecha.toLocaleString('es-GT')+'</div><hr>'
    +'<b>CLIENTE:</b> '+cli+'<br><b>DIRECCIÓN:</b> '+dir+(ref?'<br><b>REF:</b> '+ref:'')+'<hr>'
    +'<b>PEDIDO:</b><br>'+filas+'<hr>'
-   +'<table style="width:100%"><tr><td>Tu venta</td><td style="text-align:right">Q'+o.compra+'</td></tr><tr><td>Envío (piloto)</td><td style="text-align:right">Q'+o.envio+'</td></tr><tr><td><b>Cliente paga</b></td><td style="text-align:right"><b>Q'+(+o.compra+ +o.envio)+'</b></td></tr></table><hr>'
+   +'<table style="width:100%"><tr><td>Tu venta</td><td style="text-align:right">Q'+o.compra+'</td></tr>'+(o.servicio?'<tr><td>Servicio: '+o.servicio.nombre+' (mecánico '+o.servicio.mecanico+')</td><td style="text-align:right">Q'+o.servicio.precio+'</td></tr>':'')+'<tr><td>Envío (piloto)</td><td style="text-align:right">Q'+o.envio+'</td></tr><tr><td><b>Cliente paga</b></td><td style="text-align:right"><b>Q'+(+o.compra+ +(o.servicio?o.servicio.precio:0)+ +o.envio)+'</b></td></tr></table><hr>'
    +'<div class="c">'+(o.prep?('Listo en ~'+o.prep.min+' min'):'SIN CONFIRMAR')+'</div><hr>'
    +'<div class="c">Confirmá el tiempo de preparación<br>en tu pantalla DragoExpres</div>'
    +'</body></html>');w.document.close();setTimeout(function(){w.print()},300)
@@ -196,6 +218,27 @@ function pintarPromos(){
   if(PROMOS.length)h=PROMOS.map(function(p){return '<div class="pedido" style="display:flex;justify-content:space-between;align-items:center;gap:8px"><div style="flex:1">'+(p.foto?'<img src="'+p.foto+'" style="width:100%;max-height:120px;object-fit:cover;border-radius:10px;margin-bottom:6px">':'')+'<b>🎉 '+p.titulo+'</b>'+(p.detalle?'<div class="mini">'+p.detalle+'</div>':'')+'</div><button class="bMini bX" onclick="promoDel(\''+p.id+'\')">Quitar</button></div>'}).join('');
   else h='<div class="mini" style="padding:4px 2px">Sin promos activas. Creá una abajo.</div>';
   document.getElementById('promosBox').innerHTML=h;
+}
+var SERVS=[];
+function pintarServs(){
+  var h='';
+  if(SERVS.length)h=SERVS.map(function(s){return '<div class="pedido" style="display:flex;justify-content:space-between;align-items:center;gap:8px"><div style="flex:1"><b>🔧 '+s.nombre+' — Q'+s.precio+'</b><div class="mini">Mecánico: '+s.mecanico+' · llega en '+s.veh+' '+s.color+' '+s.marca+' · placa '+s.placa+'</div></div><button class="bMini bX" onclick="servDel(\''+s.id+'\')">Quitar</button></div>'}).join('');
+  else h='<div class="mini" style="padding:4px 2px">Sin servicios activos. Creá uno abajo (ej: instalación de repuestos a domicilio).</div>';
+  document.getElementById('servsBox').innerHTML=h;
+}
+async function servAdd(){
+  if(DEMO)return;
+  var nombre=document.getElementById('sv-nombre').value.trim(),precio=parseFloat(document.getElementById('sv-precio').value)||0;
+  var mecanico=document.getElementById('sv-mecanico').value.trim(),veh=document.getElementById('sv-veh').value;
+  var marca=document.getElementById('sv-marca').value.trim(),color=document.getElementById('sv-color').value.trim(),placa=document.getElementById('sv-placa').value.trim();
+  if(!nombre||!precio){alert('Poné el servicio y su precio.');return}
+  try{var r=await fetch(api('orders'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'servAdd',tel:TEL,nombre:nombre,precio:precio,mecanico:mecanico,veh:veh,marca:marca,color:color,placa:placa})});
+  var j=await r.json();if(!j.ok){alert(j.error);return}SERVS=j.servicios;['sv-nombre','sv-precio','sv-mecanico','sv-marca','sv-color','sv-placa'].forEach(function(id){document.getElementById(id).value=''});pintarServs();}catch(e){alert('Revisá tu internet y probá de nuevo.')}
+}
+async function servDel(id){
+  if(DEMO)return;
+  try{var r=await fetch(api('orders'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'servDel',tel:TEL,servId:id})});
+  var j=await r.json();if(!j.ok)return;SERVS=j.servicios;pintarServs();}catch(e){}
 }
 var LOCFOTO_B64='',PRFOTO_B64='';
 document.getElementById('loc-foto').addEventListener('change',function(){if(this.files&&this.files[0])comprimirFoto(this.files[0],function(b64){LOCFOTO_B64=b64;document.getElementById('locFotoPrev').innerHTML='<img src="'+b64+'" style="width:100%;max-height:160px;object-fit:cover;border-radius:10px">'})});
@@ -334,7 +377,7 @@ function pintar(j){
       return '<div class="pedido"><div style="display:flex;justify-content:space-between;align-items:center"><b>'+({comida:'🍔',viaje:'🛺',repuesto:'🔧'}[o.tipo])+' '+o.id+'</b><span class="st '+est[1]+'">'+est[0]+'</span></div>'+
       '<div class="dato">👤 '+o.cliente.nombre+' · 📍 '+o.cliente.direccion+'</div>'+
       '<div class="dato">📝 '+o.detalle+'</div>'+
-      '<div class="dato">💵 El cliente paga Q'+(+o.compra+ +o.envio)+' (tu venta Q'+o.compra+' + envío Q'+o.envio+')</div>'+nr+conf+chatI+'<button class="bMini" style="width:100%;margin-top:8px;background:#0d2015;color:#7ee2a8" onclick="ticket(JSON.parse(document.getElementById(\'tk-'+o.id+'\').textContent))">🖨️ Imprimir ticket de cocina</button><span id="tk-'+o.id+'" style="display:none">'+JSON.stringify(o).replace(/</g,'&lt;')+'</span><button class="bMini bX" style="width:100%;margin-top:8px" onclick="localCancela(\''+o.id+'\')">✕ No puedo preparar este pedido (cancelar)</button></div>';
+      '<div class="dato">'+(o.servicio?'<div style="background:#f0f7ff;border-radius:10px;padding:8px 10px;margin-bottom:8px">🔧 <b>'+o.servicio.nombre+' Q'+o.servicio.precio+'</b> · mecánico '+o.servicio.mecanico+' va en '+o.servicio.veh+' '+o.servicio.color+' '+o.servicio.marca+' (placa '+o.servicio.placa+')</div>':'')+'💵 El cliente paga Q'+(+o.compra+ +(o.servicio?o.servicio.precio:0)+ +o.envio)+' (tu venta Q'+o.compra+(o.servicio?' + servicio Q'+o.servicio.precio:'')+' + envío Q'+o.envio+')</div>'+nr+conf+chatI+'<button class="bMini" style="width:100%;margin-top:8px;background:#0d2015;color:#7ee2a8" onclick="ticket(JSON.parse(document.getElementById(\'tk-'+o.id+'\').textContent))">🖨️ Imprimir ticket de cocina</button><span id="tk-'+o.id+'" style="display:none">'+JSON.stringify(o).replace(/</g,'&lt;')+'</span><button class="bMini bX" style="width:100%;margin-top:8px" onclick="localCancela(\''+o.id+'\')">✕ No puedo preparar este pedido (cancelar)</button></div>';
     }).join('');
   }
   var cn=document.getElementById('cancelHoyBox');if(cn)cn.remove();
@@ -346,7 +389,7 @@ async function tick(){
   if(!TEL)return;
   try{var r=await fetch(api('orders'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'loginLocal',tel:TEL})});
   var j=await r.json();
-  if(j.ok){pintar(j);try{var rm=await fetch(api('orders'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'menu',tel:TEL})});var jm=await rm.json();if(jm.ok){PROMOS=jm.promos||[];pintarPromos();}}catch(e2){}}}catch(e){}
+  if(j.ok){pintar(j);try{var rm=await fetch(api('orders'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'menu',tel:TEL})});var jm=await rm.json();if(jm.ok){PROMOS=jm.promos||[];pintarPromos();SERVS=jm.servicios||[];pintarServs();}}catch(e2){}}}catch(e){}
 }
 async function localCancela(id){
   if(DEMO)return;
