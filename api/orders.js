@@ -15,6 +15,7 @@ const abiertoAhora = (h, abre, cierra) => {
   return h >= abre || h < cierra;
 };
 const { REPO, BRANCH, H, ensureBranch } = require('./_dx');
+const { pushA } = require('./_push');
 
 const TZ = 6 * 3600 * 1000; // GT = UTC-6
 const hoy = () => new Date(Date.now() - TZ).toISOString().slice(0, 10);
@@ -49,6 +50,18 @@ async function ghPut(path, sha, data, msg) {
     body: JSON.stringify({ message: msg, branch: BRANCH, content: Buffer.from(JSON.stringify(data, null, 1)).toString('base64'), sha: sha || undefined }),
   });
   if (!r.ok) throw new Error('guardar ' + path + ' HTTP ' + r.status);
+}
+async function pushATel(telD, obj) {
+  try {
+    const f = await ghGet('pushsubs.json'); const all = (f ? f.data : []).filter(s => s && s.endpoint && s.keys);
+    const subs = all.filter(s => dig(s.tel) === dig(telD));
+    if (!subs.length) return;
+    const r = await pushA(subs, obj);
+    if (r.vivas.length !== subs.length) {
+      const muertas = new Set(subs.filter(s => !r.vivas.some(v => v.endpoint === s.endpoint)).map(s => s.endpoint));
+      await ghPut('pushsubs.json', f.sha, all.filter(s => !muertas.has(s.endpoint)), 'push: limpia suscripciones muertas');
+    }
+  } catch (e) { }
 }
 async function aviso(texto) {
   try {
@@ -174,6 +187,24 @@ module.exports = wrap(async (req, res) => {
   }
 
   // ---- PILOTO: login (tel + placa) ----
+  if (action === 'pushSub') {
+    const tel = String(b.tel || '').replace(/\D/g, '').slice(0, 15), zona = String(b.zona || '').slice(0, 60);
+    const s = b.sub || {};
+    if (!s.endpoint || !(s.keys || {}).p256dh || !(s.keys || {}).auth) return res.status(200).json({ ok: false, error: 'Suscripción inválida.' });
+    const f = await ghGet('pushsubs.json');
+    const arr = (f ? f.data : []).filter(x => x.endpoint !== s.endpoint && x.endpoint);
+    arr.push({ endpoint: String(s.endpoint).slice(0, 400), keys: { p256dh: String(s.keys.p256dh).slice(0, 200), auth: String(s.keys.auth).slice(0, 120) }, tel, zona, ts: now });
+    await ghPut('pushsubs.json', f ? f.sha : null, arr, 'pushsub ' + tel);
+    return res.status(200).json({ ok: true });
+  }
+  if (action === 'pushUnsub') {
+    const f = await ghGet('pushsubs.json');
+    if (f) {
+      const quedan = f.data.filter(x => x.endpoint !== String(b.endpoint || ''));
+      await ghPut('pushsubs.json', f.sha, quedan, 'pushunsub');
+    }
+    return res.status(200).json({ ok: true });
+  }
   if (action === 'loginPiloto') {
     const tel = String(b.tel || '').trim(), placa = String(b.placa || '').trim().toUpperCase();
     const f = await ghGet('registros.json');
@@ -704,6 +735,7 @@ module.exports = wrap(async (req, res) => {
       o.estado = 'aceptado'; o.piloto = Object.assign({ tel, nombre: p.datos.nombre }, vehInfo(p.datos)); o.tsAceptado = now;
       await ghPut('pedidos.json', fpd.sha, peds, 'aceptado ' + id);
       await aviso(`🚀 DRAGOEXPRES — Pedido ${id}\n✅ ${p.datos.nombre} ACEPTÓ el pedido (${o.tipo})\nCliente: ${o.cliente.nombre}\n→ El piloto va en camino. Estado: ACEPTADO`);
+      try { await pushATel(o.cliente.tel, { title: '🛺 ¡Tu pedido ' + id + ' ya tiene piloto!', body: String(p.datos.nombre) + ' lo va a buscar ahora. Abrí la app para seguirlo en vivo.', tag: 'dx-' + id, url: 'https://dragoexpres.vercel.app/pedir.html' }); } catch (e) { }
       return res.status(200).json({ ok: true, pedido: o });
     }
     if (!o.piloto || o.piloto.tel !== tel) return res.status(200).json({ ok: false, error: 'Este pedido no es tuyo.' });
@@ -776,10 +808,12 @@ module.exports = wrap(async (req, res) => {
           } catch (e) { /* 409: reintenta con datos frescos */ }
         }
         await aviso(`🚀 DRAGOEXPRES — Pedido ${id} ENTREGADO ✅\n${o.piloto.nombre} completó ${o.tipo}\nEnvío Q${o.envio}${o.propina ? ' + propina Q' + o.propina : ''} → piloto gana Q${gananciaPiloto} · Comisión DragoExpres: Q${dinero(o.comision + (o.comisionLocal || 0))}${o.comisionLocal ? ' (envío Q' + o.comision + ' + local Q' + o.comisionLocal + ')' : ''}${flotaTxt}\nCliente: ${o.cliente.nombre}${bonoTxt}${promoTxt}`);
+        try { await pushATel(o.cliente.tel, { title: '✅ ¡Tu pedido ' + id + ' fue entregado!', body: 'Gracias por pedir con el dragón 🐉 Calificá a tu piloto en la app.', tag: 'dx-' + id, url: 'https://dragoexpres.vercel.app/pedir.html' }); } catch (e) { }
         if (!st) return res.status(200).json({ ok: false, error: 'Tu entrega quedó registrada pero no pudimos acreditar tu pago justo ahora. Avisale al administrador por WhatsApp para acreditarlo a mano.' });
         return res.status(200).json({ ok: true, pedido: o, ganadoHoy: st.ganadoHoy, ganadoSemana: st.ganadoSemana });
       } else return res.status(200).json({ ok: false, error: 'Estado inválido.' });
       await ghPut('pedidos.json', fpd.sha, peds, o.estado + ' ' + id);
+      if (o.estado === 'en_camino') { try { await pushATel(o.cliente.tel, { title: '🛺 ¡Tu pedido ' + id + ' va EN CAMINO!', body: (o.piloto && o.piloto.nombre ? o.piloto.nombre : 'Tu piloto') + ' ya viene a tu dirección. Tené el pago listo 💰', tag: 'dx-' + id, url: 'https://dragoexpres.vercel.app/pedir.html' }); } catch (e) { } }
       return res.status(200).json({ ok: true, pedido: o });
     }
   }

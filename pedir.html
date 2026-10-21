@@ -262,6 +262,11 @@ input,textarea,select{-webkit-user-select:text;user-select:text}
       <button class="btn bA" onclick="guardarPerfil()">Guardar</button>
     </div>
     <div class="pcard">
+      <b style="font-size:15px">🔔 Avisos del dragón en tu celular</b>
+      <div class="mini" style="margin:6px 0" id="pushTxt">Cuando llegue un restaurante a tu zona, cuando haya piloto para viajes, y cuando tu pedido avance: te cae el aviso en tu celular como en las apps grandes.</div>
+      <button class="btn bA" id="pushBtn" style="display:none" onclick="activarPush()">🔔 ACTIVAR AVISOS</button>
+    </div>
+    <div class="pcard">
       <b style="font-size:15px">Mis direcciones</b>
       <div id="dir-list"></div>
       <label>Nueva dirección</label><input id="dir-nueva" placeholder="Calle, número, colonia">
@@ -727,6 +732,42 @@ function pintarLocales(){
 }
 
 /* ---------- perfil ---------- */
+/* ---------- AVISOS PUSH (como las apps grandes) ---------- */
+var DX_VAPID_PUB='BIcaKWGp2wy-DfqCHtjKlf3jaPMPfqevaxxKxDqEk9mVWq6w6aNPGG-IJPnOSHuDz45w6Mcn8KDStnn7lfP7mq8';
+function b64uAUint8(b64){var pad='='.repeat((4-b64.length%4)%4);var b=(b64+pad).replace(/-/g,'+').replace(/_/g,'/');var raw=atob(b);var out=new Uint8Array(raw.length);for(var i=0;i<raw.length;i++)out[i]=raw.charCodeAt(i);return out}
+async function activarPush(){
+  if(!('serviceWorker' in navigator)||!('PushManager' in window)||!('Notification' in window)){alert('Este navegador no soporta los avisos automáticos. En Android usá Chrome; en iPhone instalá la app y activá desde Safari.');return}
+  var perm=await Notification.requestPermission();
+  if(perm!=='granted'){pintarPush();return}
+  try{
+    var reg=await navigator.serviceWorker.ready;
+    var sub=await reg.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:b64uAUint8(DX_VAPID_PUB)});
+    var u=LS();
+    await fetch(api('orders'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'pushSub',tel:u.tel||'',zona:u.zona||'',sub:sub.toJSON()})});
+  }catch(e){alert('No pudimos activar los avisos justo ahora. Probá de nuevo en un momento.');}
+  pintarPush();
+}
+async function pintarPush(){
+  var btn=document.getElementById('pushBtn'),txt=document.getElementById('pushTxt');
+  if(!btn)return;
+  var soporta=('serviceWorker' in navigator)&&('PushManager' in window)&&('Notification' in window);
+  if(!soporta){btn.style.display='none';txt.textContent='Los avisos automáticos llegan a tu celular en Android con Chrome. En iPhone: instalá la app en tu pantalla de inicio desde Safari y activá acá.';return}
+  var perm=Notification.permission;
+  var sub=null;
+  try{var reg=await navigator.serviceWorker.ready;sub=await reg.pushManager.getSubscription();}catch(e){}
+  if(perm==='granted'&&sub){btn.style.display='none';txt.innerHTML='✅ <b>Avisos activados en este celular.</b> Te avisamos cuando llegue un restaurante a tu zona, cuando haya piloto para viajes y cuando tu pedido avance.';}
+  else if(perm==='denied'){btn.style.display='none';txt.textContent='Tenés los avisos bloqueados para este navegador. Habilitalos en Ajustes de tu teléfono → Apps → Chrome → Notificaciones, y volvé a abrir DragoExpres.';}
+  else{btn.style.display='block';}
+}
+async function refrescarPush(){
+  /* al guardar perfil, actualiza tel/zona de la suscripcion (para no perder avisos si cambio su numero o zona) */
+  try{
+    if(Notification.permission!=='granted')return;
+    var reg=await navigator.serviceWorker.ready;var sub=await reg.pushManager.getSubscription();
+    if(!sub)return;var u=LS();
+    await fetch(api('orders'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'pushSub',tel:u.tel||'',zona:u.zona||'',sub:sub.toJSON()})});
+  }catch(e){}
+}
 function pintarPerfil(){
   var u=LS();
   document.getElementById('p-nombre').textContent=u.nombre?('¡Hola, '+u.nombre.split(' ')[0]+'!'):'¡Hola!';
@@ -736,6 +777,7 @@ function pintarPerfil(){
   document.getElementById('mi-tel').value=u.tel||'';
   document.getElementById('mi-wa').checked=(u.avisoWa!==false);
   pintarDirs();
+  pintarPush();
 }
 function esNocheGT(){var h=(new Date().getUTCHours()+18)%24;return h>=23||h<6}
 setInterval(function(){var n=esNocheGT();document.querySelectorAll('.nch').forEach(function(e){if(!n){e.innerHTML='';return}
@@ -803,6 +845,7 @@ function guardarPerfil(){
   u.nombre=document.getElementById('mi-nombre').value.trim();
   u.tel=document.getElementById('mi-tel').value.trim();
   u.avisoWa=document.getElementById('mi-wa').checked;
+  refrescarPush();
   u.zona=document.getElementById('mi-zona').value;
   SS(u);
   document.getElementById('zonaTag').textContent=u.zona||'Elegí tu zona';

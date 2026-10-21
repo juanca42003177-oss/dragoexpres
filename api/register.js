@@ -4,6 +4,14 @@
 const wrap = require('./_cors');
 const { REPO, BRANCH, TOKEN, H, ensureBranch, normalizar } = require('./_dx');
 const PATH = 'registros.json';
+const { pushA } = require('./_push');
+async function ghGetPath(path) {
+  await ensureBranch();
+  const rr = await fetch(`https://api.github.com/repos/${REPO}/contents/${path}?ref=${BRANCH}`, { headers: H() });
+  if (!rr.ok) return null;
+  const j = await rr.json();
+  return { sha: j.sha, data: JSON.parse(Buffer.from(j.content, 'base64').toString('utf8') || '[]') };
+}
 
 async function aviso(texto) {
   try {
@@ -94,5 +102,30 @@ module.exports = wrap(async (req, res) => {
   await ghPut(f ? f.sha : null, data);
   const icono = { piloto: '🏍️', local: '🏪', flota: '🚚', usuario: '👤' }[d.tipo] || '📋';
   await aviso(`🚀 DRAGOEXPRES — Registro nuevo\n${icono} ${d.tipo.toUpperCase()}: ${d.nombre}\nWhatsApp: ${d.tel}\nZona: ${d.zona}${d.vehiculo ? '\nVehículo: ' + d.vehiculo + (d.placa ? ' (' + d.placa + ')' : '') : ''}${d.propio ? '\n🛺 DUEÑO-CONDUCTOR: el vehículo es suyo y lo maneja él mismo (gana el 100%, sin split 75/25)' : ''}${(d.licenciaEnTramite && d.vehiculo !== 'bicicleta') ? '\n📜 LICENCIA EN TRÁMITE: pide tu OK especial para trabajar mientras la tramita (abrí el detalle 📄 antes de aprobar)' : ''}${d.rubro ? '\nRubro: ' + d.rubro : ''}${(d.tipo === 'piloto' || d.tipo === 'flota') ? '\nVerificación: ' + checks.map(c => (c.ok ? '✅' : '❌') + c.k).join(' ') : ''}${firmaContrato ? '\n✍️ Contrato ' + firmaContrato.version + ' aceptado digitalmente' : ''}${d.referido ? '\n🤝 Referido por: ' + d.referido : ''}${d.tipo === 'usuario' ? '\n✅ Auto-verificado (selfie + WhatsApp) — ya puede pedir' : ''}\n→ ${d.tipo === 'usuario' ? 'Visible en pestaña Usuarios' : (estadoReg === 'aprobado' ? (pideOkManual ? '' : '✅ AUTO-APROBADO (todo pasó la verificación): ya puede entrar a trabajar. Sus datos quedaron en tu panel; si algo te suena raro, desactivalo con ✕') : '⏳ PENDIENTE: revisalo en el panel admin')}`);
+  // AVISOS PUSH a los usuarios de la zona (como las apps grandes):
+  // cuando se auto-aprueba un LOCAL -> "ya está en DragoExpres"
+  // cuando se auto-aprueba un PILOTO -> "pedí tu primer viaje, ya te espera tu piloto"
+  try {
+    if (estadoReg === 'aprobado' && (d.tipo === 'local' || d.tipo === 'piloto') && d.zona) {
+      const f = await ghGetPath('pushsubs.json');
+      const all = (f ? f.data : []).filter(s => s && s.endpoint && s.keys && (s.zona || '').trim() === String(d.zona).trim());
+      if (all.length) {
+        const obj = d.tipo === 'local'
+          ? { title: '🏪 ¡' + String(d.nombre).slice(0, 40) + ' ya está en DragoExpres!', body: 'Ahora podés pedir desde la app en ' + d.zona + '. Tocá para verlo.', tag: 'dx-local', url: 'https://dragoexpres.vercel.app/pedir.html' }
+          : { title: '🏍️ ¡Ya hay piloto en ' + d.zona + '!', body: 'Pedí tu primer envío o viaje — tu piloto DragoExpres ya te espera. Tocá para pedir.', tag: 'dx-piloto', url: 'https://dragoexpres.vercel.app/pedir.html' };
+        const rr2 = await pushA(all, obj);
+        if (rr2.vivas.length !== all.length) {
+          try {
+            const muertas = new Set(all.filter(s => !rr2.vivas.some(v => v.endpoint === s.endpoint)).map(s => s.endpoint));
+            const ff2 = await ghGetPath('pushsubs.json');
+            if (ff2) {
+              const quedan = ff2.data.filter(s => !muertas.has(s.endpoint));
+              await fetch(`https://api.github.com/repos/${REPO}/contents/pushsubs.json`, { method: 'PUT', headers: { ...H(), 'Content-Type': 'application/json' }, body: JSON.stringify({ message: 'push: limpia suscripciones muertas', content: Buffer.from(JSON.stringify(quedan)).toString('base64'), sha: ff2.sha, branch: BRANCH }) });
+            }
+          } catch (e2) { }
+        }
+      }
+    }
+  } catch (e) { }
   return res.status(200).json({ ok: true, mensaje: 'Registro recibido', estado: estadoReg });
 });
