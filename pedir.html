@@ -267,6 +267,8 @@ input,textarea,select{-webkit-user-select:text;user-select:text}
       <div class="item" onclick="location.href='index.html?rol=local'"><div class="ic">🏪</div>Quiero poner mi local<div class="flecha">›</div></div>
       <div class="item" onclick="location.href='local.html'"><div class="ic">📋</div>Soy local: mis pedidos<div class="flecha">›</div></div>
       <div class="item" onclick="cerrarSesion()"><div class="ic">🚪</div>Cerrar sesión<div class="flecha">›</div></div>
+      <div class="item" onclick="window.open('privacidad.html')"><div class="ic">📜</div>Política de privacidad<div class="flecha">›</div></div>
+      <div class="item" style="border-color:#5a2020" onclick="eliminarMiCuenta()"><div class="ic">🗑️</div><span style="color:#c0392b">Eliminar mi cuenta</span><div class="flecha">›</div></div>
     </div>
     <p class="mini" style="text-align:center;padding:6px 0 18px">DragoExpres · Dragon Trade Labs · Guatemala</p>
   </div>
@@ -745,6 +747,20 @@ function mostrarQR(){
     im.src='https://api.qrserver.com/v1/create-qr-code/?size=300x300&margin=12&data='+encodeURIComponent(link);
     im.style.display='block';document.getElementById('qrCanvas').style.display='none';
   }
+}
+function datosUsuario(){return LS()}
+function eliminarMiCuenta(){
+  var u=LS();
+  if(!u||!u.tel){toast('No hay una cuenta guardada en este celular.');return}
+  if(!confirm('¿Seguro que querés ELIMINAR tu cuenta?\nSe borran tus datos, tu selfie y tu historial. No se puede deshacer.'))return;
+  if(!confirm('ÚLTIMA PALABRA: se borra TODO para siempre. ¿Eliminar?'))return;
+  fetch(api('orders'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'eliminarCuenta',tel:u.tel})})
+  .then(function(r){return r.json()})
+  .then(function(j){
+    if(j.ok){try{localStorage.clear()}catch(e){};alert('Tu cuenta fue eliminada. Gracias por volar con el dragón 🐉');location.href='index.html'}
+    else{alert(j.error||'No pudimos eliminar tu cuenta. Escribile al administrador por WhatsApp.')}
+  })
+  .catch(function(){alert('Revisá tu internet e intentá de nuevo.')});
 }
 function invitarLocal(){
   var nom=document.getElementById('inv-nombre').value.trim();

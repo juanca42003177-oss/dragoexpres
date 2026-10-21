@@ -754,6 +754,33 @@ module.exports = wrap(async (req, res) => {
   }
 
   // ---- BUZÓN DE SUGERENCIAS (usuario / piloto / local) ----
+  // ---- ELIMINAR MI CUENTA (requisito Google Play): borra el registro del usuario
+  // y anonimiza sus pedidos y chats. Irreversible.
+  if (action === 'eliminarCuenta') {
+    const tel = String(b.tel || '').replace(/\D/g, '').slice(0, 25);
+    if (!tel) return res.status(200).json({ ok: false, error: 'Decinos tu WhatsApp para eliminar la cuenta correcta.' });
+    const fr = await ghGet('registros.json');
+    const regs = fr ? fr.data : [];
+    const antes = regs.length;
+    const quedan = regs.filter(r => !(r.tipo === 'usuario' && String((r.datos || {}).tel || '').replace(/\D/g, '') === tel));
+    if (quedan.length === antes) return res.status(200).json({ ok: false, error: 'No encontramos una cuenta de cliente con ese WhatsApp.' });
+    await ghPut('registros.json', fr ? fr.sha : null, quedan, 'cuenta eliminada ' + tel);
+    const fpd = await ghGet('pedidos.json');
+    if (fpd) {
+      let toc = 0;
+      fpd.data.forEach(o => {
+        if (o.cliente && String(o.cliente.tel || '').replace(/\D/g, '') === tel) {
+          o.cliente = { nombre: 'Cliente eliminado', tel: '', direccion: '' };
+          if (Array.isArray(o.chat)) o.chat = o.chat.filter(m => m.de !== 'cliente');
+          toc++;
+        }
+      });
+      if (toc) await ghPut('pedidos.json', fpd.sha, fpd.data, 'anonimizados pedidos de cuenta eliminada');
+    }
+    await aviso(`🗑️ DRAGOEXPRES — CUENTA ELIMINADA\nUsuario ${tel} borró su cuenta y todos sus datos. Sus pedidos quedaron anonimizados.`);
+    return res.status(200).json({ ok: true, mensaje: 'Tu cuenta y tus datos fueron eliminados.' });
+  }
+
   if (action === 'sugerencia') {
     const rol = ['usuario', 'piloto', 'local', 'flotista'].includes(b.rol) ? b.rol : 'usuario';
     const nombre = String(b.nombre || '').slice(0, 60);
