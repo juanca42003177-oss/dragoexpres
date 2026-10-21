@@ -165,7 +165,7 @@ input,textarea,select{-webkit-user-select:text;user-select:text}
         <button class="hIco" onclick="tab('pedidos')">🛒</button>
       </div>
     </div>
-    <div class="buscador"><input id="q" placeholder="Locales, platos y productos" oninput="pintarLocales()"><div class="lupa">🔍</div></div>
+    <div class="buscador"><input id="q" placeholder="Locales, platos y productos" oninput="alBuscar()"><div class="lupa">🔍</div></div>
   </div>
   <div class="banners">
     <div class="bn bn1"><img class="dimg" src="img/dragon-paquete.webp" alt="Dragón DragoExpres"><div class="btxt"><b>Comida, viajes y repuestos a tu puerta</b><span>Pagás en efectivo al recibir.</span></div></div>
@@ -174,8 +174,8 @@ input,textarea,select{-webkit-user-select:text;user-select:text}
   <div class="sec">
     <h2>¿Qué querés hoy?</h2>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
-      <div class="cat" style="padding:20px 10px;background:linear-gradient(150deg,#fff,#fff4f5);border-color:#ffd9de" onclick="abrirPedido('comida')"><div class="ic" style="font-size:40px">🍔</div><b style="font-size:15px">Restaurantes</b><span>De tu local favorito</span></div>
-      <div class="cat" style="padding:20px 10px;background:linear-gradient(150deg,#fff,#fffaf0);border-color:#ffeec9" onclick="abrirPedido('repuesto')"><div class="ic" style="font-size:40px">🔧</div><b style="font-size:15px">Repuestos</b><span>De moto o carro</span></div>
+      <div class="cat" style="padding:20px 10px;background:linear-gradient(150deg,#fff,#fff4f5);border-color:#ffd9de" onclick="abrirCat('comida')"><div class="ic" style="font-size:40px">🍔</div><b style="font-size:15px">Restaurantes</b><span>De tu local favorito</span></div>
+      <div class="cat" style="padding:20px 10px;background:linear-gradient(150deg,#fff,#fffaf0);border-color:#ffeec9" onclick="abrirCat('repuesto')"><div class="ic" style="font-size:40px">🔧</div><b style="font-size:15px">Repuestos</b><span>De moto o carro</span></div>
     </div>
     <div class="cats" style="margin-top:10px">
       <div class="cat" onclick="abrirPedido('viaje')"><div class="ic">🛺</div><b>Viajes</b><span>Movete a donde sea</span></div>
@@ -186,7 +186,7 @@ input,textarea,select{-webkit-user-select:text;user-select:text}
   <div class="sec" style="padding-top:0">
     <h2>Locales de tu zona</h2>
     <p class="sub">Locales verificados con el dragón. Tocá "Pedir aquí" y armá tu orden.</p>
-    <div id="lista-locales"></div>
+    <div id="prodRes"></div><div id="lista-locales"></div>
   </div>
   <div class="sec" style="padding-top:0">
     <h2>¿Cómo funciona?</h2>
@@ -297,6 +297,14 @@ input,textarea,select{-webkit-user-select:text;user-select:text}
   <h2 id="menuTitulo" style="font-size:18px">Menú</h2>
   <div id="menuLista"><p class="mini">Cargando el menú...</p></div>
   <button class="btn bA" style="background:#333;color:#fff;box-shadow:none" onclick="cerrarMenu()">Cerrar</button>
+</div>
+
+<!-- ============ CATEGORIA ============ -->
+<div class="sheet" id="catSheet" style="z-index:41">
+  <div class="asa" onclick="cerrarCat()"></div>
+  <h2 id="catTitulo" style="font-size:18px">Restaurantes</h2>
+  <div id="catLista"><p class="mini">Cargando...</p></div>
+  <button class="btn bA" style="background:#333;color:#fff;box-shadow:none" onclick="cerrarCat()">Cerrar</button>
 </div>
 
 <!-- ============ FICHA DEL PRODUCTO ============ -->
@@ -605,6 +613,57 @@ async function cargarLocales(){
   try{var r=await fetch(api('orders?action=locales'));var j=await r.json();LOCALES=j.locales||[];}catch(e){LOCALES=[]}
   pintarLocales();
 }
+function toast(msg){var t=document.getElementById('dxToast');if(!t){t=document.createElement('div');t.id='dxToast';t.style.cssText='position:fixed;bottom:86px;left:50%;transform:translateX(-50%);background:#1a1a22;color:#fff;padding:10px 18px;border-radius:12px;z-index:9999;font-size:13px;font-weight:700;box-shadow:0 4px 14px rgba(0,0,0,.45);max-width:85%;text-align:center';document.body.appendChild(t)}t.textContent=msg;t.style.display='block';clearTimeout(t._h);t._h=setTimeout(function(){t.style.display='none'},3400)}
+function abrirCat(tipo){
+  document.getElementById('catTitulo').textContent=tipo==='comida'?'🍔 Restaurantes de tu zona':'🔧 Repuestos y talleres de tu zona';
+  document.getElementById('veil').style.display='block';
+  document.getElementById('catSheet').style.display='block';
+  var u=LS();
+  var loc=LOCALES.filter(function(l){
+    var r=String(l.rubro||'').toLowerCase();
+    var es=tipo==='comida'?(r.indexOf('repuesto')<0):(r.indexOf('repuesto')>=0);
+    if(u.zona&&l.zona&&l.zona!==u.zona)return false;
+    return es;
+  });
+  var h='';
+  if(!loc.length){
+    h='<div class="empty">'+(tipo==='comida'?'Todavía no hay restaurantes en tu zona.<br><b>¡Sé el primero! Invitá tu favorito</b> y comé con envío a Q15':'Todavía no hay talleres de repuestos en tu zona.<br><b>Invitá tu taller de confianza</b> y pedí a Q20')+'<br><br><button class="btn bA" style="width:auto;padding:11px 18px;display:inline-block" onclick="cerrarCat();invitarLocalSheet()">🏪 Invitar un local</button></div>';
+  }
+  loc.forEach(function(l){
+    var idx=LOCALES.indexOf(l);
+    var cerrado=l.abierto===false;var pausado=l.pausado?true:false;
+    h+='<div class="loc"'+((cerrado||pausado)?' style="opacity:0.55"':'')+'><div class="avatar">'+(l.fotoLocal?'<img src="'+l.fotoLocal+'" style="width:100%;height:100%;object-fit:cover;border-radius:50%">':(l.nombre||'?').charAt(0).toUpperCase())+'</div>'
+      +'<div class="info"><b>'+l.nombre+'</b><span><span class="chip">'+(l.rubro||'Local')+'</span>'+(pausado?' · <span style="color:#ffd479">⏸️ Saturado ahora</span>':cerrado?' · <span style="color:#ff8f8f">🔴 Cerrado · abre '+String(l.abre).padStart(2,'0')+':00</span>':' · <span style="color:#7ee2a8">🟢 Abierto</span>')+'</span></div>'
+      +'<button class="btnW" onclick="verMenu('+idx+')">Menú 📋</button>'
+      +(cerrado||pausado?'':'<button class="btnS" onclick="cerrarCat();abrirPedidoLocal('+idx+')">Pedir aquí</button>')+'</div>';
+  });
+  document.getElementById('catLista').innerHTML=h;
+}
+function cerrarCat(){document.getElementById('veil').style.display='none';document.getElementById('catSheet').style.display='none'}
+function invitarLocalSheet(){var el=document.getElementById('inv-nombre');if(el){el.scrollIntoView({behavior:'smooth'});el.focus();toast('Escribí el nombre de tu local favorito y le mandamos la invitación')}}
+var MENUQ_CACHE={};
+async function buscarProductos(q){
+  var box=document.getElementById('prodRes');if(!box)return;
+  if(!q||q.length<2){box.innerHTML='';return}
+  var u=LS();
+  var zonaLocs=LOCALES.filter(function(l){return !(u.zona&&l.zona&&l.zona!==u.zona)});
+  var res=[];
+  for(var i=0;i<zonaLocs.length;i++){
+    var l=zonaLocs[i];var idx=LOCALES.indexOf(l);
+    var m=MENUQ_CACHE[l.tel];
+    if(!m){try{var r=await fetch(api('orders'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'menu',tel:l.tel})});var j=await r.json();m=j.ok?(j.items||[]):[];}catch(e){m=[]}MENUQ_CACHE[l.tel]=m;MENU_CACHE[idx]=m;}
+    m.forEach(function(it){if(!it.agotado&&String(it.nombre+' '+(it.desc||'')+' '+(it.categoria||'')).toLowerCase().indexOf(q)>=0)res.push({it:it,l:l,idx:idx})});
+  }
+  if(!res.length){box.innerHTML='';return}
+  box.innerHTML='<p class="mini" style="font-weight:900;margin:14px 2px 6px">🍳 PLATOS Y PRODUCTOS QUE COINCIDEN</p>'+res.slice(0,12).map(function(r){
+    return '<div class="loc"><div class="avatar">'+(r.it.foto?'<img src="'+r.it.foto+'" style="width:100%;height:100%;object-fit:cover;border-radius:50%">':'🍽️')+'</div><div class="info"><b>'+r.it.nombre+'</b><span>'+r.l.nombre+' · <b style="color:var(--rojo)">Q'+r.it.precio+'</b></span></div><button class="btnS" onclick="verProducto('+r.idx+',\''+r.it.id+'\')">Pedir</button></div>';
+  }).join('');
+}
+function alBuscar(){
+  pintarLocales();
+  clearTimeout(window._tq);
+  window._tq=setTimeout(function(){buscarProductos((document.getElementById('q').value||'').trim().toLowerCase())},350);
+}
 function pintarLocales(){
   var q=(document.getElementById('q').value||'').toLowerCase();
   var u=LS();
@@ -645,7 +704,7 @@ var m=e.parentElement.textContent.match(/Q(\d+)/);var base=m?parseInt(m[1]):15;
 e.innerHTML='<br>🌙 De noche (23:00-06:00) son <b>Q'+(base+5)+'</b> · incluye recargo nocturno de <b>Q5 que va 100% a tu piloto</b>'})},4000);
 function invitarLocal(){
   var nom=document.getElementById('inv-nombre').value.trim();
-  if(nom.length<3){alert('Escribí el nombre del local.');return}
+  if(nom.length<3){toast('Escribí el nombre del local (mínimo 3 letras) 👇');return}
   var tel=document.getElementById('inv-tel').value.replace(/\D/g,'');
   if(tel.length>=8&&tel.indexOf('502')!==0&&tel.length<=8)tel='502'+tel;
   var msg='¡Hola '+nom+'! 👋\n\nLos clientes te están buscando en *DragoExpres*, la app de reparto que está creciendo en Guatemala. Te invitamos a poner tu local, mirá lo que ganás:\n\n✅ *90 DÍAS SIN COMISIÓN* — vendés de prueba gratis\n✅ Después solo *10% en comida y repuestos* (las otras apps te cobran hasta 25-30%)\n✅ *Vos ponés tus precios y tus promos*\n✅ Registro gratis y rápido: dragoexpres.vercel.app\n\nTus pedidos llegan a la puerta de tus clientes. No perdés nada, más bien ganás clientes nuevos 💰';
@@ -653,7 +712,7 @@ function invitarLocal(){
   window.open(url,'_blank');
   var u=datosUsuario();
   fetch(api('orders'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'sugerencia',rol:'usuario',nombre:(u&&u.nombre)||'',tel:(u&&u.tel)||'',texto:'🏪 INVITÓ al local: '+nom+(tel?' (WhatsApp '+tel+')':'')})}).catch(function(){});
-  alert('¡Gracias! Abrimos WhatsApp para que le mandes la invitación a '+nom+' ');
+  toast('¡Gracias! Te abrimos WhatsApp para invitar a '+nom+' 🐉');
 }
 async function enviarSugerencia(){
   var tx=document.getElementById('sug-texto').value.trim();
