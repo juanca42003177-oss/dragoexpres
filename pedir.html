@@ -244,6 +244,7 @@ input,textarea,select{-webkit-user-select:text;user-select:text}
       <label>Nombre del local</label><input id="inv-nombre" placeholder="Ej: Pizzería El Horno">
       <label>WhatsApp del local (opcional)</label><input id="inv-tel" type="tel" placeholder="Ej: 55501234">
       <button class="btn bA" onclick="invitarLocal()">Mandar invitación por WhatsApp</button>
+      <button class="btn bA" style="background:#1a1a22;color:#f0b90b;border:1px solid #f0b90b" onclick="mostrarQR()">📲 Mostrar QR — escanea y listo</button>
     </div>
     <div class="pcard">
       <b style="font-size:15px">Mi información</b>
@@ -305,6 +306,19 @@ input,textarea,select{-webkit-user-select:text;user-select:text}
   <h2 id="catTitulo" style="font-size:18px">Restaurantes</h2>
   <div id="catLista"><p class="mini">Cargando...</p></div>
   <button class="btn bA" style="background:#333;color:#fff;box-shadow:none" onclick="cerrarCat()">Cerrar</button>
+</div>
+
+<!-- ============ QR INVITACIÓN ============ -->
+<div class="sheet" id="qrSheet" style="z-index:46;text-align:center">
+  <div class="asa" onclick="cerrarSheet()"></div>
+  <h2 style="font-size:18px">📲 El local entra en 3 segundos</h2>
+  <p class="mini" style="margin:4px 0 10px">Mostrale este código al dueño del negocio: lo escanea con su cámara y cae <b>directo al registro de su local</b>. Sin buscar nada.</p>
+  <div style="background:#fff;border-radius:16px;padding:16px;margin:0 auto;max-width:290px;box-shadow:0 2px 10px rgba(0,0,0,.25)">
+    <img id="qrImg" style="width:100%;display:block" alt="QR DragoExpres">
+  </div>
+  <p class="mini" style="word-break:break-all;margin:10px 0" id="qrLink"></p>
+  <button class="btn bA" onclick="invitarLocal()">Mandárselo por WhatsApp también</button>
+  <button class="btn bA" style="background:#333;color:#fff;box-shadow:none" onclick="cerrarSheet()">Cerrar</button>
 </div>
 
 <!-- ============ FICHA DEL PRODUCTO ============ -->
@@ -638,7 +652,7 @@ function abrirCat(tipo){
   });
   var h='';
   if(!loc.length){
-    h='<div class="empty">'+(tipo==='comida'?'Todavía no hay restaurantes en tu zona.<br><b>¡Sé el primero! Invitá tu favorito</b> y comé con envío a Q15':'Todavía no hay talleres de repuestos en tu zona.<br><b>Invitá tu taller de confianza</b> y pedí a Q20')+'<br><br><button class="btn bA" style="width:auto;padding:11px 18px;display:inline-block" onclick="cerrarCat();invitarLocalSheet()">🏪 Invitar un local</button></div>';
+    h='<div class="empty">'+(tipo==='comida'?'Todavía no hay restaurantes en tu zona.<br><b>¡Sé el primero! Invitá tu favorito</b> y comé con envío a Q15':'Todavía no hay talleres de repuestos en tu zona.<br><b>Invitá tu taller de confianza</b> y pedí a Q20')+'<br><br><button class="btn bA" style="width:auto;padding:11px 18px;display:inline-block" onclick="cerrarCat();invitarLocalSheet()">🏪 Invitar un local</button> <button class="btn bA" style="width:auto;padding:11px 18px;display:inline-block;background:#1a1a22;color:#f0b90b;border:1px solid #f0b90b" onclick="cerrarCat();mostrarQR()">📲 QR al instante</button></div>';
   }
   loc.forEach(function(l){
     var idx=LOCALES.indexOf(l);
@@ -713,6 +727,13 @@ function esNocheGT(){var h=(new Date().getUTCHours()+18)%24;return h>=23||h<6}
 setInterval(function(){var n=esNocheGT();document.querySelectorAll('.nch').forEach(function(e){if(!n){e.innerHTML='';return}
 var m=e.parentElement.textContent.match(/Q(\d+)/);var base=m?parseInt(m[1]):15;
 e.innerHTML='<br>🌙 De noche (23:00-06:00) son <b>Q'+(base+5)+'</b> · incluye recargo nocturno de <b>Q5 que va 100% a tu piloto</b>'})},4000);
+function mostrarQR(){
+  var link='https://dragoexpres.vercel.app/index.html?rol=local';
+  document.getElementById('qrImg').src='https://api.qrserver.com/v1/create-qr-code/?size=300x300&margin=12&data='+encodeURIComponent(link);
+  document.getElementById('qrLink').textContent=link;
+  document.getElementById('veil').style.display='block';
+  document.getElementById('qrSheet').style.display='block';
+}
 function invitarLocal(){
   var nom=document.getElementById('inv-nombre').value.trim();
   if(nom.length<3){toast('Escribí el nombre del local (mínimo 3 letras) 👇');return}
