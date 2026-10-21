@@ -186,8 +186,29 @@ input,textarea,select{-webkit-user-select:text;user-select:text}
 </div>
 <div class="sec" style="text-align:center;border:1px solid #b8860b">
   <h2 style="color:#f5c518">📲 Instalá DragoExpres gratis</h2>
-  <p class="small">Toqué el menú de su navegador y elija <b>"Agregar a pantalla de inicio"</b>: le queda como app en su celular, gratis, sin Play Store.</p>
+  <div id="dxInstYa" style="display:none" class="small"><b style="color:#39d353">✔ Ya la tenés instalada como app en tu celular</b></div>
+  <button id="dxInstBtn" style="display:none;width:100%;padding:14px;margin-top:8px;border:0;border-radius:12px;background:#f0b90b;color:#111;font-weight:700;font-size:16px">📲 INSTALAR AHORA</button>
+  <div id="dxInstIos" style="display:none" class="small" style="margin-top:8px">En iPhone: tocá el botón <b>Compartir</b> (cuadrito con ↑) y elegí <b>"Añadir a pantalla de inicio"</b> — queda como app, gratis, sin Play Store.</div>
+  <p id="dxInstEsp" class="small" style="margin-top:8px">Te queda como app en tu celular: gratis, sin Play Store, sin buscar nada en menús.</p>
 </div>
+<script>
+(function(){
+  var ya = window.matchMedia && window.matchMedia('(display-mode: standalone)').matches;
+  if (ya) { document.getElementById('dxInstEsp').style.display='none'; document.getElementById('dxInstYa').style.display='block'; return; }
+  var evPend = null;
+  window.addEventListener('beforeinstallprompt', function (e) {
+    e.preventDefault(); evPend = e;
+    var b = document.getElementById('dxInstBtn');
+    if (b) { b.style.display='block'; document.getElementById('dxInstEsp').style.display='none'; }
+  });
+  document.addEventListener('click', function (e) {
+    if (e.target && e.target.id === 'dxInstBtn' && evPend) { evPend.prompt(); evPend = null; document.getElementById('dxInstBtn').style.display='none'; document.getElementById('dxInstEsp').style.display='block'; }
+  });
+  window.addEventListener('appinstalled', function () { document.getElementById('dxInstYa').style.display='block'; document.getElementById('dxInstBtn').style.display='none'; document.getElementById('dxInstEsp').style.display='none'; });
+  var ios = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  if (ios) { setTimeout(function(){ if (!evPend) { document.getElementById('dxInstIos').style.display='block'; document.getElementById('dxInstEsp').style.display='none'; } }, 2500); }
+})();
+</script>
 
 </footer>
 <script>
@@ -494,5 +515,6 @@ if(_qr==='local'||_qr==='usuario'||_qr==='flota'||_qr==='piloto'){abrir(_qr);doc
 catch(e){}
 try{if(localStorage.getItem('dxContratoOK')){var _c1=document.getElementById('pContrato');if(_c1)_c1.checked=true;var _c2=document.getElementById('lContrato');if(_c2)_c2.checked=true;}}catch(e){}
 </script>
+<script>if('serviceWorker' in navigator){window.addEventListener('load',function(){navigator.serviceWorker.register('sw.js').catch(function(){});});}</script>
 </body>
 </html>

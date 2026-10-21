@@ -4,6 +4,7 @@
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="cache" content="no-store">
 <title>DragoExpres — Panel del Dueño v4</title>
+<link rel="manifest" href="manifest.json">
 <link rel="icon" href="img/icono.png">
 <style>
 body{background:#0a0a0f;color:#f2f4f8;font-family:system-ui,sans-serif;margin:0;padding:0 0 70px}
@@ -289,5 +290,6 @@ function estado(ts,acc){
   }).catch(function(){alert('No hay internet ahora. Probá de nuevo.');});
 }
 </script>
+<script>if('serviceWorker' in navigator){window.addEventListener('load',function(){navigator.serviceWorker.register('sw.js').catch(function(){});});}</script>
 </body>
 </html>

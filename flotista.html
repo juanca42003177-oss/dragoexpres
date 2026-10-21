@@ -4,6 +4,7 @@
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="theme-color" content="#0a0a0f">
 <title>DragoExpres — Flotista</title>
+<link rel="manifest" href="manifest.json">
 <link rel="icon" href="img/icono.png">
 <style>
 body{background:#0a0a0f;color:#f2f4f8;font-family:system-ui,sans-serif;margin:0;padding:0 0 80px}
@@ -117,5 +118,6 @@ async function recargar(){
 }
 (function(){if(localStorage.getItem('dx_admin'))return;var g={};try{g=JSON.parse(localStorage.getItem('dxFlota')||'{}')}catch(e){}if(g&&g.tel&&g.placa){document.getElementById('l-tel').value=g.tel;document.getElementById('l-placa').value=g.placa;login()}})();
 </script>
+<script>if('serviceWorker' in navigator){window.addEventListener('load',function(){navigator.serviceWorker.register('sw.js').catch(function(){});});}</script>
 </body>
 </html>

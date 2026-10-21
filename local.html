@@ -4,6 +4,7 @@
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="theme-color" content="#0a0a0f">
 <title>DragoExpres — Mi local</title>
+<link rel="manifest" href="manifest.json">
 <link rel="icon" href="img/icono.png">
 <style>
 body{background:#0a0a0f;color:#f2f4f8;font-family:system-ui,sans-serif;margin:0;padding:0 0 60px}
@@ -235,7 +236,8 @@ function ticket(o){
    +'<button style="background:#0d2015;color:#7ee2a8" onclick="btImprimir()">🖨️ IMPRIMIR POR BLUETOOTH (impresora térmica)</button>'
    +'<button style="background:#333;color:#fff" onclick="window.print()">📱 OPCIONES DEL SISTEMA (PDF / otras impresoras)</button>'
    +'<div class="c" id="btStatus">Bluetooth: <b>activá tu impresora</b> y tocá arriba.</div>'
-   +'</body></html>');w.document.close()
+   +'<script>if('serviceWorker' in navigator){window.addEventListener('load',function(){navigator.serviceWorker.register('sw.js').catch(function(){});});}</script>
+</body></html>');w.document.close()
 }
 
 var MENU=[],FOTOB64='';
