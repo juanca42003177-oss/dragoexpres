@@ -266,7 +266,7 @@ function itemRow(it){
 }
 function pintarMenu(){
   var h='';
-  if(!MENU.length){h='<div class="mini" style="padding:8px 2px">Tu menú está vacío. Agregá tu primer producto abajo para que los clientes lo vean con foto y precio.</div>';}
+  if(!MENU.length){h='<div class="mini" style="padding:8px 2px">'+(esRep()?'Tu catálogo está vacío. Agregá tu primer repuesto abajo para que los clientes lo vean con foto y precio.':'Tu menú está vacío. Agregá tu primer producto abajo para que los clientes lo vean con foto y precio.')+'</div>';}
   else{
     var g={};MENU.forEach(function(it){var c=it.categoria||'Otros';(g[c]=g[c]||[]).push(it)});
     var orden=CATORD().concat(Object.keys(g).filter(function(c){return CATORD().indexOf(c)<0}));
@@ -425,7 +425,7 @@ function pintar(j){
     var mins=Math.max(1,Math.ceil((PAUSA-Date.now())/60000));
     pc.style.display='block';pc.innerHTML='<b>⏸️ Local PAUSADO</b><div class="mini">No te llegan pedidos nuevos por '+mins+' minuto(s) más.</div>';
     pb.textContent='▶️ REANUDAR pedidos ya';pb.className='btn bA';pb.onclick=function(){pausar(0)};
-  }else{pc.style.display='none';pb.textContent='⏸️ Cocina saturada: pausar 30 min';pb.className='btn bR';pb.onclick=function(){pausar(30)}}
+  }else{pc.style.display='none';pb.textContent=esRep()?'⏸️ Taller saturado: pausar 30 min':'⏸️ Cocina saturada: pausar 30 min';pb.className='btn bR';pb.onclick=function(){pausar(30)}}
   var box=document.getElementById('pedidos');
   if(!j.activos||!j.activos.length){
     tocarAlarma(0);
