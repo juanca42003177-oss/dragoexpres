@@ -38,7 +38,7 @@ input{width:100%;background:#0d0e14;border:1px solid #2a2b38;border-radius:10px;
 input,textarea,select{-webkit-user-select:text;user-select:text}
 </style>
 </head>
-<body>
+<body><div id="avisoRed" style="display:none;background:#3a1d1d;border:1px solid #ff8f8f;color:#ffb4b4;border-radius:10px;padding:9px 12px;margin:10px 0;font-size:13px;font-weight:700;text-align:center"></div>
 <div id="login">
   <img src="img/logo.png" style="width:70px;border-radius:12px"><h2>DragoExpres 👑</h2>
   <p style="color:#9aa3b5;font-size:13px">Panel del dueño · v3</p>
@@ -69,7 +69,7 @@ input,textarea,select{-webkit-user-select:text;user-select:text}
 </div>
 <script>
 var PASS='',MODO_DEMO=false,TAB='resumen';
-setInterval(function(){if(PASS&&TAB==='resumen')cargarVivo()},30000);
+setInterval(function(){if(PASS&&!MODO_DEMO)cargar();if(PASS&&TAB==='resumen')cargarVivo()},30000);
 var DEMO=[];
 function apiBase(){return (location.hostname.indexOf('github.io')===-1&&!window.DX_API_URL)?'/api':(window.DX_API_URL||'https://dragoexpres.vercel.app/api');}
 function entrar(){
@@ -94,7 +94,10 @@ function abrir(){
 }
 function cargar(){
   fetch(apiBase()+'/admin',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({pass:PASS,action:'list'})})
-  .then(r=>r.json()).then(j=>{pintar((j&&j.ok&&j.registros)||[]);});
+  .then(r=>r.json()).then(function(j){
+    if(j&&j.ok){pintar(j.registros||[]);if(window.AVISO_FALLA){try{document.getElementById('avisoRed').style.display='none'}catch(e){}window.AVISO_FALLA=false}}
+    else{window.AVISO_FALLA=true;try{var av=document.getElementById('avisoRed');av.style.display='block';av.textContent='⚠️ Conexión perdida con la bodega. Tus datos están bien — reintentando solo cada 30 segundos...'}catch(e){}}
+  });
 }
 var PED_CACHE={};
 function setIf(id,html){var el=document.getElementById(id);if(!el)return;if(PED_CACHE[id]===html)return;PED_CACHE[id]=html;el.innerHTML=html;}
@@ -239,7 +242,7 @@ function pintar(regs){
       '<div class="card"><div class="av">⏳</div><div><b>'+n.pen+' pendientes de tu aprobación</b><div class="s">Revisá la pestaña de cada rol y aprobá con 1 botón</div></div></div>'+
       '<div class="card"><div class="av">✅</div><div><b>'+n.apro+' aprobados</b><div class="s">El servicio funciona desde el día 1 en todas las zonas</div></div></div>'+
       (mejor?'<div class="card"><div class="av">📍</div><div><b>Zona con más equipo: '+mejor+'</b><div class="s">Pilotos y locales aprobados en esa zona</div></div></div>':'')+
-      '<div class="card" style="display:block"><div class="av">👁</div><div><b>Vistas previas (cómo ve tu equipo la app)</b><div class="s">Pantallas con datos de ejemplo, sin pedidos reales. Nada se guarda.</div></div><div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap"><button class="btn bA" style="width:auto;padding:10px 14px;margin:0" onclick="location.href=\'piloto.html\'">🏍️ Piloto</button><button class="btn bA" style="width:auto;padding:10px 14px;margin:0" onclick="location.href=\'piloto.html?demo=dueno\'">🛺 Dueño (maneja su vehículo)</button><button class="btn bA" style="width:auto;padding:10px 14px;margin:0" onclick="location.href=\'flotista.html\'">🚚 Flotista</button><button class="btn bA" style="width:auto;padding:10px 14px;margin:0" onclick="location.href=\'local.html\'">🏪 Local</button></div></div>'+
+      '<div class="card" style="display:block"><div class="av">👁</div><div><b>Vistas previas (cómo ve tu equipo la app)</b><div class="s">Pantallas con datos de ejemplo, sin pedidos reales. Nada se guarda.</div></div><div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap"><button class="btn bA" style="width:auto;padding:10px 14px;margin:0" onclick="location.href=\'piloto.html?demo=owner\'">🏍️ Piloto</button><button class="btn bA" style="width:auto;padding:10px 14px;margin:0" onclick="location.href=\'piloto.html?demo=dueno\'">🛺 Dueño (maneja su vehículo)</button><button class="btn bA" style="width:auto;padding:10px 14px;margin:0" onclick="location.href=\'flotista.html?demo=owner\'">🚚 Flotista</button><button class="btn bA" style="width:auto;padding:10px 14px;margin:0" onclick="location.href=\'local.html?demo=owner\'">🏪 Local</button></div></div>'+
       '<div class="card"><div class="av">💰</div><div><b>Tus comisiones activas</b><div class="s">Envíos: 5% comida y repuestos · Viajes Q2–Q5 · Locales y talleres: 10% con 90 días de gracia por zona</div></div></div>';
   }
   if(TAB==='zonas'){
