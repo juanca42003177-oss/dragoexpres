@@ -205,7 +205,7 @@ input,textarea,select{-webkit-user-select:text;user-select:text}
   <div class="sec">
     <div class="bn bn1" style="margin-bottom:12px;min-width:100%"><span class="em">📦</span><b>Tu primer envío, GRATIS</b><span>Registrate como usuario y volá con el dragón desde tu primer pedido.</span></div>
     <div class="pcard"><b>🏍️ Repartí con DragoExpres</b><p class="mini">Trabajá con tu bici, moto o carro en tu propia zona. Pagos semanales + devolución del 25% de tus comisiones al cumplir la meta.</p><button class="btn bA" onclick="location.href='ganancias.html'">Quiero ser piloto</button></div>
-    <div class="pcard"><b>🏪 Poné tu local</b><p class="mini">Tu local visto por toda tu zona. Vos ponés precios y promos. Registro gratis y sin comisión los primeros meses.</p><button class="btn bA" onclick="location.href='index.html'">Registrar mi local</button></div>
+    <div class="pcard"><b>🏪 Poné tu local</b><p class="mini">Tu local visto por toda tu zona. Vos ponés precios y promos. Registro gratis y sin comisión los primeros meses.</p><button class="btn bA" onclick="location.href='index.html?rol=local'">Registrar mi local</button></div>
     <div class="pcard"><b>💵 Pagás en efectivo, sin vueltas</b><p class="mini">La compra se la pagás al piloto para el local, más la tarifa de envío. La propina es aparte y solo si querés. Sin tarjeta, sin registro de pago.</p></div>
   </div>
 </div>
@@ -651,7 +651,7 @@ function abrirCat(tipo){
   document.getElementById('catLista').innerHTML=h;
 }
 function cerrarCat(){document.getElementById('veil').style.display='none';document.getElementById('catSheet').style.display='none'}
-function invitarLocalSheet(){tab('promos');var el=document.getElementById('inv-nombre');if(el){el.scrollIntoView({behavior:'smooth'});el.focus();toast('Escribí el nombre de tu local favorito y le mandamos la invitación')}}
+function invitarLocalSheet(){cerrarSheet();tab('perfil');var el=document.getElementById('inv-nombre');if(el){el.scrollIntoView({behavior:'smooth'});el.focus();toast('Escribí el nombre de tu local favorito y le mandamos la invitación')}}
 var MENUQ_CACHE={};
 async function buscarProductos(q){
   var box=document.getElementById('prodRes');if(!box)return;
@@ -934,7 +934,7 @@ function abrirPedido(tipo,local){
   pintarTotal();
 }
 function usarDir(d){document.getElementById('f-dir').value=d;}
-function cerrarSheet(){document.getElementById('veil').style.display='none';document.getElementById('sheet').style.display='none';}
+function cerrarSheet(){document.getElementById('veil').style.display='none';document.querySelectorAll('.sheet').forEach(function(x){x.style.display='none'});window.LMAP=null;}
 function setTipo(t){
   TIPO=t;['comida','viaje','repuesto'].forEach(function(x){document.getElementById('pill-'+x).className='pill'+(x===t?' on':'')});extra();
 }

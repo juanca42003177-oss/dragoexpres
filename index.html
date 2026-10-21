@@ -321,6 +321,7 @@ function abrirDueno() {
       if(rol==='piloto'){abrir('piloto');if(qs.get('veh'))document.getElementById('pVeh').value=qs.get('veh');verVeh();}
       else if(rol==='dueno'){abrirDueno();if(qs.get('veh'))document.getElementById('pVeh').value=qs.get('veh');verVeh();}
       else if(rol==='flota'){abrir('flota');}
+      else if(rol==='local'){abrir('local');}
       if(qs.get('zona')){var pz=document.getElementById('pZona');if(pz)pz.value=qs.get('zona');var fz=document.getElementById('flZona');if(fz&&rol==='flota')fz.value=qs.get('zona');}
       if(qs.get('ref'))document.getElementById('pRef').value=qs.get('ref');
     }
