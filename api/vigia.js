@@ -26,6 +26,15 @@ async function ghPut(path, sha, data, msg) {
   });
   if (!r.ok) throw new Error('guardar ' + path + ' HTTP ' + r.status);
 }
+
+async function despertarAgente(payload) {
+  try {
+    const url = process.env.DX_ALERT_WEBHOOK;
+    if (!url) return false; // Juan aún no configuró la URL en Vercel: solo avisa Telegram
+    const r = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+    return r.ok;
+  } catch (e) { return false; }
+}
 async function aviso(texto) {
   try {
     const tok = process.env.TELEGRAM_BOT_TOKEN, chat = process.env.TELEGRAM_CHAT_ID || '8022768138';
@@ -36,6 +45,14 @@ async function aviso(texto) {
 
 module.exports = wrap(async (req, res) => {
   const now = Date.now();
+  // PRUEBA de la cadena completa (Juan la abre en su navegador): despierta al agente sin marcar falla
+  if ((req.query || {}).test === '1') {
+    const problemas = ['PRUEBA de la cadena de alertas: verificá que DragoExpres responda y avisale a Juan que todo funciona.'];
+    const enviado = await despertarAgente({ app: 'dragoexpres', tipo: 'test', problemas, detalle: 'PRUEBA de Juan: cadena de soporte. Si leés esto, confirmá que la app responde bien y avisale.', ts: Date.now() });
+    await aviso('🧪 DragoExpres: PRUEBA de la cadena de soporte disparada' + (enviado ? ' — agente despertado.' : ' — agente NO despertado: falta la variable DX_ALERT_WEBHOOK en Vercel.'));
+    return res.status(200).json({ ok: true, prueba: 'disparada', agenteDespertado: enviado });
+  }
+
   const problemas = [];
 
   // 1) bodega viva: los archivos que usa el día a día
@@ -71,6 +88,7 @@ module.exports = wrap(async (req, res) => {
   } else if (!ok && (st.estado !== 'falla' || now - (st.ultimoAviso || 0) > RERECORDAR)) {
     cambio = true;
     await aviso('🔴 DragoExpres FALLA — Vigía detectó:\n' + problemas.map(p => '• ' + p).join('\n') + '\n\nRevisa la app. Si no responde, escribile a Solene con este mensaje.');
+    await despertarAgente({ app: 'dragoexpres', tipo: 'fallo', problemas, detalle: 'Fallo real detectado por el Vigía: ' + problemas.join(' | '), ts: Date.now() });
     st = { estado: 'falla', ultimoAviso: now, desde: st.estado === 'falla' ? (st.desde || now) : now };
   }
   if (cambio) {
