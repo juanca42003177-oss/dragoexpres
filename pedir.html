@@ -448,7 +448,7 @@ input,textarea,select{-webkit-user-select:text;user-select:text}
   <div id="shDir-list"></div>
   <div class="srch" style="margin-top:10px"><input id="shDir-nueva" placeholder="Nueva dirección o punto de referencia"><button style="background:var(--oro);border:0;border-radius:10px;padding:8px 12px;font-weight:900;cursor:pointer" onclick="shDirAdd()">Guardar</button></div>
   <div style="display:flex;gap:8px;margin-top:10px">
-    <select id="shDir-label" style="flex:1;border:1.5px solid #ccc;border-radius:10px;padding:9px;font-size:13.5px;background:#fff"><option>Casa</option><option>Trabajo</option><option>Otro</option></select>
+    <input id="shDir-label" list="dxLbList" placeholder="Ej: Casa, Trabajo, Hotel..." style="flex:1;border:1.5px solid #ccc;border-radius:10px;padding:9px;font-size:13.5px;background:#fff"><datalist id="dxLbList"><option>Casa</option><option>Trabajo</option><option>Hotel</option><option>Casa de la novia</option><option>Casa del novio</option><option>Casa de mis papás</option></datalist>
     <select id="shDir-zona" onchange="shDirZonaCambia()" style="flex:1;border:1.5px solid #ccc;border-radius:10px;padding:9px;font-size:13.5px;background:#fff"><option value="">Zona...</option></select>
   </div>
   <input id="shDir-zona-libre" placeholder="Escribí tu zona o colonia" style="display:none;width:100%;box-sizing:border-box;border:1.5px solid #ccc;border-radius:10px;padding:9px;font-size:13.5px;margin-top:8px">
@@ -545,9 +545,14 @@ function onbArranca(){
 
 /* ---------- hojas: direcciones y notificaciones ---------- */
 function cerrarSheets(){document.querySelectorAll('.sheetFull').forEach(function(s){s.className='sheetFull'})}
+function dirIco(lb){lb=String(lb||'').toLowerCase();
+  if(lb==='casa')return '🏠';if(lb==='trabajo'||lb==='oficina')return '💼';if(lb==='hotel')return '🏨';
+  if(lb.indexOf('novia')>=0||lb.indexOf('novio')>=0)return '💞';if(lb.indexOf('pap')>=0||lb.indexOf('mam')>=0)return '👨‍👩‍👧';
+  if(lb.indexOf('gym')>=0)return '🏋️';if(lb.indexOf('escuela')>=0||lb.indexOf('uni')>=0)return '🎓';
+  return lb?'⭐':'📍'}
 function abrirDirecciones(){
   var u=LS();var l=document.getElementById('shDir-list'),h='';
-  (u.dires||[]).forEach(function(d,i){h+='<div class="dirRow" onclick="shDirUse('+i+')"><span style="font-size:20px">'+(d.label==='Casa'?'🏠':d.label==='Trabajo'?'🏢':'⭐')+'</span><div style="flex:1"><b>'+d.label+'</b><span>'+d.dir+'</span></div>'+(u.dire===d.dir?'<span style="color:var(--ok);font-weight:900">✓</span>':'')+'<span onclick="shDirDel('+i+',event)" style="background:#fdeeee;color:var(--rojo);border-radius:50%;width:26px;height:26px;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:900;flex:none">✕</span></div>'});
+  (u.dires||[]).forEach(function(d,i){h+='<div class="dirRow" onclick="shDirUse('+i+')"><span style="font-size:20px">'+dirIco(d.label)+'</span><div style="flex:1"><b>'+d.label+'</b><span>'+d.dir+'</span></div>'+(u.dire===d.dir?'<span style="color:var(--ok);font-weight:900">✓</span>':'')+'<span onclick="shDirDel('+i+',event)" style="background:#fdeeee;color:var(--rojo);border-radius:50%;width:26px;height:26px;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:900;flex:none">✕</span></div>'});
   l.innerHTML=h||'<p class="mini">Todavía no tenés direcciones guardadas. Agregá la primera abajo.</p>';
   var zz=document.getElementById('shDir-zona');
   if(zz.options.length<=1){pintarZonasSel(zz,ZONAS,true);zz.insertAdjacentHTML('afterbegin','<option value="">Zona...</option>');zz.value='';if(u.zona){for(var i=0;i<zz.options.length;i++){if(zz.options[i].value===u.zona){zz.value=u.zona;break}}}}
@@ -558,7 +563,7 @@ function shDirDel(i,ev){ev.stopPropagation();if(!confirm('¿Quitar esta direcci�
 function shDirUse(i){var u=LS();var d=u.dires[i];u.dire=d.dir;SS(u);pintarDirHeader();cerrarSheets()}
 function shDirAdd(){
   var nd=document.getElementById('shDir-nueva').value.trim();if(!nd){alert('Escribí la dirección.');return}
-  var u=LS();u.dires=u.dires||[];var lb=document.getElementById('shDir-label').value,z=document.getElementById('shDir-zona').value;
+  var u=LS();u.dires=u.dires||[];var lb=(document.getElementById('shDir-label').value||'').trim()||'Casa',z=document.getElementById('shDir-zona').value;
   if(z==='__otra')z=document.getElementById('shDir-zona-libre').value.trim();
   u.dires.unshift({label:lb,dir:nd});u.dire=nd;if(z)u.zona=z;SS(u);document.getElementById('shDir-nueva').value='';
   pintarDirHeader();abrirDirecciones();
@@ -1051,10 +1056,37 @@ function abrirPedido(tipo,local){
   document.getElementById('veil').style.display='block';
   document.getElementById('sheet').style.display='block';
   var dg=document.getElementById('dirs-guardadas');
-  var dirTxt=function(d){return typeof d==='string'?d:(d?(d.dir||d.calle||d.direccion||d.texto||''):'')};var vistos={},uDirs=(u.dires||[]).filter(function(d){var t=dirTxt(d);if(!t||vistos[t])return false;vistos[t]=1;return true});u.dires=uDirs;var dIco=function(d){var lb=(d&&typeof d==='object')?(d.label||''):'';return lb==='Casa'?'🏠':lb==='Trabajo'?'🏢':(lb?'⭐':'📍')};
+  var dirTxt=function(d){return typeof d==='string'?d:(d?(d.dir||d.calle||d.direccion||d.texto||''):'')};var vistos={},uDirs=(u.dires||[]).filter(function(d){var t=dirTxt(d);if(!t||vistos[t])return false;vistos[t]=1;return true});u.dires=uDirs;var dIco=function(d){return dirIco((d&&typeof d==='object')?(d.label||''):'')};
   var dLb=function(d){var lb=(d&&typeof d==='object')?(d.label||''):'';return lb?dIco(d)+' '+lb+' · ':''};
   dg.innerHTML=uDirs.length?'<label>Tus direcciones guardadas — tocá y se llena solo</label>'+uDirs.map(function(d,i){return '<span class="dirchip" data-di="'+i+'" onclick="usarDir('+i+')" title="'+dirTxt(d)+'">'+dLb(d)+String(dirTxt(d)).slice(0,34)+(String(dirTxt(d)).length>34?'…':'')+'</span>'}).join(''):'';
+  // PICKER DE ETIQUETA para direcciones nuevas (Casa, Trabajo, Hotel, la que sea)
+  var dgn=document.getElementById('dirs-guardadas');
+  if(dgn && !document.getElementById('lblPick')){
+    dgn.insertAdjacentHTML('beforeend','<div id="lblPick" style="display:none;margin-top:4px"><label>¿Cómo llamamos esta dirección?</label><div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:4px">'
+      +'<span class="lbchip" data-lb="Casa" onclick="setLbl(&#39;Casa&#39;)" style="border:1.5px solid #e0e0e0;border-radius:20px;padding:7px 12px;font-size:12.5px;font-weight:700;background:#fff;cursor:pointer">🏠 Casa</span>'
+      +'<span class="lbchip" data-lb="Trabajo" onclick="setLbl(&#39;Trabajo&#39;)" style="border:1.5px solid #e0e0e0;border-radius:20px;padding:7px 12px;font-size:12.5px;font-weight:700;background:#fff;cursor:pointer">💼 Trabajo</span>'
+      +'<span class="lbchip" data-lb="Hotel" onclick="setLbl(&#39;Hotel&#39;)" style="border:1.5px solid #e0e0e0;border-radius:20px;padding:7px 12px;font-size:12.5px;font-weight:700;background:#fff;cursor:pointer">🏨 Hotel</span>'
+      +'<input id="lblOtra" placeholder="Ej: Casa de la novia" oninput="setLbl(this.value)" style="flex:1;min-width:130px;border:1.5px solid #ccc;border-radius:20px;padding:7px 12px;font-size:12.5px"></div></div>');
+  }
+  var fdirEl=document.getElementById('f-dir');
+  if(fdirEl){fdirEl.addEventListener('input',lblSync);}
+  lblSync();
   pintarTotal();
+}
+window._DIR_LBL=window._DIR_LBL||'Casa';
+function lblSync(){
+  var u=LS();var t=((document.getElementById('f-dir')||{}).value||'').trim();
+  var ya=(u.dires||[]).some(function(d){var x=(typeof d==='string')?d:(d.dir||'');return x===t});
+  var lp=document.getElementById('lblPick');if(!lp)return;
+  lp.style.display=(t&&!ya)?'block':'none';
+}
+function setLbl(v){
+  v=String(v||'').trim();window._DIR_LBL=v||'Casa';
+  document.querySelectorAll('.lbchip').forEach(function(c){
+    var on=(c.getAttribute('data-lb')===window._DIR_LBL);
+    c.style.borderColor=on?'var(--rojo)':'#e0e0e0';c.style.background=on?'#fdeeee':'#fff';
+  });
+  if(window._DIR_LBL!=='Casa'&&window._DIR_LBL!=='Trabajo'&&window._DIR_LBL!=='Hotel'){var o=document.getElementById('lblOtra');if(o&&o.value!==window._DIR_LBL)o.value=window._DIR_LBL;}
 }
 function usarDir(i){
   var u=LS();var d=(u.dires||[])[i];if(d===undefined)return;
@@ -1126,7 +1158,7 @@ async function enviar(){
   u.nombre=d.nombre;u.tel=d.tel;u.zona=d.zona;u.dires=u.dires||[];
   var _dt=function(x){return typeof x==='string'?x:(x?(x.dir||x.calle||x.direccion||x.texto||''):'')};
   if(!u.dires.some(function(x){return _dt(x)===d.direccion})){
-    u.dires.unshift({label:u.dires.length?'Guardada':'Casa',dir:d.direccion,ref:d.referencia||''});
+    u.dires.unshift({label:(window._DIR_LBL||'Casa'),dir:d.direccion,ref:d.referencia||''});
     if(u.dires.length>6)u.dires.length=6;
   }
   u.dire=d.direccion;u.ref=d.referencia||'';
