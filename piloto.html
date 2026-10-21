@@ -228,6 +228,7 @@ function pintar(j){
   var av=document.getElementById('deuda');
   if(p.pendiente){av.style.display='block';av.innerHTML='💰 Tenés <b>Q'+p.pendiente.monto+'</b> de comisiones por liquidar. Depositá o transferí a: <br><b>Banco Industrial · No. 7171286805 · Andrea Ester Perez Acosta</b><br>Después avisale al admin por WhatsApp 😊'+(p.pendienteActivo?'<br><span style="font-size:12px">⏳ Hasta ponerte al día no te llegan pedidos nuevos. Al confirmar tu pago, todo vuelve a la normalidad como si nada.</span>':'')+(p.retraso?'<br><span style="font-size:12px">Por el retraso perdiste tu racha de la devolución semanal. Si tuviste un motivo, escribile al admin por WhatsApp: te la puede devolver.</span>':'');}
   else{av.style.display='none'}
+  if(p.saldoChico&&!p.pendiente){av.style.display='block';av.innerHTML='🪙 Acumulás <b>Q'+p.saldoChico+'</b> de comisiones: se cobran juntas cuando lleguen a Q50, nadie anda al banco por chiquitos. Seguís volando normal 😊';}
   var sw=document.getElementById('sw');sw.className='sw'+(p.disponible?' on':'');
   document.getElementById('dis-txt').textContent=p.disponible?'DISPONIBLE 🟢':'NO DISPONIBLE';
   var act=document.getElementById('pedidoActivo'),sin=document.getElementById('sinPedido');
