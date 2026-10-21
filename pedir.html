@@ -1120,10 +1120,10 @@ function cambiarEntrega(){
 }
 
 function setTipo(t){
+  TIPO=t;
   var du=document.getElementById('datosUser');
   if(du){var uu=LS();var hayDir=((uu.dire&&String(uu.dire).trim())||(uu.dires||[]).length>0);
-    du.style.display=(TIPO!=='viaje'&&hayDir&&uu.nombre&&uu.tel)?'none':'block';}
-  TIPO=t;['comida','viaje','repuesto'].forEach(function(x){document.getElementById('pill-'+x).className='pill'+(x===t?' on':'')});extra();
+    du.style.display=(t!=='viaje'&&hayDir&&uu.nombre&&uu.tel)?'none':'block';}['comida','viaje','repuesto'].forEach(function(x){document.getElementById('pill-'+x).className='pill'+(x===t?' on':'')});extra();
 }
 function zonaCambia(){
   var z=document.getElementById('f-zona'),lib=document.getElementById('f-zona-libre');
