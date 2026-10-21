@@ -88,7 +88,7 @@ module.exports = wrap(async (req, res) => {
   const todoOk = checks.every(c => c.ok) && !pideOkManual;
   const estadoReg = d.tipo === 'usuario' ? 'aprobado' : (todoOk ? 'aprobado' : 'pendiente_verificacion');
   const firmaContrato = (d.tipo === 'piloto' || d.tipo === 'local') && d.contrato
-    ? { version: 'C-2026.5', aceptado: true, tsFirma: now, ip: (req.headers && (req.headers['x-forwarded-for'] || req.headers['x-real-ip'])) || null }
+    ? { version: 'C-2026.6', aceptado: true, tsFirma: now, ip: (req.headers && (req.headers['x-forwarded-for'] || req.headers['x-real-ip'])) || null }
     : null;
   data.push({ tipo: d.tipo, datos: d, estado: estadoReg, auto: (d.tipo !== 'usuario' && todoOk) || undefined, checks, ts: now, firmaContrato });
   await ghPut(f ? f.sha : null, data);
