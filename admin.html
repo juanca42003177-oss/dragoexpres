@@ -89,14 +89,16 @@ fetch(apiBase()+'/admin',{method:'POST',headers:{'Content-Type':'application/jso
 function abrir(){
   document.getElementById('login').style.display='none';
   document.getElementById('panel').style.display='block';
-  if(MODO_DEMO)document.getElementById('modoAviso').style.display='block';
-  pintar(DEMO);
+  if(MODO_DEMO){document.getElementById('modoAviso').style.display='block';pintar(DEMO);return}
+  if(!window.REGS){var av=document.getElementById('avisoRed');av.style.display='block';av.style.background='#241a05';av.style.borderColor='#f0b90b';av.style.color='#ffe08a';av.textContent='⏳ Cargando tus datos reales de la bodega...';}
+  pintar(window.REGS||[]);
+  cargar();
 }
 function cargar(){
   fetch(apiBase()+'/admin',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({pass:PASS,action:'list'})})
   .then(r=>r.json()).then(function(j){
-    if(j&&j.ok){pintar(j.registros||[]);if(window.AVISO_FALLA){try{document.getElementById('avisoRed').style.display='none'}catch(e){}window.AVISO_FALLA=false}}
-    else{window.AVISO_FALLA=true;try{var av=document.getElementById('avisoRed');av.style.display='block';av.textContent='⚠️ Conexión perdida con la bodega. Tus datos están bien — reintentando solo cada 30 segundos...'}catch(e){}}
+    if(j&&j.ok){window.REGS=j.registros||[];pintar(window.REGS);if(window.AVISO_FALLA){try{document.getElementById('avisoRed').style.display='none'}catch(e){}window.AVISO_FALLA=false}}
+    else{window.AVISO_FALLA=true;try{var av=document.getElementById('avisoRed');av.style.display='block';av.style.background='#3a1d1d';av.style.borderColor='#ff8f8f';av.style.color='#ffb4b4';av.textContent='⚠️ Sin conexión con la bodega. NADA SE BORRÓ: tus usuarios, pilotos y locales siguen guardados. Reintentando solo cada 30 segundos...'}catch(e){}}
   });
 }
 var PED_CACHE={};
@@ -276,7 +278,7 @@ function pintar(regs){
   });
   document.getElementById('lista').innerHTML=html2||'<div class="card">Sin registros en esta sección.</div>';
 }
-function ver(t){TAB=t;pintar(MODO_DEMO?DEMO:window.REGS||DEMO);if(!MODO_DEMO)cargar();}
+function ver(t){TAB=t;pintar(MODO_DEMO?DEMO:(window.REGS||[]));if(!MODO_DEMO)cargar();}
 function estado(ts,acc){
   if(MODO_DEMO){var r=DEMO.find(function(x){return String(x.ts)===String(ts);});if(r){r.estado=acc==='aprobar'?'aprobado':'rechazado';pintar(DEMO);}return;}
   fetch(apiBase()+'/admin',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({pass:PASS,action:acc,ts:ts})})
