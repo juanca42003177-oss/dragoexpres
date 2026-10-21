@@ -89,6 +89,7 @@ input,textarea,select{-webkit-user-select:text;user-select:text}
     <label>Foto del frente del local</label>
     <input id="loc-foto" type="file" accept="image/*" capture="environment" style="background:#0d0e14">
     <button class="btn bA" id="locFotoBtn" style="margin-top:8px" onclick="guardarFotoLocal()">📸 GUARDAR FOTO DEL LOCAL</button>
+<div id="secPromos">
     <h3 style="color:#f0b90b;margin:16px 0 4px;font-size:15px">🎉 Mis promos</h3>
     <p class="mini" style="margin:4px 0 8px">Hasta 5 promos activas. Aparecen arriba del menú para los clientes: 2x1, descuentos, combos... Vos las creás y las quitás cuando querés.</p>
     <div id="promosBox"></div>
@@ -99,6 +100,7 @@ input,textarea,select{-webkit-user-select:text;user-select:text}
       <label style="margin-top:8px">Foto de la promo (opcional — un combo, un 2x1 que se vea rico)</label>
       <input id="pr-foto" type="file" accept="image/*" capture="environment" style="background:#0d0e14">
       <button class="btn bA" onclick="promoAdd()">🎉 ACTIVAR PROMO</button>
+    </div>
     </div>
 
 <div id="secServicios">
@@ -249,6 +251,7 @@ function CATORD(){return esRep()?CATREP:(RUBRO==='tienda'?CATTIE:CATFOOD)}
 function esRep(){return RUBRO==='repuestos'||RUBRO==='taller'}
 function adaptarRubro(){
   document.getElementById('secServicios').style.display=esRep()?'block':'none';
+  document.getElementById('secPromos').style.display=esRep()?'none':'block';
   document.getElementById('m-cat').innerHTML=CATORD().map(function(c){return '<option>'+c+'</option>'}).join('');
   document.getElementById('h-menu').textContent=esRep()?'🔧 Mi catálogo de repuestos':(RUBRO==='tienda'?'🛒 Mi catálogo':'📋 Mi menú');
   document.getElementById('m-nombre').placeholder=esRep()?'Ej: Bujía NGK para moto':'Ej: Pepián';
