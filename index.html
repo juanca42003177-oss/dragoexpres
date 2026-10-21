@@ -11,46 +11,46 @@
 :root{--oro:#f0b90b;--oro2:#ffe08a;--bg:#0a0a0f;--card:#14151c;--borde:#2a2b38;--txt:#f2f4f8;--mut:#9aa3b5;--rosa:#ff2d8d}
 *{margin:0;padding:0;box-sizing:border-box;font-family:system-ui,-apple-system,sans-serif}
 body{background:var(--bg);color:var(--txt);min-height:100vh}
-.wrap{max-width:520px;margin:0 auto;padding:18px 16px 60px}
+.wrap{max-width:520px;margin:0 auto;padding:12px 16px 50px}
 header{display:flex;align-items:center;gap:12px;margin-bottom:6px}
-header img{width:58px;height:58px;border-radius:14px;border:2px solid var(--oro);box-shadow:0 0 18px rgba(240,185,11,.35)}
-.brand{font-size:26px;font-weight:900;letter-spacing:1px}
+header img{width:42px;height:42px;border-radius:11px;border:2px solid var(--oro);box-shadow:0 0 14px rgba(240,185,11,.35)}
+.brand{font-size:21px;font-weight:900;letter-spacing:1px}
 .brand span{color:var(--oro)}
-.sub{color:var(--mut);font-size:13px;letter-spacing:2.5px;text-transform:uppercase}
-.hero{text-align:center;margin:26px 0 8px}
-.hero h1{font-size:27px;line-height:1.25}
+.sub{color:var(--mut);font-size:10.5px;letter-spacing:2px;text-transform:uppercase}
+.hero{text-align:center;margin:12px 0 6px}
+.hero h1{font-size:21px;line-height:1.2}
 .hero h1 b{color:var(--oro)}
-.hero p{color:var(--mut);margin-top:10px;font-size:15px;line-height:1.5}
-.puertas{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:22px 0}
-.puerta{background:var(--card);border:1px solid var(--borde);border-radius:16px;padding:16px 10px;text-align:center;cursor:pointer;transition:.15s}
+.hero p{color:var(--mut);margin-top:6px;font-size:12.5px;line-height:1.45}
+.puertas{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:14px 0}
+.puerta{background:var(--card);border:1px solid var(--borde);border-radius:13px;padding:11px 8px;text-align:center;cursor:pointer;transition:.15s}
 .puerta:active{transform:scale(.97)}
 .puerta.on{border-color:var(--oro);box-shadow:0 0 14px rgba(240,185,11,.25)}
-.puerta .i{font-size:30px}
-.puerta .n{font-weight:800;font-size:13.5px;margin-top:8px;line-height:1.3}
-.sec{background:#12121a;border:1px solid #1e1e26;border-radius:14px;padding:16px;margin:14px 0}
-.sec h2{font-size:17px;margin:0 0 10px}
+.puerta .i{font-size:22px}
+.puerta .n{font-weight:800;font-size:12.5px;margin-top:5px;line-height:1.25}
+.sec{background:#12121a;border:1px solid #1e1e26;border-radius:13px;padding:12px;margin:10px 0}
+.sec h2{font-size:15px;margin:0 0 8px}
 .paso{display:flex;gap:12px;align-items:flex-start;margin:10px 0}
 .pn{min-width:26px;height:26px;border-radius:50%;background:#f5c518;color:#111;font-weight:900;text-align:center;line-height:26px;font-size:13px}
 .mini{flex:1;text-align:center;font-size:11px;background:#17171f;border:1px solid #262626;border-radius:10px;padding:8px 4px;color:#cfc7b8}
-.puerta .s{color:var(--mut);font-size:11px;margin-top:4px}
-.form{background:var(--card);border:1px solid var(--borde);border-radius:16px;padding:18px;display:none}
+.puerta .s{color:var(--mut);font-size:10px;margin-top:2px}
+.form{background:var(--card);border:1px solid var(--borde);border-radius:13px;padding:14px;display:none}
 .form.on{display:block}
 .form h3{font-size:17px;margin-bottom:4px}
 .form p.desc{color:var(--mut);font-size:12.5px;line-height:1.45;margin-bottom:14px}
-label{display:block;font-size:12px;font-weight:700;color:var(--mut);margin:12px 0 5px}
-input,select{width:100%;background:#0d0e14;border:1px solid var(--borde);border-radius:10px;color:var(--txt);padding:12px;font-size:15px}
+label{display:block;font-size:11.5px;font-weight:700;color:var(--mut);margin:9px 0 4px}
+input,select{width:100%;background:#0d0e14;border:1px solid var(--borde);border-radius:10px;color:var(--txt);padding:10px;font-size:14px}
 input:focus,select:focus{outline:none;border-color:var(--oro)}
-.btn{width:100%;margin-top:18px;background:linear-gradient(135deg,var(--oro2),var(--oro));color:#111;border:0;border-radius:12px;padding:15px;font-size:16px;font-weight:900;cursor:pointer}
+.btn{width:100%;margin-top:14px;background:linear-gradient(135deg,var(--oro2),var(--oro));color:#111;border:0;border-radius:11px;padding:13px;font-size:15px;font-weight:900;cursor:pointer}
 .btn:active{transform:scale(.98)}
 .ok{display:none;text-align:center;padding:26px 8px}
 .ok .e{font-size:44px}
 .ok h4{font-size:19px;margin:12px 0 8px}
 .ok p{color:var(--mut);font-size:13.5px;line-height:1.5}
-.bene{margin-top:22px;background:var(--card);border:1px solid var(--borde);border-radius:16px;padding:16px}
+.bene{margin-top:12px;background:var(--card);border:1px solid var(--borde);border-radius:13px;padding:12px}
 .bene h4{font-size:13px;letter-spacing:2px;text-transform:uppercase;color:var(--oro);margin-bottom:10px;text-align:center}
-.bene .r{display:flex;gap:10px;font-size:13px;margin:9px 0;line-height:1.45;color:#d8dde8}
+.bene .r{display:flex;gap:10px;font-size:12px;margin:6px 0;line-height:1.4;color:#d8dde8}
 .bene .r b{color:var(--txt)}
-footer{margin-top:26px;text-align:center;color:var(--mut);font-size:11.5px;line-height:1.7}
+footer{margin-top:16px;text-align:center;color:var(--mut);font-size:11px;line-height:1.6}
 footer b{color:var(--oro)}
 </style>
 <style>
@@ -67,22 +67,19 @@ input,textarea,select{-webkit-user-select:text;user-select:text}
   </header>
   <div class="hero">
     <h1>Tu zona, a <b>velocidad de dragón</b></h1>
-    <p>Llegamos a toda Guatemala, área por área. Registrate hoy y te avisamos apenas abrimos en tu zona.</p>
-  <img src="img/banner.png" alt="DragoExpres" style="width:100%;border-radius:14px;margin-top:12px;border:1px solid #26210f">
+    <p>Toda Guatemala, área por área. Registrate y te avisamos cuando abrimos en tu zona.</p>
+  <img src="img/banner.png" alt="DragoExpres" style="width:100%;height:150px;object-fit:cover;border-radius:12px;margin-top:10px;border:1px solid #26210f">
   <div style="display:flex;gap:8px;margin-top:10px">
-    <div class="mini"><img src="img/dragon-paquete.webp" style="width:17px;height:17px;object-fit:contain;border-radius:5px;vertical-align:-4px"> Comida de tus locales favoritos</div><div class="mini"><img src="img/dragon-volando.png" style="width:17px;height:17px;object-fit:cover;border-radius:5px;vertical-align:-4px"> Viajes con precio justo</div><div class="mini"><img src="img/repuestos.png" style="width:17px;height:17px;object-fit:cover;border-radius:5px;vertical-align:-4px"> Repuestos a tu puerta</div>
-  </div>
-  <div style="display:flex;gap:8px;margin-top:14px">
-    <a href="pedir.html" style="flex:1;text-align:center;background:linear-gradient(135deg,#ffe08a,#f0b90b);border:0;border-radius:10px;padding:13px;font-weight:900;font-size:15px;color:#111;text-decoration:none"><img src="img/dragon-paquete.webp" style="width:18px;height:18px;object-fit:contain;border-radius:5px;vertical-align:-4px"> PEDIR AHORA</a>
-    <a href="ganancias.html" style="flex:1;text-align:center;background:#14151c;border:1px solid #f0b90b;border-radius:10px;padding:13px;font-weight:900;font-size:15px;color:#f0b90b;text-decoration:none"><img src="img/dragon-billetera.png" style="width:18px;height:18px;object-fit:cover;border-radius:5px;vertical-align:-4px"> SOY PILOTO</a>
+    <a href="pedir.html" style="flex:1;text-align:center;background:linear-gradient(135deg,#ffe08a,#f0b90b);border:0;border-radius:10px;padding:11px;font-weight:900;font-size:14px;color:#111;text-decoration:none"><img src="img/dragon-paquete.webp" style="width:16px;height:16px;object-fit:contain;border-radius:4px;vertical-align:-3px"> PEDIR AHORA</a>
+    <a href="ganancias.html" style="flex:1;text-align:center;background:#14151c;border:1px solid #f0b90b;border-radius:10px;padding:11px;font-weight:900;font-size:14px;color:#f0b90b;text-decoration:none"><img src="img/dragon-billetera.png" style="width:16px;height:16px;object-fit:cover;border-radius:4px;vertical-align:-3px"> SOY PILOTO</a>
   </div>
   </div>
   <div class="puertas">
-    <div class="puerta on" id="tUsuario" onclick="abrir('usuario')"><div class="i"><img src="img/dragon-paquete.webp" style="width:32px;height:32px;object-fit:contain;border-radius:8px"></div><div class="n">Quiero pedir</div><div class="s">Comida, viajes y repuestos</div></div>
-    <div class="puerta" id="tPiloto" onclick="location.href='ganancias.html'"><div class="i"><img src="img/dragon-billetera.png" style="width:32px;height:32px;object-fit:cover;border-radius:8px"></div><div class="n">Ser piloto</div><div class="s">Pagos semanales</div></div>
-    <div class="puerta" id="tLocal" onclick="abrir('local')"><div class="i"><img src="img/dragon-local.png" style="width:32px;height:32px;object-fit:contain;border-radius:8px"></div><div class="n">Poné tu local</div><div class="s">Tu zona te ve</div></div>
-    <div class="puerta" id="tFlota" onclick="abrir('flota')"><div class="i"><img src="img/dragon-volando.png" style="width:32px;height:32px;object-fit:cover;border-radius:8px"></div><div class="n">Tu moto o carro a trabajar</div><div class="s">Ganá el 25% sin manejar</div></div>
-    <div class="puerta" id="tDueno" onclick="abrirDueno()" style="grid-column:1/3;display:flex;align-items:center;gap:14px;text-align:left;padding:14px 16px"><div class="i" style="margin:0"><img src="img/dragon-billetera.png" style="width:32px;height:32px;object-fit:cover;border-radius:8px"></div><div><div class="n" style="margin-top:0">Mi vehículo, lo manejo YO</div><div class="s">Sos el dueño: ganás el 100% de cada entrega, sin split</div></div></div>
+    <div class="puerta on" id="tUsuario" onclick="abrir('usuario')"><div class="i"><img src="img/dragon-paquete.webp" style="width:26px;height:26px;object-fit:contain;border-radius:7px"></div><div class="n">Quiero pedir</div><div class="s">Comida, viajes y repuestos</div></div>
+    <div class="puerta" id="tPiloto" onclick="location.href='ganancias.html'"><div class="i"><img src="img/dragon-billetera.png" style="width:26px;height:26px;object-fit:cover;border-radius:7px"></div><div class="n">Ser piloto</div><div class="s">Pagos semanales</div></div>
+    <div class="puerta" id="tLocal" onclick="abrir('local')"><div class="i"><img src="img/dragon-local.png" style="width:26px;height:26px;object-fit:contain;border-radius:7px"></div><div class="n">Poné tu local</div><div class="s">Tu zona te ve</div></div>
+    <div class="puerta" id="tFlota" onclick="abrir('flota')"><div class="i"><img src="img/dragon-volando.png" style="width:26px;height:26px;object-fit:cover;border-radius:7px"></div><div class="n">Tu moto o carro a trabajar</div><div class="s">Ganá el 25% sin manejar</div></div>
+    <div class="puerta" id="tDueno" onclick="abrirDueno()" style="grid-column:1/3;display:flex;align-items:center;gap:10px;text-align:left;padding:10px 12px"><div class="i" style="margin:0"><img src="img/dragon-billetera.png" style="width:26px;height:26px;object-fit:cover;border-radius:7px"></div><div><div class="n" style="margin-top:0">Mi vehículo, lo manejo YO</div><div class="s">Sos el dueño: ganás el 100% de cada entrega, sin split</div></div></div>
   </div>
 
   <div class="form on" id="fUsuario">
@@ -187,15 +184,17 @@ input,textarea,select{-webkit-user-select:text;user-select:text}
   
 <div class="sec" id="COMO_FUNCIONA">
   <h2>¿Cómo funciona?</h2>
-  <div class="paso"><div class="pn">1</div><div><b>Elegí qué necesitás</b><br><span class="small">Comida de tu zona, un viaje o el repuesto de tu moto o carro.</span></div></div>
-  <div class="paso"><div class="pn">2</div><div><b>El dragón elige a tu piloto</b><br><span class="small">Solo pilotos verificados con DPI y licencia (como las apps grandes): vos los ves con su insignia ✅, su moto, su placa y cuánto tarda.</span></div></div>
-  <div class="paso"><div class="pn">3</div><div><b>Pagás en la puerta</b><br><span class="small">Efectivo o tarjeta, directo. Números claros: sin sorpresas ni cobros raros.</span></div></div>
-  <div class="paso"><div class="pn">4</div><div><b>Tu piloto gana cada domingo</b><br><span class="small">Cumple sus 20 entregas y recibe su cashback semanal. Piloto contento, entrega más rápida.</span></div></div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+    <div style="background:#17171f;border:1px solid #262626;border-radius:10px;padding:10px"><b style="color:#f5c518">1 · Elegí qué necesitás</b><br><span class="small" style="font-size:11px">Comida, un viaje o el repuesto de tu moto.</span></div>
+    <div style="background:#17171f;border:1px solid #262626;border-radius:10px;padding:10px"><b style="color:#f5c518">2 · El dragón elige a tu piloto</b><br><span class="small" style="font-size:11px">Pilotos verificados ✅ con su moto y placa a la vista.</span></div>
+    <div style="background:#17171f;border:1px solid #262626;border-radius:10px;padding:10px"><b style="color:#f5c518">3 · Pagás en la puerta</b><br><span class="small" style="font-size:11px">Efectivo directo. Números claros, sin sorpresas.</span></div>
+    <div style="background:#17171f;border:1px solid #262626;border-radius:10px;padding:10px"><b style="color:#f5c518">4 · Tu piloto gana cada domingo</b><br><span class="small" style="font-size:11px">20 entregas = cashback semanal. Piloto contento, entrega rápida.</span></div>
+  </div>
 </div>
 <div class="sec">
   <h2>Repuestos: nadie más hace esto <img src="img/repuestos.png" style="width:22px;height:22px;object-fit:cover;border-radius:5px;vertical-align:-4px"></h2>
-  <img src="img/repuestos.png" alt="Repuestos DragoExpres" style="width:100%;border-radius:14px;border:1px solid #26210f">
-  <p class="small" style="margin-top:10px;line-height:1.6">Buscás por <b>tu modelo</b>, no por nombre raro: "pastillas para Honda CG125", "bomba de agua para Nissan Tiida". Las tiendas de tu zona compiten por tu pedido y el piloto te la lleva. Y si querés, te la deja <b>instalada</b> con un taller asociado.</p>
+  <img src="img/repuestos.png" alt="Repuestos DragoExpres" style="width:100%;height:130px;object-fit:cover;border-radius:11px;border:1px solid #26210f">
+  <p class="small" style="margin-top:8px;line-height:1.5;font-size:11.5px">Buscás por <b>tu modelo</b>: "pastillas para Honda CG125", "bomba de agua para Nissan Tiida". Las tiendas de tu zona compiten por tu pedido y el piloto te la lleva — y si querés, te la deja <b>instalada</b>.</p>
 </div>
 <div class="sec" style="text-align:center;border:1px solid #b8860b">
   <h2 style="color:#f5c518">📲 Instalá DragoExpres gratis</h2>
