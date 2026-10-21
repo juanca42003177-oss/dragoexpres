@@ -297,10 +297,12 @@ input,textarea,select{-webkit-user-select:text;user-select:text}
     <div class="pill" id="pill-viaje" onclick="setTipo('viaje')">🛺 Viaje</div>
     <div class="pill" id="pill-repuesto" onclick="setTipo('repuesto')">🔧 Repuesto</div>
   </div>
+  <div id="datosUser">
   <label>Tu nombre</label><input id="f-nombre" placeholder="Ej: María López">
   <label>Tu WhatsApp</label><input id="f-tel" type="tel" placeholder="Ej: 55501234">
   <label>Zona</label><select id="f-zona" onchange="zonaCambia()"><option value="">Elegí o escribí tu zona</option></select>
   <input id="f-zona-libre" placeholder="Escribí tu zona o colonia" style="display:none">
+  </div>
   <div id="dirs-guardadas"></div>
   <div id="extra"></div>
   <p class="mini" style="margin-top:12px">💵 <b>Pagás en efectivo al piloto</b>: la compra al local + la tarifa de envío. Propina voluntaria, aparte. Tarjeta: próximamente.</p>
@@ -552,7 +554,7 @@ function dirIco(lb){lb=String(lb||'').toLowerCase();
   return lb?'⭐':'📍'}
 function abrirDirecciones(){
   var u=LS();var l=document.getElementById('shDir-list'),h='';
-  (u.dires||[]).forEach(function(d,i){h+='<div class="dirRow" onclick="shDirUse('+i+')"><span style="font-size:20px">'+dirIco(d.label)+'</span><div style="flex:1"><b>'+d.label+'</b><span>'+d.dir+'</span></div>'+(u.dire===d.dir?'<span style="color:var(--ok);font-weight:900">✓</span>':'')+'<span onclick="shDirDel('+i+',event)" style="background:#fdeeee;color:var(--rojo);border-radius:50%;width:26px;height:26px;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:900;flex:none">✕</span></div>'});
+  (u.dires||[]).forEach(function(d,i){h+='<div class="dirRow" onclick="shDirUse('+i+')"'+((u.dire===d.dir)?' style="background:#fffbe6;border:1.5px solid #f0b90b"':'')+'><span style="font-size:20px">'+dirIco(d.label)+'</span><div style="flex:1"><b style="display:block">'+d.label+'</b><span style="display:block;color:#667;font-size:12px">'+d.dir+'</span></div>'+(u.dire===d.dir?'<span style="color:var(--ok);font-weight:900;margin-right:10px;flex:none">✓ Actual</span>':'')+'<span onclick="shDirDel('+i+',event)" title="Quitar" style="background:#fdeeee;color:var(--rojo);border-radius:50%;width:30px;height:30px;display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:900;flex:none;margin-left:8px;opacity:.8">✕</span></div>'});
   l.innerHTML=h||'<p class="mini">Todavía no tenés direcciones guardadas. Agregá la primera abajo.</p>';
   var zz=document.getElementById('shDir-zona');
   if(zz.options.length<=1){pintarZonasSel(zz,ZONAS,true);zz.insertAdjacentHTML('afterbegin','<option value="">Zona...</option>');zz.value='';if(u.zona){for(var i=0;i<zz.options.length;i++){if(zz.options[i].value===u.zona){zz.value=u.zona;break}}}}
@@ -1094,10 +1096,33 @@ function usarDir(i){
   var el=document.getElementById('f-dir');if(el&&t)el.value=t;
   var rf=document.getElementById('f-ref');if(rf){if(d&&typeof d==='object'&&d.ref)rf.value=d.ref;else rf.value=''}
   u.dire=t;SS(u);
+  pintaEntregaBox(t,(d&&typeof d==='object')?(d.label||''):'');
   document.querySelectorAll('#dirs-guardadas .dirchip').forEach(function(c){c.style.borderColor=(c.getAttribute('data-di')===String(i))?'var(--rojo)':'#e0e0e0';c.style.background=(c.getAttribute('data-di')===String(i))?'#fdeeee':'#eef4fe'});
 }
 function cerrarSheet(){document.getElementById('veil').style.display='none';document.querySelectorAll('.sheet').forEach(function(x){x.style.display='none'});window.LMAP=null;pintarCartBtn();}
+function entregaBoxHTML(){
+  var uu=LS();
+  var dSel=(uu.dire&&String(uu.dire).trim())||'';
+  if(!dSel&&(uu.dires||[]).length){var d0=uu.dires[0];dSel=(typeof d0==='string')?d0:(d0.dir||'')}
+  if(!dSel)return '';
+  var lbObj=(uu.dires||[]).find(function(x){return (typeof x==='string'?x:(x.dir||''))===dSel})||{};
+  var lb=(lbObj&&typeof lbObj==='object')?(lbObj.label||''):'';
+  return '<div id="entregaBox" style="display:flex;align-items:center;gap:8px;background:#f4f8ff;border:1.5px solid #c6d4f5;border-radius:12px;padding:10px 12px;margin-bottom:2px"><span style="font-size:22px">'+dirIco(lb)+'</span><div style="flex:1;font-size:13px;line-height:1.4"><b>Entregar'+(lb?' en '+lb:'')+':</b> '+dSel+'</div><button type="button" onclick="cambiarEntrega()" style="background:#fff;border:1.5px solid #ccc;border-radius:16px;padding:5px 10px;font-size:12px;font-weight:700;flex:none">✏️ Cambiar</button></div>';
+}
+function pintaEntregaBox(dir,lb){
+  var et=document.getElementById('entregaBox');if(!et)return;
+  et.innerHTML='<span style="font-size:22px">'+dirIco(lb)+'</span><div style="flex:1;font-size:13px;line-height:1.4"><b>Entregar'+(lb?' en '+lb:'')+':</b> '+dir+'</div><button type="button" onclick="cambiarEntrega()" style="background:#fff;border:1.5px solid #ccc;border-radius:16px;padding:5px 10px;font-size:12px;font-weight:700;flex:none">✏️ Cambiar</button>';
+}
+function cambiarEntrega(){
+  var a=document.getElementById('entregaBox');if(a)a.style.display='none';
+  var b=document.getElementById('dirFields');if(b)b.style.display='block';
+  lblSync();
+}
+
 function setTipo(t){
+  var du=document.getElementById('datosUser');
+  if(du){var uu=LS();var hayDir=((uu.dire&&String(uu.dire).trim())||(uu.dires||[]).length>0);
+    du.style.display=(TIPO!=='viaje'&&hayDir&&uu.nombre&&uu.tel)?'none':'block';}
   TIPO=t;['comida','viaje','repuesto'].forEach(function(x){document.getElementById('pill-'+x).className='pill'+(x===t?' on':'')});extra();
 }
 function zonaCambia(){
@@ -1113,9 +1138,9 @@ function extra(){
   BILLETE=0;
   var h='';
   var pre=LOCAL_PRE?' (ej: de '+LOCAL_PRE+')':'';
-  if(TIPO==='comida')h='<label>Dirección de entrega</label><textarea id="f-dir" rows="3" style="height:auto" placeholder="Calle, número, colonia... y contá con detalle exacto cómo te lo dejamos (portón, timbre, quién recibe): sin límite de texto"></textarea><label>Referencia (opcional)</label><textarea id="f-ref" rows="2" style="height:auto" placeholder="Casa azul, portón negro, timbre plateado... (opcional, escribí con confianza)"></textarea><label>¿Qué querés y de dónde?'+pre+'</label><textarea id="f-det" placeholder="Ej: 2 pizzas grandes de la pizzería El Horno"></textarea><label>Precio estimado de tu orden (Q) — se lo pagás al local</label><input id="f-compra" type="number" inputmode="decimal" placeholder="Ej: 120" oninput="pintarTotal()"><label>Envío (tarifa fija DragoExpres)</label><div class="tarifa" id="f-tarifa">Q15 · sin regatear<span class="nch"></span></div>';
+  if(TIPO==='comida')h=entregaBoxHTML()+'<div id="dirFields"'+(entregaBoxHTML()?' style="display:none"':'')+'><label>Dirección de entrega</label><textarea id="f-dir" rows="3" style="height:auto" placeholder="Calle, número, colonia... y contá con detalle exacto cómo te lo dejamos (portón, timbre, quién recibe): sin límite de texto"></textarea><label>Referencia (opcional)</label><textarea id="f-ref" rows="2" style="height:auto" placeholder="Casa azul, portón negro, timbre plateado... (opcional, escribí con confianza)"></textarea></div><label>¿Qué querés y de dónde?'+pre+'</label><textarea id="f-det" placeholder="Ej: 2 pizzas grandes de la pizzería El Horno"></textarea><label>Precio estimado de tu orden (Q) — se lo pagás al local</label><input id="f-compra" type="number" inputmode="decimal" placeholder="Ej: 120" oninput="pintarTotal()"><label>Envío (tarifa fija DragoExpres)</label><div class="tarifa" id="f-tarifa">Q15 · sin regatear<span class="nch"></span></div>';
   if(TIPO==='viaje')h='<label>Dirección de recogida</label><textarea id="f-dir" rows="3" style="height:auto" placeholder="¿De dónde te recogemos? Punto exacto: frente a qué, color del edificio, etc. — sin límite de texto"></textarea><label>Referencia (opcional)</label><textarea id="f-ref" rows="2" style="height:auto" placeholder="Frente al parque, bajo el puente... (opcional)"></textarea><label>¿A dónde vas?</label><textarea id="f-det" placeholder="Ej: De Mixco Centro a Oakland Mall"></textarea><label>Envío (tarifa fija DragoExpres)</label><div class="tarifa" id="f-tarifa">Q25 · sin regatear<span class="nch"></span></div>';
-  if(TIPO==='repuesto')h='<label>Dirección de entrega</label><textarea id="f-dir" rows="3" style="height:auto" placeholder="Calle, número, colonia... y contá con detalle exacto cómo te lo dejamos (portón, timbre, quién recibe): sin límite de texto"></textarea><label>Referencia (opcional)</label><textarea id="f-ref" rows="2" style="height:auto" placeholder="Taller La Bendición, portón verde... (opcional)"></textarea><label>¿Qué repuesto necesitás y para qué vehículo?</label><textarea id="f-det" placeholder="Ej: Pastillas de freno para Honda Wave 110"></textarea><label>Precio estimado del repuesto (Q) — se lo pagás al local</label><input id="f-compra" type="number" inputmode="decimal" placeholder="Ej: 180" oninput="pintarTotal()"><label>Envío (tarifa fija DragoExpres)</label><div class="tarifa" id="f-tarifa">Q20 · sin regatear<span class="nch"></span></div>';
+  if(TIPO==='repuesto')h=entregaBoxHTML()+'<div id="dirFields"'+(entregaBoxHTML()?' style="display:none"':'')+'><label>Dirección de entrega</label><textarea id="f-dir" rows="3" style="height:auto" placeholder="Calle, número, colonia... y contá con detalle exacto cómo te lo dejamos (portón, timbre, quién recibe): sin límite de texto"></textarea><label>Referencia (opcional)</label><textarea id="f-ref" rows="2" style="height:auto" placeholder="Taller La Bendición, portón verde... (opcional)"></textarea></div><label>¿Qué repuesto necesitás y para qué vehículo?</label><textarea id="f-det" placeholder="Ej: Pastillas de freno para Honda Wave 110"></textarea><label>Precio estimado del repuesto (Q) — se lo pagás al local</label><input id="f-compra" type="number" inputmode="decimal" placeholder="Ej: 180" oninput="pintarTotal()"><label>Envío (tarifa fija DragoExpres)</label><div class="tarifa" id="f-tarifa">Q20 · sin regatear<span class="nch"></span></div>';
   if(SERV)h+='<div style="background:#fff8e1;border:1px solid #f0d98a;border-radius:10px;padding:9px 12px;font-size:13px;margin:8px 0"><b>🔧 '+SERV.nombre+' (Q'+SERV.precio+')</b> — mecánico '+SERV.mecanico+', llega en '+SERV.veh+' '+SERV.color+' '+SERV.marca+' · placa '+SERV.placa+'<span onclick="quitarServ()" style="color:#c1121f;font-weight:900;float:right;cursor:pointer">✕</span></div>';
   h+='<label>Propina para el piloto (opcional)</label><div class="chips" id="f-propinas">'+[0,5,10,15].map(function(p){return '<div class="chip'+(p===0?' on':'')+'" onclick="elegirProp(this,'+p+')">Q'+p+'</div>'}).join('')+'</div><p class="mini" style="margin:4px 0 0">Como en las apps grandes: la propina es voluntaria. Con propina los pilotos suelen volar más rápido.</p>';
   h+='<label>¿Con qué billete vas a pagar? <span style="font-weight:400;font-size:12px;opacity:.8">(así el piloto lleva el vuelto justo)</span></label><div class="chips" id="f-billetes">'+[0,50,100,200].map(function(b){return '<div class="chip'+(b===0?' on':'')+'" onclick="elegirBillete(this,'+b+')">'+(b===0?'Tengo exacto':'Q'+b)+'</div>'}).join('')+'</div>';
