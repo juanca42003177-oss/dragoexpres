@@ -62,8 +62,8 @@ label.lb{display:block;font-size:13px;color:#666;margin:16px 0 6px;font-weight:6
   <button class="back" onclick="go(1)">‹</button>
   <h1>Elegí cómo querés generar ganancias con DragoExpres</h1>
   <div class="card" data-k="bici" onclick="elige('bici')"><div class="bads"><span class="bad bEnt">🛍️ Entregas</span></div><b class="tt">Entregas en bicicleta</b><div class="meta">Edad: 18+<br>Vehículo: bici con casco y rodilleras<br>Licencia: <b>no necesita</b></div><span class="em">🚴</span><span class="check">✓</span></div>
-  <div class="card" data-k="moto" onclick="elige('moto')"><div class="bads"><span class="bad bEnt">🛍️ Entregas</span><span class="bad bVia">🛺 Viajes</span></div><b class="tt">Entregas y viajes en moto</b><div class="meta">Edad: 18+<br>Vehículo: moto de cualquier año<br>Licencia: tipo M (o en trámite)</div><span class="em">🏍️</span><span class="check">✓</span></div>
-  <div class="card" data-k="carro" onclick="elige('carro')"><div class="bads"><span class="bad bEnt">🛍️ Entregas</span><span class="bad bVia">🛺 Viajes</span></div><b class="tt">Entregas y viajes en carro</b><div class="meta">Edad: 18+<br>Vehículo: carro o pickup, 4 puertas<br>Licencia: tipo P (o en trámite)<br>Bonus: rutas largas y viajes mejor pagados</div><span class="em">🚗</span><span class="check">✓</span></div>
+  <div class="card" data-k="moto" onclick="elige('moto')"><div class="bads"><span class="bad bEnt">🛍️ Entregas</span><span class="bad bVia">🛺 Viajes</span></div><b class="tt">Entregas y viajes en moto</b><div class="meta">Edad: 18+<br>Vehículo: moto de cualquier año (marca, color y placa)<br>Licencia: tipo M — <b>¿no la tenés? Marcala EN TRÁMITE y trabajás igual 🐉</b></div><span class="em">🏍️</span><span class="check">✓</span></div>
+  <div class="card" data-k="carro" onclick="elige('carro')"><div class="bads"><span class="bad bEnt">🛍️ Entregas</span><span class="bad bVia">🛺 Viajes</span></div><b class="tt">Entregas y viajes en carro</b><div class="meta">Edad: 18+<br>Vehículo: carro o pickup (marca, color y placa)<br>Licencia: tipo P — <b>¿no la tenés? Marcala EN TRÁMITE y trabajás igual 🐉</b><br>Bonus: rutas largas y viajes mejor pagados</div><span class="em">🚗</span><span class="check">✓</span></div>
   <div class="card" data-k="dueno" onclick="elige('dueno')"><div class="bads"><span class="bad bOro">👑 100% tuyo</span></div><b class="tt">Mi vehículo, lo manejo YO</b><div class="meta">Sos el dueño: ganás el <b>100%</b> de cada entrega, sin split de flota. Con chequecito especial en tu registro.</div><span class="em">🛺</span><span class="check">✓</span></div>
   <div class="card" data-k="flota" onclick="elige('flota')"><div class="bads"><span class="bad bFlo">🚚 Flotista</span></div><b class="tt">Tengo vehículos para otros</b><div class="meta">Registralas, les asignás pilotos verificados y ganás el <b>25%</b> de cada entrega sin manejar.</div><span class="em">🚚</span><span class="check">✓</span></div>
   <div class="barra"><button class="vamos" onclick="paso3()">Continuar</button></div>
@@ -73,11 +73,12 @@ label.lb{display:block;font-size:13px;color:#666;margin:16px 0 6px;font-weight:6
 <div class="paso" id="g3">
   <button class="back" onclick="go(2)">‹</button>
   <h1>Te damos la bienvenida al equipo 🐉</h1>
+  <div style="background:#fdf7e0;border:1px solid #f0d98c;border-radius:13px;padding:13px 15px;margin:4px 0 6px;font-size:13px;line-height:1.6"><b>No te pedimos lo que piden las apps grandes:</b> sin antecedentes, sin cursos caros, sin pagar inscripción. Solo DPI, selfie, tu vehículo y ganas de trabajar. <b>Sin licencia también entrás</b> (en trámite).</div>
   <p style="color:#555;font-size:14px;margin-top:-8px">Completá estos pasos para empezar a generar ganancias. Todo se sube desde tu celular.</p>
   <div class="prog"><span class="on"></span><span class="on"></span><span class="on"></span><span></span></div>
   <div class="item" onclick="fin()"><div><b>Documento Personal de Identificación (DPI)</b><div class="sub">Próximo paso recomendado</div></div><span class="chev">›</span></div>
   <div class="item" onclick="fin()"><div><b>Foto de perfil (selfie)</b></div><span class="chev">›</span></div>
-  <div class="item" onclick="fin()"><div><b>Licencia de conducir</b><div style="font-size:12px;color:#888">Solo moto y carro (bici no necesita)</div></div><span class="chev">›</span></div>
+  <div class="item" onclick="fin()"><div><b>Licencia de conducir</b><div style="font-size:12px;color:#888">Solo moto y carro. <b style="color:#188038">¿No la tenés? Prometés tramitarla y trabajás igual</b> — te damos el acceso y la oportunidad 🐉</div></div><span class="chev">›</span></div>
   <div class="item" onclick="fin()"><div><b>Contrato digital del equipo</b><div style="font-size:12px;color:#888">Lo firmás con un chequecito, sin papeleo</div></div><span class="chev">›</span></div>
   <div class="barra"><button class="vamos" onclick="fin()">Continuar al registro &nbsp;›</button></div>
 </div>
