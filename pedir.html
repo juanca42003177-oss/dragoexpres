@@ -813,7 +813,8 @@ function guardarPerfil(){
 function pintarDirs(){
   var u=LS();u.dires=u.dires||[];
   var h='';
-  u.dires.forEach(function(d,i){h+='<div class="item" onclick="borrarDir('+i+')"><div class="ic">📍</div>'+d+'<div class="flecha">🗑️</div></div>';});
+  var dirTxt=function(d){return typeof d==='string'?d:(d?(d.dir||d.calle||d.direccion||d.texto||''):'')};
+  u.dires.forEach(function(d,i){h+='<div class="item" onclick="borrarDir('+i+')"><div class="ic">📍</div>'+dirTxt(d)+'<div class="flecha">🗑️</div></div>';});
   document.getElementById('dir-list').innerHTML=h||'<p class="mini">Todavía no tenés direcciones guardadas.</p>';
 }
 function agregarDir(){
@@ -991,7 +992,7 @@ function abrirPedido(tipo,local){
   document.getElementById('veil').style.display='block';
   document.getElementById('sheet').style.display='block';
   var dg=document.getElementById('dirs-guardadas');
-  dg.innerHTML=(u.dires&&u.dires.length)?'<label>Direcciones guardadas</label>'+u.dires.map(function(d){return '<span class="dirchip" onclick="usarDir(this.textContent)">'+d+'</span>'}).join(''):'';
+  var dirTxt=function(d){return typeof d==='string'?d:(d?(d.dir||d.calle||d.direccion||d.texto||''):'')};dg.innerHTML=(u.dires&&u.dires.length)?'<label>Direcciones guardadas</label>'+u.dires.map(function(d){return '<span class="dirchip" onclick="usarDir(this.textContent)">'+dirTxt(d)+'</span>'}).join(''):'';
   pintarTotal();
 }
 function usarDir(d){document.getElementById('f-dir').value=d;}
