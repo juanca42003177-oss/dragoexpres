@@ -229,8 +229,10 @@ module.exports = wrap(async (req, res) => {
     let promoFiel = false, entFiel = 0;
     {
       const ff = await ghGet('pedidos.json');
-      entFiel = (ff ? ff.data : []).filter(x => dig(String((x.cliente || {}).tel || '')) === dig(tel) && x.estado === 'entregado').length;
-      if (entFiel > 0 && entFiel % 30 === 0) promoFiel = true;
+      const miosF = (ff ? ff.data : []).filter(x => dig(String((x.cliente || {}).tel || '')) === dig(tel));
+      entFiel = miosF.filter(x => x.estado === 'entregado').length;
+      const yaUso = miosF.some(x => x.promoFiel && x.estado === 'entregado'); // UNA SOLA VEZ por usuario (regla de Juan): si su envío gratis llegó, jamás se repite
+      if (entFiel > 0 && entFiel % 30 === 0 && !yaUso) promoFiel = true;
     }
     const envio = promoFiel ? 0 : envioTarifa;
     const propina = Math.max(0, dinero(b.propina || 0)); // voluntaria, 100% para el piloto
@@ -307,7 +309,7 @@ module.exports = wrap(async (req, res) => {
     peds.push(pedido);
     await ghPut('pedidos.json', fpd ? fpd.sha : null, peds, 'pedido nuevo ' + id);
     const ic = { comida: '🍔', viaje: '🛺', repuesto: '🔧' }[tipo];
-    await aviso(`🚀 DRAGOEXPRES — PEDIDO NUEVO ${ic}\n${id} · ${tipo.toUpperCase()} · ${zona}\nCliente: ${nombre} (${tel})\n${pedido.local ? 'Local: ' + pedido.local.nombre + ' · ' : ''}Detalle: ${String(b.detalle).slice(0, 120)}${servicio ? '\n🔧 Servicio mecánico: ' + servicio.nombre + ' Q' + servicio.precio + ' (mecánico: ' + servicio.mecanico + ', llega en ' + servicio.veh + ' ' + servicio.color + ' ' + servicio.marca + ', placa ' + servicio.placa + ')' : ''}\nEnvío: Q${envio} (tarifa fija)${recargo ? ' · 🌙 Incluye recargo nocturno Q' + recargo + ' (100% piloto, sin comisión)' : ''}${propina ? ' · Propina voluntaria: Q' + propina + ' (100% piloto)' : ''} · Comisión DragoExpres: Q${pedido.comision}${pedido.comisionLocal ? ' · 10% al local (zona operativa >90 días): Q' + pedido.comisionLocal : ''}\n${pago === 'transferencia' ? '💳 Pago: TRANSFERENCIA al Banco Industrial' + (referencia ? ' · Ref: ' + referencia : ' · (sin referencia, verificar)') : '💵 Pago: EFECTIVO al piloto'}${promoFiel ? '\n🎁 ENVÍO GRATIS — PROMO CLIENTE FIEL: pedido n.º ' + (entFiel + 1) + ' del cliente (cada 30 entregados, el siguiente va gratis). El piloto cobra su envío COMPLETO (Q' + envioTarifa + ') como cashback en la liquidación de 72h. Lo pagan las comisiones que este cliente ya generó: NO sale de tu bolsa.' : ''}\n${pedido.piloto ? '→ Asignado AUTOMÁTICAMENTE a: ' + pedido.piloto.nombre + ' (' + pedido.piloto.tel + ')' : '→ SIN piloto disponible ahora, queda BUSCANDO'}`);
+    await aviso(`🚀 DRAGOEXPRES — PEDIDO NUEVO ${ic}\n${id} · ${tipo.toUpperCase()} · ${zona}\nCliente: ${nombre} (${tel})\n${pedido.local ? 'Local: ' + pedido.local.nombre + ' · ' : ''}Detalle: ${String(b.detalle).slice(0, 120)}${servicio ? '\n🔧 Servicio mecánico: ' + servicio.nombre + ' Q' + servicio.precio + ' (mecánico: ' + servicio.mecanico + ', llega en ' + servicio.veh + ' ' + servicio.color + ' ' + servicio.marca + ', placa ' + servicio.placa + ')' : ''}\nEnvío: Q${envio} (tarifa fija)${recargo ? ' · 🌙 Incluye recargo nocturno Q' + recargo + ' (100% piloto, sin comisión)' : ''}${propina ? ' · Propina voluntaria: Q' + propina + ' (100% piloto)' : ''} · Comisión DragoExpres: Q${pedido.comision}${pedido.comisionLocal ? ' · 10% al local (zona operativa >90 días): Q' + pedido.comisionLocal : ''}\n${pago === 'transferencia' ? '💳 Pago: TRANSFERENCIA al Banco Industrial' + (referencia ? ' · Ref: ' + referencia : ' · (sin referencia, verificar)') : '💵 Pago: EFECTIVO al piloto'}${promoFiel ? '\n🎁 ENVÍO GRATIS — PROMO CLIENTE FIEL: pedido n.º ' + (entFiel + 1) + ' del cliente (promo cliente fiel LIMITADA: 30 pedidos entregados = su envío gratis, UNA SOLA VEZ por usuario). El piloto cobra su envío COMPLETO (Q' + envioTarifa + ') como cashback en la liquidación de 72h. Lo pagan las comisiones que este cliente ya generó: NO sale de tu bolsa.' : ''}\n${pedido.piloto ? '→ Asignado AUTOMÁTICAMENTE a: ' + pedido.piloto.nombre + ' (' + pedido.piloto.tel + ')' : '→ SIN piloto disponible ahora, queda BUSCANDO'}`);
     return res.status(200).json({ ok: true, pedido });
   }
 
@@ -522,7 +524,8 @@ module.exports = wrap(async (req, res) => {
     const fpd = await ghGet('pedidos.json'); const peds = fpd ? fpd.data : [];
     const mios = peds.filter(x => String(x.cliente && x.cliente.tel || '').replace(/\D/g, '') === tel).slice(-30).reverse();
     const entF = peds.filter(x => String(x.cliente && x.cliente.tel || '').replace(/\D/g, '') === tel && x.estado === 'entregado').length;
-    return res.status(200).json({ ok: true, pedidos: mios, fiel: { entregas: entF, promoAhora: entF > 0 && entF % 30 === 0, faltan: entF % 30 === 0 ? 0 : 30 - (entF % 30) } });
+    const usado = peds.some(x => String(x.cliente && x.cliente.tel || '').replace(/\D/g, '') === tel && x.promoFiel && x.estado === 'entregado');
+    return res.status(200).json({ ok: true, pedidos: mios, fiel: { entregas: entF, promoAhora: !usado && entF > 0 && entF % 30 === 0, faltan: entF % 30 === 0 ? 0 : 30 - (entF % 30), usado } });
   }
 
 
