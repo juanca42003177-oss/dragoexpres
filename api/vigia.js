@@ -50,7 +50,9 @@ module.exports = wrap(async (req, res) => {
     const problemas = ['PRUEBA de la cadena de alertas: verificá que DragoExpres responda y avisale a Juan que todo funciona.'];
     const enviado = await despertarAgente({ app: 'dragoexpres', tipo: 'test', problemas, detalle: 'PRUEBA de Juan: cadena de soporte. Si leés esto, confirmá que la app responde bien y avisale.', ts: Date.now() });
     await aviso('🧪 DragoExpres: PRUEBA de la cadena de soporte disparada' + (enviado ? ' — agente despertado.' : ' — agente NO despertado: falta la variable DX_ALERT_WEBHOOK en Vercel.'));
-    return res.status(200).json({ ok: true, prueba: 'disparada', agenteDespertado: enviado });
+    let host = '';
+    try { host = new URL(process.env.DX_ALERT_WEBHOOK || '').hostname; } catch (e) { host = 'URL_INVALIDA'; }
+    return res.status(200).json({ ok: true, prueba: 'disparada', agenteDespertado: enviado, urlApuntaA: host });
   }
 
   const problemas = [];
