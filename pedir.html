@@ -496,13 +496,14 @@ function onbArranca(){
 function cerrarSheets(){document.querySelectorAll('.sheetFull').forEach(function(s){s.className='sheetFull'})}
 function abrirDirecciones(){
   var u=LS();var l=document.getElementById('shDir-list'),h='';
-  (u.dires||[]).forEach(function(d,i){h+='<div class="dirRow" onclick="shDirUse('+i+')"><span style="font-size:20px">'+(d.label==='Casa'?'🏠':d.label==='Trabajo'?'🏢':'⭐')+'</span><div style="flex:1"><b>'+d.label+'</b><span>'+d.dir+'</span></div>'+(u.dire===d.dir?'<span style="color:var(--ok);font-weight:900">✓</span>':'')+'</div>'});
+  (u.dires||[]).forEach(function(d,i){h+='<div class="dirRow" onclick="shDirUse('+i+')"><span style="font-size:20px">'+(d.label==='Casa'?'🏠':d.label==='Trabajo'?'🏢':'⭐')+'</span><div style="flex:1"><b>'+d.label+'</b><span>'+d.dir+'</span></div>'+(u.dire===d.dir?'<span style="color:var(--ok);font-weight:900">✓</span>':'')+'<span onclick="shDirDel('+i+',event)" style="background:#fdeeee;color:var(--rojo);border-radius:50%;width:26px;height:26px;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:900;flex:none">✕</span></div>'});
   l.innerHTML=h||'<p class="mini">Todavía no tenés direcciones guardadas. Agregá la primera abajo.</p>';
   var zz=document.getElementById('shDir-zona');
   if(zz.options.length<=1){pintarZonasSel(zz,ZONAS,true);zz.insertAdjacentHTML('afterbegin','<option value="">Zona...</option>');zz.value='';if(u.zona){for(var i=0;i<zz.options.length;i++){if(zz.options[i].value===u.zona){zz.value=u.zona;break}}}}
   document.getElementById('shDir').className='sheetFull on';
 }
 function shDirZonaCambia(){var z=document.getElementById('shDir-zona'),lib=document.getElementById('shDir-zona-libre');lib.style.display=(z.value==='__otra')?'block':'none'}
+function shDirDel(i,ev){ev.stopPropagation();if(!confirm('¿Quitar esta dirección guardada?'))return;var u=LS();var d=(u.dires||[]).splice(i,1)[0];if(d&&u.dire===d.dir){u.dire=u.dires.length?u.dires[0].dir:''}SS(u);pintarDirHeader();abrirDirecciones();}
 function shDirUse(i){var u=LS();var d=u.dires[i];u.dire=d.dir;SS(u);pintarDirHeader();cerrarSheets()}
 function shDirAdd(){
   var nd=document.getElementById('shDir-nueva').value.trim();if(!nd){alert('Escribí la dirección.');return}
