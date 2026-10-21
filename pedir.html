@@ -203,7 +203,7 @@ input,textarea,select{-webkit-user-select:text;user-select:text}
 <div class="vista" id="v-promos">
   <div class="hdr"><div class="row"><img src="img/icono.png"><b>Promociones</b></div></div>
   <div class="sec">
-    <div class="bn bn1" style="margin-bottom:12px;min-width:100%"><span class="em">🎁</span><b id="bnFiel">Cada 20 pedidos, tu envío va GRATIS</b><span id="bnFielSub">Cliente fiel con el dragón: tu pedido 21 viaja sin costo de envío.</span></div>
+    <div class="bn bn1" style="margin-bottom:12px;min-width:100%"><span class="em">🎁</span><b id="bnFiel">Cada 30 pedidos, tu envío va GRATIS</b><span id="bnFielSub">Cliente fiel con el dragón: tu pedido 31 viaja sin costo de envío.</span></div>
     <div class="pcard"><b>🏍️ Repartí con DragoExpres</b><p class="mini">Trabajá con tu bici, moto o carro en tu propia zona. Pagos semanales + cashback al cumplir tus 20 entregas.</p><button class="btn bA" onclick="location.href='ganancias.html'">Quiero ser piloto</button></div>
     <div class="pcard"><b>🏪 Poné tu local</b><p class="mini">Tu local visto por toda tu zona. Vos ponés precios y promos. Registro gratis y sin comisión los primeros meses.</p><button class="btn bA" onclick="location.href='index.html?rol=local'">Registrar mi local</button></div>
     <div class="pcard"><b>💵 Pagás en efectivo, sin vueltas</b><p class="mini">La compra se la pagás al piloto para el local, más la tarifa de envío. La propina es aparte y solo si querés. Sin tarjeta, sin registro de pago.</p></div>
@@ -1015,7 +1015,7 @@ var ULT_TEL='',PROPINA=0,BILLETE=0;
 var TARIFA={comida:15,viaje:25,repuesto:20};
 function elegirBillete(el,b){BILLETE=b;var t=document.querySelectorAll('#f-billetes .chip');for(var i=0;i<t.length;i++)t[i].classList.remove('on');el.classList.add('on');pintarTotal();}
 function elegirProp(el,p){PROPINA=p;var t=document.querySelectorAll('#f-propinas .chip');for(var i=0;i<t.length;i++)t[i].classList.remove('on');el.classList.add('on');pintarTotal();}
-function FIEL(j){if(!j||!j.fiel)return;window.PROMO_FIEL=!!j.fiel.promoAhora;var a=document.getElementById('bnFiel'),s2=document.getElementById('bnFielSub');if(!a)return;if(window.PROMO_FIEL){a.textContent='🎁 ¡Ya ganaste tu envío GRATIS!';s2.textContent='Se aplica en tu próximo pedido: 0 de envío.'}else{a.textContent='Cada 20 pedidos, tu envío va GRATIS';s2.textContent=j.fiel.entregas?('Van '+j.fiel.entregas+' pedidos — te faltan '+j.fiel.faltan+' para tu envío gratis.'):'Pedí con el dragón: cada 20 pedidos, el siguiente va gratis.'}}
+function FIEL(j){if(!j||!j.fiel)return;window.PROMO_FIEL=!!j.fiel.promoAhora;var a=document.getElementById('bnFiel'),s2=document.getElementById('bnFielSub');if(!a)return;if(window.PROMO_FIEL){a.textContent='🎁 ¡Ya ganaste tu envío GRATIS!';s2.textContent='Se aplica en tu próximo pedido: 0 de envío.'}else{a.textContent='Cada 30 pedidos, tu envío va GRATIS';s2.textContent=j.fiel.entregas?('Van '+j.fiel.entregas+' pedidos — te faltan '+j.fiel.faltan+' para tu envío gratis.'):'Pedí con el dragón: cada 30 pedidos, el siguiente va gratis.'}}
 function pintarTotal(){
   var b=document.getElementById('totBox');if(!b)return;
   var c=document.getElementById('f-compra');

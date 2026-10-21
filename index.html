@@ -87,7 +87,7 @@ input,textarea,select{-webkit-user-select:text;user-select:text}
 
   <div class="form on" id="fUsuario">
     <h3>Quiero pedir 🍜</h3>
-    <p class="desc">Cada 20 pedidos, tu siguiente envío va GRATIS. Clientes fieles vuelan con el dragón.</p>
+    <p class="desc">Cada 30 pedidos, tu siguiente envío va GRATIS. Clientes fieles vuelan con el dragón.</p>
     <label>Tu nombre</label><input id="uNombre" placeholder="Ej: María López">
     <label>WhatsApp</label><input id="uTel" type="tel" placeholder="Ej: 5555 1234">
     <label>Tu área</label><input id="uZona" placeholder="Ej: Zona 11, Mixco, Villa Nueva...">
@@ -164,7 +164,7 @@ input,textarea,select{-webkit-user-select:text;user-select:text}
     <h4>⚡ Beneficios de los primeros</h4>
     <div class="r">🏍️ <span><b>Pilotos:</b> vuestro primer mes con el 100% de vuestros envíos + DEVOLUCIÓN SEMANAL en cashback al cumplir 20 entregas (ninguna otra app hace esto).</span></div>
     <div class="r">🔥 <span><b>Locales:</b> vuestros primeros 90 días sin comisión, y publicás vuestras propias promos (después solo 10%, comida y repuestos).</span></div>
-    <div class="r">🍜 <span><b>Usuarios:</b> cada 20 pedidos tu siguiente envío va gratis + sorpresas de lanzamiento en vuestra zona.</span></div>
+    <div class="r">🍜 <span><b>Usuarios:</b> cada 30 pedidos tu siguiente envío va gratis + sorpresas de lanzamiento en vuestra zona.</span></div>
   </div>
 
   <footer>
@@ -442,7 +442,7 @@ function intentarEnviar() {
 function mostrarOk(t, estado, datos) {
   var instante = estado === 'aprobado';
   var m = {
-    usuario:'¡Quedaste verificado! 🤳✅ Con tu selfie y tu WhatsApp ya podés pedir comida, viajes y repuestos. Y cada 20 pedidos, tu siguiente envío va gratis.',
+    usuario:'¡Quedaste verificado! 🤳✅ Con tu selfie y tu WhatsApp ya podés pedir comida, viajes y repuestos. Y cada 30 pedidos, tu siguiente envío va gratis.',
     piloto: instante ? '¡APROBADO AL INSTANTE! 🎉🎉 Todo pasó la verificación automática. Entrá YA con tu WhatsApp y placa, marcate disponible y empezá a recibir pedidos.' : 'Tu registro quedó en revisión rápida 📋 (licencia en trámite o algo por confirmar): el admin te da el OK, suele tardar poco. Te avisamos por WhatsApp.',
     local: instante ? '¡APROBADO AL INSTANTE! 🎉 Entrá YA a tu panel de local con tu WhatsApp para subir tu menú, precios, promos y la foto del frente de tu negocio.' : 'Tu local quedó registrado y en revisión rápida: el admin te da el OK y te avisamos.',
     flota: instante ? '¡APROBADO AL INSTANTE! 🎉 Entrá YA a tu pantalla de flota con tu WhatsApp para asignar tu vehículo a un conductor aprobado.' : 'Tu vehículo quedó registrado y en revisión rápida: el admin te da el OK y te avisamos.'
