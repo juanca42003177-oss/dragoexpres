@@ -62,8 +62,8 @@ label.lb{display:block;font-size:13px;color:#666;margin:16px 0 6px;font-weight:6
   <button class="back" onclick="go(1)">‹</button>
   <h1>Elegí cómo querés generar ganancias con DragoExpres</h1>
   <div class="card" data-k="bici" onclick="elige('bici')"><div class="bads"><span class="bad bEnt">🛍️ Entregas</span></div><b class="tt">Entregas en bicicleta</b><div class="meta">Edad: 18+<br>Vehículo: bici con casco y rodilleras<br>Licencia: <b>no necesita</b></div><span class="em">🚴</span><span class="check">✓</span></div>
-  <div class="card" data-k="moto" onclick="elige('moto')"><div class="bads"><span class="bad bEnt">🛍️ Entregas</span><span class="bad bVia">🛺 Viajes</span></div><b class="tt">Entregas y viajes en moto</b><div class="meta">Edad: 18+<br>Vehículo: moto de cualquier año (marca, color y placa)<br>Licencia: tipo M — <b>¿no la tenés? Marcala EN TRÁMITE y trabajás igual 🐉</b></div><span class="em">🏍️</span><span class="check">✓</span></div>
-  <div class="card" data-k="carro" onclick="elige('carro')"><div class="bads"><span class="bad bEnt">🛍️ Entregas</span><span class="bad bVia">🛺 Viajes</span></div><b class="tt">Entregas y viajes en carro</b><div class="meta">Edad: 18+<br>Vehículo: carro o pickup (marca, color y placa)<br>Licencia: tipo P — <b>¿no la tenés? Marcala EN TRÁMITE y trabajás igual 🐉</b><br>Bonus: rutas largas y viajes mejor pagados</div><span class="em">🚗</span><span class="check">✓</span></div>
+  <div class="card" data-k="moto" onclick="elige('moto')"><div class="bads"><span class="bad bEnt">🛍️ Entregas</span><span class="bad bVia">🛺 Viajes</span></div><b class="tt">Entregas y viajes en moto</b><div class="meta">Edad: 18+<br>Vehículo: moto de cualquier año (marca, color y placa)<br>Licencia: tipo M — <b>¿no la tenés? Marcala EN TRÁMITE y trabajás igual</b></div><span class="em">🏍️</span><span class="check">✓</span></div>
+  <div class="card" data-k="carro" onclick="elige('carro')"><div class="bads"><span class="bad bEnt">🛍️ Entregas</span><span class="bad bVia">🛺 Viajes</span></div><b class="tt">Entregas y viajes en carro</b><div class="meta">Edad: 18+<br>Vehículo: carro o pickup (marca, color y placa)<br>Licencia: tipo P — <b>¿no la tenés? Marcala EN TRÁMITE y trabajás igual</b><br>Bonus: rutas largas y viajes mejor pagados</div><span class="em">🚗</span><span class="check">✓</span></div>
   <div class="card" data-k="dueno" onclick="elige('dueno')"><div class="bads"><span class="bad bOro">👑 100% tuyo</span></div><b class="tt">Mi vehículo, lo manejo YO</b><div class="meta">Sos el dueño: ganás el <b>100%</b> de cada entrega, sin split de flota. Con chequecito especial en tu registro.</div><span class="em">🛺</span><span class="check">✓</span></div>
   <div class="card" data-k="flota" onclick="elige('flota')"><div class="bads"><span class="bad bFlo">🚚 Flotista</span></div><b class="tt">Tengo vehículos para otros</b><div class="meta">Registralas, les asignás pilotos verificados y ganás el <b>25%</b> de cada entrega sin manejar.</div><span class="em">🚚</span><span class="check">✓</span></div>
   <div class="barra"><button class="vamos" onclick="paso3()">Continuar</button></div>
@@ -72,14 +72,15 @@ label.lb{display:block;font-size:13px;color:#666;margin:16px 0 6px;font-weight:6
 <!-- PASO 3: bienvenida + checklist -->
 <div class="paso" id="g3">
   <button class="back" onclick="go(2)">‹</button>
-  <h1>Te damos la bienvenida al equipo 🐉</h1>
+  <h1>Te damos la bienvenida al equipo</h1>
+  <img src="img/dragon-fuego.webp" alt="DragoExpres" style="width:118px;height:118px;object-fit:cover;border-radius:18px;border:2.5px solid #f5b942;display:block;margin:4px auto 10px">
   <div style="background:#fdf7e0;border:1px solid #f0d98c;border-radius:13px;padding:13px 15px;margin:4px 0 6px;font-size:13px;line-height:1.6"><b>No te pedimos lo que piden las apps grandes:</b> sin antecedentes, sin cursos caros, sin pagar inscripción. Solo DPI, selfie, tu vehículo y ganas de trabajar. <b>Sin licencia también entrás</b> (en trámite).</div>
   <p style="color:#555;font-size:14px;margin-top:-8px">Completá estos pasos para empezar a generar ganancias. Todo se sube desde tu celular.</p>
   <div class="prog"><span class="on"></span><span class="on"></span><span class="on"></span><span></span></div>
   <div class="item" onclick="fin()"><div><b>Documento Personal de Identificación (DPI)</b><div class="sub">Próximo paso recomendado</div></div><span class="chev">›</span></div>
   <div class="item" onclick="fin()"><div><b>Foto de perfil (selfie)</b></div><span class="chev">›</span></div>
-  <div class="item" onclick="fin()"><div><b>Licencia de conducir</b><div style="font-size:12px;color:#888">Solo moto y carro. <b style="color:#188038">¿No la tenés? Prometés tramitarla y trabajás igual</b> — te damos el acceso y la oportunidad 🐉</div></div><span class="chev">›</span></div>
-  <div class="item" onclick="verContrato()"><div><b>Contrato digital del equipo</b><div style="font-size:12px;color:#888">Lo firmás con un chequecito, sin papeleo — <b style="color:#188038">leelo acá</b></div></div><span class="chev">›</span></div>
+  <div class="item" onclick="fin()"><div><b>Licencia de conducir</b><div style="font-size:12px;color:#888">Solo moto y carro. <b style="color:#188038">¿No la tenés? Prometés tramitarla y trabajás igual</b> — te damos el acceso y la oportunidad</div></div><span class="chev">›</span></div>
+  <div class="item" onclick="verContrato()"><div><b>Contrato digital del equipo</b><div id="ctrSub" style="font-size:12px;color:#888">Lo firmás con un chequecito, sin papeleo — <b style="color:#188038">leelo acá</b></div></div><span class="chev">›</span></div>
   <div class="barra"><button class="vamos" onclick="fin()">Continuar al registro &nbsp;›</button></div>
 </div>
 
@@ -115,11 +116,11 @@ function pintarZonasSel(sel,zonasActivas,conOtra){
   var h='';
   ZGT.forEach(function(g){
     h+='<optgroup label="'+g.g+'">';
-    g.z.forEach(function(x){var act=zonasActivas.indexOf(x)>=0;h+='<option value="'+x+'">'+x+(act?' — ya tiene pilotos 🐉':'')+'</option>'});
+    g.z.forEach(function(x){var act=zonasActivas.indexOf(x)>=0;h+='<option value="'+x+'">'+x+(act?' — ya tiene pilotos':'')+'</option>'});
     h+='</optgroup>';
   });
   var extra=(zonasActivas||[]).filter(function(x){return !ZGT.some(function(g){return g.z.indexOf(x)>=0})});
-  if(extra.length){h+='<optgroup label="Zonas activas de tu equipo">';extra.forEach(function(x){h+='<option value="'+x+'">'+x+' — ya tiene pilotos 🐉</option>'});h+='</optgroup>'}
+  if(extra.length){h+='<optgroup label="Zonas activas de tu equipo">';extra.forEach(function(x){h+='<option value="'+x+'">'+x+' — ya tiene pilotos</option>'});h+='</optgroup>'}
   if(conOtra)h+='<option value="__otra">Otra (escribo mi zona)</option>';
   sel.innerHTML=h;
 }
@@ -142,8 +143,26 @@ function verContrato(){
   var o=document.getElementById('ctrOv');
   if(!o){o=document.createElement('div');o.id='ctrOv';
     o.style.cssText='position:fixed;inset:0;z-index:99;background:rgba(0,0,0,.88);display:flex;flex-direction:column';
-    o.innerHTML='<div style="display:flex;justify-content:space-between;align-items:center;padding:10px 14px;background:#0d0d10;color:#f5b942;font-weight:700;font-size:14px"><span>📄 Contrato Digital — DragoExpres</span><button onclick="document.getElementById(\'ctrOv\').style.display=\'none\'" style="background:#f5b942;border:0;border-radius:10px;padding:8px 14px;font-weight:800">✕ Cerrar</button></div><iframe src="contrato.html" style="flex:1;border:0;width:100%"></iframe>';
+    o.innerHTML='<div style="display:flex;justify-content:space-between;align-items:center;padding:10px 14px;background:#0d0d10;color:#f5b942;font-weight:700;font-size:14px"><span>📄 Contrato Digital — DragoExpres</span><button onclick="document.getElementById(\'ctrOv\').style.display=\'none\'" style="background:#f5b942;border:0;border-radius:10px;padding:8px 14px;font-weight:800">✕ Cerrar</button></div><iframe src="contrato.html" style="flex:1;border:0;width:100%"></iframe><div style="display:flex;gap:10px;padding:12px;background:#0d0d10"><button onclick="aceptarContrato()" style="flex:2;background:#f5b942;border:0;border-radius:12px;padding:14px;font-weight:800;font-size:15px">✅ ACEPTO EL CONTRATO</button><button onclick="rechazarContrato()" style="flex:1;background:transparent;border:1px solid #777;color:#ddd;border-radius:12px;padding:14px;font-weight:700;font-size:14px">✖ Rechazar</button></div>';
     document.body.appendChild(o);}
+function aceptarContrato(){
+  try{localStorage.setItem('dxContratoOK',new Date().toISOString())}catch(e){}
+  var o=document.getElementById('ctrOv');if(o)o.style.display='none';
+  pintarContrato();
+  alert('✓ ¡Listo! Aceptaste el Contrato Digital de DragoExpres.\nEn tu registro ya queda marcado como firmado.');
+}
+function rechazarContrato(){
+  var o=document.getElementById('ctrOv');if(o)o.style.display='none';
+  try{localStorage.removeItem('dxContratoOK')}catch(e){}
+  pintarContrato();
+  alert('Sin aceptar el contrato no se puede registrar el equipo.\nPodés leerlo las veces que quieras y aceptarlo cuando estés listo.');
+}
+function pintarContrato(){
+  var ok=false;try{ok=!!localStorage.getItem('dxContratoOK')}catch(e){}
+  var s=document.getElementById('ctrSub');
+  if(s)s.innerHTML=ok?'<b style="color:#188038">✓ Firmado — ya aceptaste el contrato digital</b>':'Lo firmás con un chequecito, sin papeleo — <b style="color:#188038">leelo acá y aceptalo acá</b>';
+}
+pintarContrato();
   o.style.display='flex';
 }
 function fin(){

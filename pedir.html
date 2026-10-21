@@ -331,7 +331,7 @@ input,textarea,select{-webkit-user-select:text;user-select:text}
   <div class="asa" onclick="cerrarCart()"></div>
   <h2 style="font-size:18px" id="cartTitulo">🛒 Tu carrito</h2>
   <div id="cartBody"></div>
-  <button class="btn bA" onclick="cartCheckout()">HACER MI PEDIDO 🐉</button>
+  <button class="btn bA" onclick="cartCheckout()">HACER MI PEDIDO</button>
   <button class="btn" style="background:#333;color:#fff;box-shadow:none" onclick="cerrarCart()">Cerrar</button>
 </div>
 
@@ -560,7 +560,7 @@ function abrirNotif(){
   fetch(api('orders'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'misp',tel:u.tel||''})}).then(function(r){return r.json()}).then(function(j){
     var act=(j.pedidos||[]).find(function(o){return ['buscando','asignado','aceptado','en_camino'].indexOf(o.estado)>=0});
     var b=document.getElementById('shNot-body');
-    b.innerHTML=act?('<div style="background:#fff;border:1px solid #eee;border-radius:12px;padding:12px"><b>Pedido '+act.id+' en camino 🐉</b><div class="mini" style="margin-top:4px">Estado: '+({buscando:'Buscando piloto',asignado:'Piloto asignado',aceptado:'Piloto va por tu pedido',en_camino:'¡En camino a vos!'}[act.estado]||act.estado)+' · Tocá 🛒 para seguirlo en vivo.</div></div>'):(j.pedidos&&j.pedidos.length?'Tu último pedido: '+j.pedidos[0].id+' — revisá la pestaña Pedidos.':'Sin notificaciones nuevas. Cuando pidas, te avisamos acá.');
+    b.innerHTML=act?('<div style="background:#fff;border:1px solid #eee;border-radius:12px;padding:12px"><b>Pedido '+act.id+' en camino</b><div class="mini" style="margin-top:4px">Estado: '+({buscando:'Buscando piloto',asignado:'Piloto asignado',aceptado:'Piloto va por tu pedido',en_camino:'¡En camino a vos!'}[act.estado]||act.estado)+' · Tocá 🛒 para seguirlo en vivo.</div></div>'):(j.pedidos&&j.pedidos.length?'Tu último pedido: '+j.pedidos[0].id+' — revisá la pestaña Pedidos.':'Sin notificaciones nuevas. Cuando pidas, te avisamos acá.');
     var nb=document.getElementById('nBadge');if(nb)nb.style.display=act?'inline-block':'none';
     FIEL(j);
   }).catch(function(){});
@@ -603,11 +603,11 @@ function pintarZonasSel(sel,zonasActivas,conOtra){
   var h='';
   ZGT.forEach(function(g){
     h+='<optgroup label="'+g.g+'">';
-    g.z.forEach(function(x){var act=zonasActivas.indexOf(x)>=0;h+='<option value="'+x+'">'+x+(act?' — ya tiene pilotos 🐉':'')+'</option>'});
+    g.z.forEach(function(x){var act=zonasActivas.indexOf(x)>=0;h+='<option value="'+x+'">'+x+(act?' — ya tiene pilotos':'')+'</option>'});
     h+='</optgroup>';
   });
   var extra=(zonasActivas||[]).filter(function(x){return !ZGT.some(function(g){return g.z.indexOf(x)>=0})});
-  if(extra.length){h+='<optgroup label="Zonas activas de tu equipo">';extra.forEach(function(x){h+='<option value="'+x+'">'+x+' — ya tiene pilotos 🐉</option>'});h+='</optgroup>'}
+  if(extra.length){h+='<optgroup label="Zonas activas de tu equipo">';extra.forEach(function(x){h+='<option value="'+x+'">'+x+' — ya tiene pilotos</option>'});h+='</optgroup>'}
   if(conOtra)h+='<option value="__otra">Otra (escribo mi zona)</option>';
   sel.innerHTML=h;
 }
@@ -759,7 +759,7 @@ function eliminarMiCuenta(){
   fetch(api('orders'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'eliminarCuenta',tel:u.tel})})
   .then(function(r){return r.json()})
   .then(function(j){
-    if(j.ok){try{localStorage.clear()}catch(e){};alert('Tu cuenta fue eliminada. Gracias por volar con el dragón 🐉');location.href='index.html'}
+    if(j.ok){try{localStorage.clear()}catch(e){};alert('Tu cuenta fue eliminada. Gracias por volar con DragoExpres');location.href='index.html'}
     else{alert(j.error||'No pudimos eliminar tu cuenta. Escribile al administrador por WhatsApp.')}
   })
   .catch(function(){alert('Revisá tu internet e intentá de nuevo.')});
@@ -774,7 +774,7 @@ function invitarLocal(){
   window.open(url,'_blank');
   var u=datosUsuario();
   fetch(api('orders'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'sugerencia',rol:'usuario',nombre:(u&&u.nombre)||'',tel:(u&&u.tel)||'',texto:'🏪 INVITÓ al local: '+nom+(tel?' (WhatsApp '+tel+')':'')})}).catch(function(){});
-  toast('¡Gracias! Te abrimos WhatsApp para invitar a '+nom+' 🐉');
+  toast('¡Gracias! Te abrimos WhatsApp para invitar a '+nom+'');
 }
 async function enviarSugerencia(){
   var tx=document.getElementById('sug-texto').value.trim();
