@@ -1178,7 +1178,8 @@ async function enviar(){
   if(BILLETE>0&&BILLETE<tt){alert('Tu billete de Q'+BILLETE+' no cubre el total de Q'+tt+'. Elegí otro billete o marcá “Tengo exacto”.');return}
   if(BILLETE>0){var vu2=BILLETE-tt;d.detalle+=(d.detalle?' · ':'')+'💰 Paga con billete de Q'+BILLETE+' — llevar Q'+vu2+' de vuelto'}
   SERV=null;
-  if(!d.nombre||!d.tel||!d.zona||!d.direccion||!d.detalle){alert('Completá tu nombre, WhatsApp, zona, dirección y qué pedís.');return}
+  if(!d.detalle){alert(TIPO==='viaje'?'Contanos a dónde vas 🛺':(TIPO==='repuesto'?'Contanos qué repuesto necesitás y para qué vehículo 🔧':'Contanos qué querés y de dónde 🍜'));var fdt=document.getElementById('f-det');if(fdt){fdt.focus();fdt.style.borderColor='var(--rojo)';try{fdt.scrollIntoView({behavior:'smooth',block:'center'})}catch(e){};fdt.oninput=function(){fdt.style.borderColor='#ccc'}}return}
+  if(!d.nombre||!d.tel||!d.zona||!d.direccion){alert('Faltan tus datos o tu dirección. Tocá ✏️ Cambiar para llenarlos.');cambiarEntrega();var du2=document.getElementById('datosUser');if(du2)du2.style.display='block';return}
   // guardar perfil para la proxima
   u.nombre=d.nombre;u.tel=d.tel;u.zona=d.zona;u.dires=u.dires||[];
   var _dt=function(x){return typeof x==='string'?x:(x?(x.dir||x.calle||x.direccion||x.texto||''):'')};
