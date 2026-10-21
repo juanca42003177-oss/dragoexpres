@@ -253,7 +253,7 @@ function adaptarRubro(){
   document.getElementById('secServicios').style.display=esRep()?'block':'none';
   document.getElementById('secPromos').style.display=esRep()?'none':'block';
   document.getElementById('m-cat').innerHTML=CATORD().map(function(c){return '<option>'+c+'</option>'}).join('');
-  document.getElementById('h-menu').textContent=esRep()?'🔧 Mi catálogo de repuestos':(RUBRO==='tienda'?'🛒 Mi catálogo':'📋 Mi menú');
+  document.getElementById('h-menu').innerHTML=esRep()?'<img src="img/repuestos.png" style="width:20px;height:20px;object-fit:contain;vertical-align:-3px"> Mi catálogo de repuestos':(RUBRO==='tienda'?'🛒 Mi catálogo':'📋 Mi menú');
   document.getElementById('m-nombre').placeholder=esRep()?'Ej: Bujía NGK para moto':'Ej: Pepián';
   document.getElementById('m-desc').placeholder=esRep()?'Ej: pack x4, para Honda Wave':'Ej: con arroz, frijoles y 3 tortillas';
   document.getElementById('m-add').textContent=esRep()?'➕ AGREGAR AL CATÁLOGO':'➕ AGREGAR AL MENÚ';
@@ -261,25 +261,31 @@ function adaptarRubro(){
   document.getElementById('tipsFoto').innerHTML=esRep()?'<b style="color:#ffe08a">📸 Tips para que tu foto venda:</b><br>• La pieza completa y centrada<br>• Fondo limpio y parejo<br>• Sin texto ni precios encima de la foto<br>• Luz de día, sin flash directo<br>• Que sea lo MISMO que le llega al cliente':'<b style="color:#ffe08a">📸 Tips para que tu foto venda (los usa PedidosYa):</b><br>• Un solo plato por foto, centrado y completo<br>• Fondo limpio: una mesa o paño liso<br>• Sin texto, precios ni marcas de agua encima<br>• Luz de ventana o de día, sin flash directo<br>• Que sea lo MISMO que le llega al cliente<br>• Primero fotografiá tus 10 más vendidos';
 }
 function itemRow(it){
-  return '<div style="display:flex;gap:10px;align-items:center;background:#14151c;border:1px solid #2a2b38;border-radius:12px;padding:8px;margin:8px 0">'+
-  (it.foto?'<img src="'+it.foto+'" style="width:58px;height:58px;object-fit:cover;border-radius:10px">':(esRep()
-    ?'<div style="width:58px;height:58px;border-radius:10px;background:linear-gradient(145deg,#0e1622,#1a2332);border:1px solid #2a3a4a;display:flex;align-items:center;justify-content:center"><img src="img/repuestos.png" style="width:44px;height:44px;object-fit:contain" alt=""></div>'
+  var ph=esRep()
+    ?'<div style="width:66px;height:66px;border-radius:14px;background:linear-gradient(145deg,#0e1622,#1a2332);border:1px solid #2a3a4a;display:flex;align-items:center;justify-content:center;flex:none"><img src="img/repuestos.png" style="width:48px;height:48px;object-fit:contain" alt=""></div>'
     :(RUBRO==='tienda'
-      ?'<div style="width:58px;height:58px;border-radius:10px;background:#10231a;display:flex;align-items:center;justify-content:center;font-size:24px">🛒</div>'
-      :'<div style="width:58px;height:58px;border-radius:10px;background:#241a05;display:flex;align-items:center;justify-content:center;font-size:24px">🍽️</div>')))+
-  '<div style="flex:1;min-width:0"><b style="font-size:13.5px">'+it.nombre+'</b><div class="mini">'+(it.desc?it.desc+' · ':'')+'Q'+it.precio+(it.agotado?' · <b style="color:#ff8f8f">AGOTADO</b>':'')+'</div></div>'+
+      ?'<div style="width:66px;height:66px;border-radius:14px;background:#10231a;display:flex;align-items:center;justify-content:center;font-size:26px;flex:none">🛒</div>'
+      :'<div style="width:66px;height:66px;border-radius:14px;background:#241a05;display:flex;align-items:center;justify-content:center;font-size:26px;flex:none">🍽️</div>');
+  return '<div style="display:flex;gap:12px;align-items:center;background:linear-gradient(145deg,#171820,#101017);border:1px solid #262735;border-radius:16px;padding:10px;margin:8px 0'+(it.agotado?';opacity:.5':'')+'">'+
+  (it.foto?'<img src="'+it.foto+'" style="width:66px;height:66px;object-fit:cover;border-radius:14px;flex:none">':ph)+
+  '<div style="flex:1;min-width:0"><b style="font-size:14px">'+it.nombre+'</b>'+
+  (it.desc?'<div class="mini" style="margin-top:2px">'+it.desc+'</div>':'')+
+  '<div style="margin-top:5px;display:flex;align-items:center;gap:8px"><b style="color:#f0b90b;font-size:15px">Q'+it.precio+'</b>'+
+  (it.agotado?'<span style="background:#3a1414;color:#ff9f9f;border-radius:8px;padding:2px 8px;font-size:10.5px;font-weight:800">AGOTADO</span>':'')+
+  '</div></div>'+
+  '<div style="display:flex;flex-direction:column;gap:6px;flex:none">'+
   '<button class="bMini" onclick="menuToggle(\''+it.id+'\')">'+(it.agotado?'Habilitar':'Agotar')+'</button>'+
-  '<button class="bMini bX" onclick="menuDel(\''+it.id+'\')">✕</button></div>';
+  '<button class="bMini bX" onclick="menuDel(\''+it.id+'\')">✕</button></div></div>';
 }
 function pintarMenu(){
   var h='';
-  if(!MENU.length){h='<div class="mini" style="padding:8px 2px">'+(esRep()?'Tu catálogo está vacío. Agregá tu primer repuesto abajo para que los clientes lo vean con foto y precio.':'Tu menú está vacío. Agregá tu primer producto abajo para que los clientes lo vean con foto y precio.')+'</div>';}
+  if(!MENU.length){h=esRep()?'<div style="background:linear-gradient(145deg,#12182a,#101017);border:1px dashed #2a3a4a;border-radius:16px;padding:22px;text-align:center;margin:8px 0"><img src="img/repuestos.png" style="width:58px;height:58px;object-fit:contain"><div class="mini" style="margin-top:10px">Tu catálogo está vacío.<br><b style="color:#ffe08a">Agregá tu primer repuesto abajo</b> y los clientes lo van a ver con foto, precio y stock — como en las apps grandes.</div></div>':'<div class="mini" style="padding:8px 2px">Tu menú está vacío. Agregá tu primer producto abajo para que los clientes lo vean con foto y precio.</div>';}
   else{
     var g={};MENU.forEach(function(it){var c=it.categoria||'Otros';(g[c]=g[c]||[]).push(it)});
     var orden=CATORD().concat(Object.keys(g).filter(function(c){return CATORD().indexOf(c)<0}));
     orden.forEach(function(c){
       if(!g[c]||!g[c].length)return;
-      h+='<div style="font-weight:900;color:#f0b90b;font-size:13px;margin:14px 0 2px">'+c.toUpperCase()+'</div>'+g[c].map(itemRow).join('');
+      h+='<div style="display:flex;align-items:center;gap:8px;margin:16px 0 2px"><span style="font-weight:900;color:#f0b90b;font-size:12px;letter-spacing:1.2px">'+c.toUpperCase()+'</span><div style="flex:1;height:1px;background:linear-gradient(90deg,#2a2b38,transparent)"></div></div>'+g[c].map(itemRow).join('');
     });
   }
   document.getElementById('menuBox').innerHTML=h;
