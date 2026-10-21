@@ -492,6 +492,7 @@ function initMapa(){
 try{var _qr=new URLSearchParams(location.search).get('rol');
 if(_qr==='local'||_qr==='usuario'||_qr==='flota'||_qr==='piloto'){abrir(_qr);document.getElementById('t'+_qr.charAt(0).toUpperCase()+_qr.slice(1)).scrollIntoView({behavior:'smooth'});}}
 catch(e){}
+try{if(localStorage.getItem('dxContratoOK')){var _c1=document.getElementById('pContrato');if(_c1)_c1.checked=true;var _c2=document.getElementById('lContrato');if(_c2)_c2.checked=true;}}catch(e){}
 </script>
 </body>
 </html>
