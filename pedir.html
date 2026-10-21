@@ -1031,6 +1031,8 @@ function pedirProducto(idxLocal,idxItem){
 function abrirPedidoLocal(idx){var l=LOCALES[idx];if(!l)return;LOCAL_PRE=l.nombre;LOCAL_TEL=l.tel;abrirPedido(String(l.rubro||'').toLowerCase().indexOf('repuesto')>=0?'repuesto':'comida')}
 function abrirPedido(tipo,local){
   if(!local){LOCAL_PRE='';LOCAL_TEL=''}
+  ['menuSheet','prodSheet','cartSheet'].forEach(function(id){var e=document.getElementById(id);if(e)e.style.display='none'});
+  var fb=document.getElementById('cartFab');if(fb)fb.style.display='none';
   var u=LS();
   document.getElementById('f-nombre').value=u.nombre||'';
   document.getElementById('f-tel').value=u.tel||'';
@@ -1044,7 +1046,7 @@ function abrirPedido(tipo,local){
   pintarTotal();
 }
 function usarDir(d){document.getElementById('f-dir').value=d;}
-function cerrarSheet(){document.getElementById('veil').style.display='none';document.querySelectorAll('.sheet').forEach(function(x){x.style.display='none'});window.LMAP=null;}
+function cerrarSheet(){document.getElementById('veil').style.display='none';document.querySelectorAll('.sheet').forEach(function(x){x.style.display='none'});window.LMAP=null;pintarCartBtn();}
 function setTipo(t){
   TIPO=t;['comida','viaje','repuesto'].forEach(function(x){document.getElementById('pill-'+x).className='pill'+(x===t?' on':'')});extra();
 }
