@@ -9,6 +9,7 @@ const { REPO, BRANCH, H, ensureBranch } = require('./_dx');
 
 const TZ = 6 * 3600 * 1000;
 const CICLO_MS = 72 * 3600 * 1000;
+const MIN_DEPOSITO = 50; // regla de Juan (2026-10-21): montos chicos NO se cobran — el piloto sigue 3 días más de viajes y acumula, nadie anda al banco a depositar Q10
 const dinero = (q) => { const n = Number(q); return (isNaN(n) || !isFinite(n) || n < 0) ? 0 : Math.round(n * 100) / 100; };
 
 async function ghGet(path) {
@@ -83,10 +84,23 @@ module.exports = wrap(async (req, res) => {
       // 🎁 Bonos ganados (bienvenida + premios dominicales) salen de SUS PROPIAS comisiones: descuentan lo que transfiere
       const bono = Math.min(dinero(st.bonosPend || 0), dinero(p.comisiones - comp));
       const neto = dinero(p.comisiones - comp - bono);
-      p.compAplicada = comp; p.bonoAplicado = bono; p.neto = neto;
+      // 🏦 MONTO CHICO (regla de Juan): lo que ya debía + acumulado chico + neto de hoy
+      const previo = dinero((st.pendiente && !st.pendiente.pagado ? st.pendiente.monto : 0) + (st.saldoChico || 0));
+      const total = dinero(previo + neto);
+      p.compAplicada = comp; p.bonoAplicado = bono;
       if (bono > 0) { st.bonosPend = dinero((st.bonosPend || 0) - bono); st.bonosAplicados = dinero((st.bonosAplicados || 0) + bono); }
       if (comp > 0) st.compensa = dinero((st.compensa || 0) - comp);
-      if (neto > 0) st.pendiente = { monto: dinero((st.pendiente && !st.pendiente.pagado ? st.pendiente.monto : 0) + neto), desde: new Date(now - TZ).toISOString().slice(0, 10), pagado: false };
+      if (total >= MIN_DEPOSITO) {
+        // ya vale la pena el viaje al banco: se cobra y bloquea hasta pagar
+        st.saldoChico = 0;
+        st.pendiente = { monto: total, desde: new Date(now - TZ).toISOString().slice(0, 10), pagado: false };
+        p.neto = total;
+      } else if (total > 0) {
+        // POCO todavía: 3 días más de viajes, acumula tranquilo y sigue recibiendo pedidos
+        st.saldoChico = total;
+        st.pendiente = null;
+        p.neto = 0; p.acumula = total;
+      } else p.neto = 0;
     });
     await ghPut('pilots.json', fpr ? fpr.sha : null, parr, 'liquidacion de ciclo pendientes');
 
@@ -94,7 +108,7 @@ module.exports = wrap(async (req, res) => {
     pozo.ciclos = (pozo.ciclos || 0) + 1;
     await ghPut('pozo.json', fpz ? fpz.sha : null, pozo, 'ciclo liquidado ' + gt(now));
 
-    const LINEAS = pilotos.length ? pilotos.map(p => `• ${p.nombre} (${p.tel}): ${p.entregas} entregas · comisiones Q${p.comisiones}${p.compAplicada ? ' − ⛽ comp Q' + p.compAplicada : ''}${p.bonoAplicado ? ' − 🎁 bono Q' + p.bonoAplicado : ''} → TE TRANSFIERE Q${p.neto}`).join('\n') : 'Sin entregas este ciclo.';
+    const LINEAS = pilotos.length ? pilotos.map(p => `• ${p.nombre} (${p.tel}): ${p.entregas} entregas · comisiones Q${p.comisiones}${p.compAplicada ? ' − ⛽ comp Q' + p.compAplicada : ''}${p.bonoAplicado ? ' − 🎁 bono Q' + p.bonoAplicado : ''} → ${p.acumula ? 'acumula Q' + p.acumula + ' (chico: se cobra en el próximo ciclo, mínimo Q' + MIN_DEPOSITO + ' — no anda al banco por chiquitos)' : 'TE TRANSFIERE Q' + p.neto}`).join('\n') : 'Sin entregas este ciclo.';
     const SANC = sancionados.length ? `\n\n⏳ PENDIENTES de liquidar el ciclo anterior (NO suspendidos: entran normal y ven un aviso amable para pagar; no les llegan pedidos nuevos hasta liquidar): ${sancionados.join(', ')}` : '';
     const prox = new Date(now + CICLO_MS - TZ).toISOString().replace('T', ' ').slice(0, 16);
     await aviso(`🐉 DRAGOEXPRES — LIQUIDACIÓN DE CICLO (cada 72h)\nCiclo del ${gt(desde)} al ${gt(now)}\n\n💰 Cada piloto te transfiere su neto a tu Industrial 7171286805:\n${LINEAS}\n\n⏰ Próxima liquidación: ${prox} GT${SANC}\nAl pagar tarde pierden la racha del pozo del domingo (salvo que vos les des el chance con 🐉 Restaurar racha). Las compensaciones ⛽ salen de las comisiones del propio piloto (vos no pones nada).`);
