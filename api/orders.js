@@ -223,7 +223,7 @@ module.exports = wrap(async (req, res) => {
     const nocturno = esNoche(now);
     const recargo = nocturno ? RECARGO_NOCHE : 0;
     const envioTarifa = TARIFA_FIJA[tipo] + recargo; // de noche +Q5 (100% para el piloto, sin comisión)
-    // 🎁 PROMO CLIENTE FIEL (regla de Juan): cada 20 pedidos ENTREGADOS, el SIGUIENTE va con ENVÍO GRATIS.
+    // 🎁 PROMO CLIENTE FIEL (regla de Juan): cada 30 pedidos ENTREGADOS, el SIGUIENTE va con ENVÍO GRATIS.
     // El piloto cobra su envío completo como cashback (bonosPend) y se netea en la liquidación de 72h:
     // lo pagan las comisiones que ese mismo cliente ya generó. Nadie pone de su bolsa.
     let promoFiel = false, entFiel = 0;
