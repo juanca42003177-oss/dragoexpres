@@ -679,7 +679,7 @@ function abrirCat(tipo){
     var cerrado=l.abierto===false;var pausado=l.pausado?true:false;
     h+='<div class="loc"'+((cerrado||pausado)?' style="opacity:0.55"':'')+'><div class="avatar">'+(l.fotoLocal?'<img src="'+l.fotoLocal+'" style="width:100%;height:100%;object-fit:cover;border-radius:50%">':(l.nombre||'?').charAt(0).toUpperCase())+'</div>'
       +'<div class="info"><b>'+l.nombre+'</b><span><span class="chip">'+(l.rubro||'Local')+'</span>'+(u.zona&&l.zona&&l.zona!==u.zona?' · 📍 '+l.zona:'')+(pausado?' · <span style="color:#ffd479">⏸️ Saturado ahora</span>':cerrado?' · <span style="color:#ff8f8f">🔴 Cerrado · abre '+String(l.abre).padStart(2,'0')+':00</span>':' · <span style="color:#7ee2a8">🟢 Abierto</span>')+'</span></div>'
-      +'<button class="btnW" onclick="verMenu('+idx+')">Menú 📋</button>'
+      +'<button class="btnW" onclick="verMenu('+idx+')">'+(String(((l||{}).rubro||'')).toLowerCase().indexOf('repuesto')>=0?'Catálogo 📋':'Menú 📋')+'</button>'
       +(cerrado||pausado?'':'<button class="btnS" onclick="cerrarCat();abrirPedidoLocal('+idx+')">Pedir aquí</button>')+'</div>';
   });
   document.getElementById('catLista').innerHTML=h;
@@ -728,7 +728,7 @@ function pintarLocales(){
     h+='<div class="loc"'+((cerrado||pausado)?' style="opacity:0.55"':'')+'><div class="avatar">'+(l.fotoLocal?'<img src="'+l.fotoLocal+'" style="width:100%;height:100%;object-fit:cover;border-radius:50%">':ini)+'</div>'
       +'<div class="info"><b>'+l.nombre+'</b><span><span class="chip">'+(l.rubro||'Local')+'</span>✅ Verificado · '+(l.zona||'')+(pausado?' · <span style="color:#ffd479">⏸️ Saturado ahora</span>':cerrado?' · <span style="color:#ff8f8f">🔴 Cerrado · abre '+String(l.abre).padStart(2,'0')+':00</span>':' · <span style="color:#7ee2a8">🟢 Abierto</span>')+'</span></div>'
       +'<button class="btnW" onclick="window.open(\''+wa+'\',\'_blank\')">💬</button>'
-      +'<button class="btnW" onclick="verMenu('+idx+')">Menú 📋</button>'+
+      +'<button class="btnW" onclick="verMenu('+idx+')">'+(String(((l||{}).rubro||'')).toLowerCase().indexOf('repuesto')>=0?'Catálogo 📋':'Menú 📋')+'</button>'+
       (cerrado||pausado?'<button class="btnS" style="opacity:0.5" onclick="alert(\''+(pausado?'Está saturado ahora, probá en unos minutos.':(l.nombre+' está cerrado. Abre a las '+String(l.abre).padStart(2,'0')+':00'))+'\')">Cerrado</button>':'<button class="btnS" onclick="abrirPedidoLocal('+idx+')">Pedir aquí</button>')+'</div>';
   });
   document.getElementById('lista-locales').innerHTML=h;
@@ -876,7 +876,7 @@ var MENU_LOCAL=null,MENU_CACHE={};
 
 async function verMenu(idx){
   var l=LOCALES[idx];if(!l)return;MENU_LOCAL=l;
-  document.getElementById('menuTitulo').textContent='Menú de '+l.nombre;
+  document.getElementById('menuTitulo').textContent=(String((l.rubro||'')).toLowerCase().indexOf('repuesto')>=0?'Catálogo de ':'Menú de ')+l.nombre;
   document.getElementById('veil').style.display='block';
   document.getElementById('menuSheet').style.display='block';
   document.getElementById('menuLista').innerHTML='<p class="mini">Cargando el menú...</p>';
@@ -919,23 +919,25 @@ function qtyN(n){
 function verProducto(idxLocal,idProd){
   var it=(MENU_CACHE[idxLocal]||[]).find(function(x){return x.id===idProd});if(!it)return;
   QTY=1;PROD_NOW={idx:idxLocal,id:idProd,precio:it.precio,nombre:it.nombre};
+  var _rep=String(((LOCALES[idxLocal]||{}).rubro||'')).toLowerCase().indexOf('repuesto')>=0;
   document.getElementById('prodBody').innerHTML=
     (it.foto?'<img src="'+it.foto+'" style="width:100%;border-radius:16px;aspect-ratio:1;object-fit:cover;margin-bottom:12px">':'')
     +'<h2 style="font-size:19px;margin:0 0 4px">'+it.nombre+'</h2>'
     +'<p class="mini" style="margin:0 0 6px">'+(it.desc||'')+'</p>'
     +'<div style="font-size:22px;font-weight:900;color:var(--rojo)">Q'+it.precio+' <span style="font-size:13px;color:#888">c/u</span></div>'
     +'<label style="display:block;font-size:12px;font-weight:800;margin:12px 0 4px">📝 Anotaciones para el local (opcional)</label>'
-    +'<input id="p-nota" placeholder="Ej: sin cebolla, extra salsa, cortalo en trozos" style="width:100%">'
+    +'<input id="p-nota" placeholder="'+(_rep?'Ej: para Honda Wave 110, modelo 2018, motor original':'Ej: sin cebolla, extra salsa, cortalo en trozos')+'" style="width:100%">'
     +'<div style="display:flex;align-items:center;gap:14px;margin:14px 0 4px"><span style="font-size:12px;font-weight:800">CANTIDAD</span>'
     +'<button class="qBtn" onclick="qtyN(-1)" style="width:38px;height:38px;border-radius:10px;border:2px solid #f0b90b;background:#1a1a22;color:#f0b90b;font-size:20px;font-weight:900;cursor:pointer">−</button>'
     +'<div id="p-qty" style="font-size:19px;font-weight:900;min-width:30px;text-align:center">1</div>'
     +'<button class="qBtn" onclick="qtyN(1)" style="width:38px;height:38px;border-radius:10px;border:2px solid #f0b90b;background:#1a1a22;color:#f0b90b;font-size:20px;font-weight:900;cursor:pointer">+</button></div>'
     +'<button class="btn bA" id="p-add" onclick="cartAdd('+idxLocal+',\''+idProd+'\')">🛒 AGREGAR AL CARRITO — Q'+it.precio+'</button>'
-    +'<button class="btn" style="background:#333;color:#fff;box-shadow:none" onclick="cerrarProd()">Volver al menú</button>';
+    +'<button class="btn" style="background:#333;color:#fff;box-shadow:none" onclick="cerrarProd()">Volver al '+(_rep?'catálogo':'menú')+'</button>';
+  var _fb=document.getElementById('cartFab');if(_fb)_fb.style.display='none';
   document.getElementById('prodSheet').style.display='block';
   document.getElementById('menuSheet').style.display='none';
 }
-function cerrarProd(){document.getElementById('prodSheet').style.display='none';document.getElementById('menuSheet').style.display='block'}
+function cerrarProd(){document.getElementById('prodSheet').style.display='none';document.getElementById('menuSheet').style.display='block';pintarCartBtn()}
 /* ---------- CARRITO (estilo PedidosYa, diseño dragón) ---------- */
 function cartGet(){try{return JSON.parse(localStorage.getItem('dx_cart'))||null}catch(e){return null}}
 function cartSave(c){try{if(c&&c.items&&c.items.length)localStorage.setItem('dx_cart',JSON.stringify(c));else localStorage.removeItem('dx_cart');}catch(e){}pintarCartBtn()}

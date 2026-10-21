@@ -319,8 +319,8 @@ async function servDel(id){
   var j=await r.json();if(!j.ok)return;SERVS=j.servicios;pintarServs();}catch(e){}
 }
 var LOCFOTO_B64='',PRFOTO_B64='';
-document.getElementById('loc-foto').addEventListener('change',function(){if(this.files&&this.files[0])comprimirFoto(this.files[0],function(b64){LOCFOTO_B64=b64;document.getElementById('locFotoPrev').innerHTML='<img src="'+b64+'" style="width:100%;max-height:160px;object-fit:cover;border-radius:10px">'})});
-document.getElementById('pr-foto').addEventListener('change',function(){if(this.files&&this.files[0])comprimirFoto(this.files[0],function(b64){PRFOTO_B64=b64})});
+document.getElementById('loc-foto').addEventListener('change',function(){if(this.files&&this.files[0])comprimirFoto(this.files[0],function(b64){LOCFOTO_B64=b64;document.getElementById('locFotoPrev').innerHTML='<img src="'+b64+'" style="width:100%;max-height:160px;object-fit:cover;border-radius:10px">'},null)});
+document.getElementById('pr-foto').addEventListener('change',function(){if(this.files&&this.files[0])comprimirFoto(this.files[0],function(b64){PRFOTO_B64=b64},null)});
 async function guardarFotoLocal(){
   if(DEMO){alert('Vista previa: los cambios no se guardan.');return}
   if(!LOCFOTO_B64){alert('Elegí la foto del frente primero.');return}
@@ -365,7 +365,7 @@ async function cargarMenu(){
   try{var r=await fetch(api('orders'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'menu',tel:TEL})});
   var j=await r.json();if(j.ok){MENU=j.items;pintarMenu();}}catch(e){}
 }
-function comprimirFoto(file,cb){
+function comprimirFoto(file,cb,prevId){
   var rd=new FileReader();
   rd.onload=function(){
     var img=new Image();
@@ -375,8 +375,8 @@ function comprimirFoto(file,cb){
       c.width=Math.round(img.width*s);c.height=Math.round(img.height*s);
       c.getContext('2d').drawImage(img,0,0,c.width,c.height);
       FOTOB64=c.toDataURL('image/jpeg',0.72);
-      var p=document.getElementById('m-preview');p.src=FOTOB64;p.style.display='block';
-      cb&&cb();
+      if(prevId){var p=document.getElementById(prevId);if(p){p.src=FOTOB64;p.style.display='block'}}
+      cb&&cb(FOTOB64);
     };
     img.src=rd.result;
   };
@@ -389,11 +389,11 @@ async function menuAdd(){
   var foto='';
   if(FOTOB64){
     try{var r=await fetch(api('menuphoto'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({tel:TEL,b64:FOTOB64})});
-    var j=await r.json();if(j.ok)foto=j.foto;else{b.disabled=false;b.textContent='➕ AGREGAR AL MENÚ';alert(j.error||'No se pudo subir la foto, probá sin foto.');return}}catch(e){}
+    var j=await r.json();if(j.ok)foto=j.foto;else{b.disabled=false;b.textContent=esRep()?'➕ AGREGAR AL CATÁLOGO':'➕ AGREGAR AL MENÚ';alert(j.error||'No se pudo subir la foto, probá sin foto.');return}}catch(e){}
   }
   var r2=await fetch(api('orders'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'menuAdd',tel:TEL,nombre:n,desc:ds,categoria:cat,precio:p,foto:foto})});
   var j2=await r2.json();
-  b.disabled=false;b.textContent='➕ AGREGAR AL MENÚ';
+  b.disabled=false;b.textContent=esRep()?'➕ AGREGAR AL CATÁLOGO':'➕ AGREGAR AL MENÚ';
   if(!j2.ok){alert(j2.error);return}
   MENU=j2.items;pintarMenu();
   document.getElementById('m-nombre').value='';document.getElementById('m-precio').value='';document.getElementById('m-desc').value='';
@@ -411,7 +411,7 @@ async function menuDel(id){
   var r=await fetch(api('orders'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'menuDel',tel:TEL,id:id})});
   var j=await r.json();if(j.ok){MENU=j.items;pintarMenu()}
 }
-document.getElementById('m-foto').addEventListener('change',function(){if(this.files&&this.files[0])comprimirFoto(this.files[0])});
+document.getElementById('m-foto').addEventListener('change',function(){if(this.files&&this.files[0])comprimirFoto(this.files[0],null,'m-preview')});
 function toggleSonido(){SONIDO=!SONIDO;localStorage.setItem('dxSonido',SONIDO?'on':'off');desbloquearSonido();if(!SONIDO&&ALARM){clearInterval(ALARM);ALARM=null}var b=document.getElementById('sonidoBtn');if(b)b.textContent=SONIDO?'🔔':'🔇'}
 async function login(){
   desbloquearSonido();
