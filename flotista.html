@@ -76,7 +76,7 @@ function entrarVista(){
   var p=null;try{p=localStorage.getItem('dx_admin')}catch(e){}
   if(!p)return;
   try{var r=await fetch(api('admin'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({pass:p,action:'check'})});
-  var j=await r.json();if(j&&j.ok)entrarVista();}catch(e){}
+  var j=await r.json();if(j&&j.ok){var _pb=document.createElement('button');_pb.style.cssText='width:100%;font-family:inherit;font-weight:800;font-size:14px;border-radius:12px;padding:12px;margin-top:10px;cursor:pointer;background:#241a05;color:#ffe08a;border:1px solid #f0b90b';_pb.textContent='👁️ VISTA PREVIA — solo para el dueño';_pb.onclick=entrarVista;document.getElementById('login').appendChild(_pb);}}catch(e){}
 })();
 async function login(){
   var tel=document.getElementById('l-tel').value.trim(),placa=document.getElementById('l-placa').value.trim().toUpperCase();
