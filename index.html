@@ -433,13 +433,13 @@ function intentarEnviar() {
     fetch(apiBase() + '/register', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(reg) })
       .then(function(r){ return r.json(); })
       .then(function(j){
-        if (j && j.ok) { q.shift(); localStorage.setItem('dx_cola', JSON.stringify(q)); mostrarOk(reg.tipo, j.estado); if (q.length) intentarEnviar(); }
+        if (j && j.ok) { q.shift(); localStorage.setItem('dx_cola', JSON.stringify(q)); mostrarOk(reg.tipo, j.estado, reg.datos); if (q.length) intentarEnviar(); }
         else mostrarOkLocal(reg.tipo);
       })
       .catch(function(){ mostrarOkLocal(reg.tipo); });
   } catch(e) {}
 }
-function mostrarOk(t, estado) {
+function mostrarOk(t, estado, datos) {
   var instante = estado === 'aprobado';
   var m = {
     usuario:'¡Quedaste verificado! 🤳✅ Con tu selfie y tu WhatsApp ya podés pedir comida, viajes y repuestos. Tu primer envío gratis te lo ganaste.',
@@ -451,6 +451,7 @@ function mostrarOk(t, estado) {
   document.getElementById('okM').textContent = m[t] || m.usuario;
   ['usuario','piloto','local','flota'].forEach(function(x){ document.getElementById('f'+x.charAt(0).toUpperCase()+x.slice(1)).classList.remove('on'); });
   document.getElementById('okBox').style.display='block';
+  if (t === 'usuario' && datos && datos.nombre && datos.tel) { try { localStorage.setItem('dx_user', JSON.stringify({ nombre: datos.nombre, tel: datos.tel, zona: datos.zona || '', onboarded: true, regEnv: 1 })); } catch (e) { } }
   window.scrollTo({top:0, behavior:'smooth'});
 }
 function mostrarOkLocal(t) {

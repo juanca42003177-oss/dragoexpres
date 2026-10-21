@@ -520,6 +520,7 @@ function onbFin(guest){
     if(!ya)u.dires.unshift({label:'Casa',dir:dir});
   }else{u.guest=true}
   u.onboarded=true;SS(u);
+  if(!guest&&u.tel&&u.nombre&&!u.regEnv){u.regEnv=1;SS(u);try{fetch(api('register'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({tipo:'usuario',nombre:u.nombre,tel:u.tel,zona:u.zona||'',pais:u.pais||'502'})}).catch(function(){u.regEnv=0;SS(u)})}catch(e){}}
   document.getElementById('onb').className='';document.getElementById('onb').style.display='none';
   pintarDirHeader();
 }
@@ -934,7 +935,7 @@ function cerrarCart(){document.getElementById('veil').style.display='none';docum
 function cartCheckout(){
   var c=cartGet();if(!c)return;
   cerrarCart();
-  abrirPedidoLocal(c.idx);
+  var xi=LOCALES.findIndex(function(l){return l.tel===c.tel});abrirPedidoLocal(xi>=0?xi:(c.idx||0));
   setTimeout(function(){
     var det=c.items.map(function(x){return x.qty+'x '+x.nombre+(x.nota?' ('+x.nota+')':'')+' — Q'+(x.precio*x.qty)}).join('\n');
     var d=document.getElementById('f-det');if(d)d.value=det;
@@ -1044,8 +1045,10 @@ async function enviar(){
   if(u.dires.indexOf(d.direccion)<0&&u.dires.length<6){u.dires.push(d.direccion);}
   SS(u);
   var b=document.querySelector('#sheet .btn');b.disabled=true;b.textContent='Enviando...';
-  var r=await fetch(api('orders'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(d)});
-  var j=await r.json();b.disabled=false;b.textContent='ENVIAR PEDIDO';
+  var j;
+  try{var r=await fetch(api('orders'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(d)});j=await r.json()}
+  catch(e){b.disabled=false;b.textContent='ENVIAR PEDIDO';toast('Se cayó tu internet en el envío. Mirá abajo en Mis pedidos: si tu pedido no aparece, tocá ENVIAR de nuevo.');return}
+  b.disabled=false;b.textContent='ENVIAR PEDIDO';
   if(!j.ok){b.disabled=false;b.textContent='ENVIAR PEDIDO';toast(j.error||'No se pudo crear el pedido.');return}
   if(d.items){window._CART_PED=null;cartSave(null);}
   cerrarSheet();
