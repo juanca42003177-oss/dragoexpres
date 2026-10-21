@@ -52,6 +52,12 @@ input,textarea,select{-webkit-user-select:text;user-select:text}
       <span style="cursor:pointer;color:#9aa3b5;font-size:12px" onclick="salir()">Salir ✕</span>
     </div>
     <div class="aviso" id="modoAviso" style="display:none">👁 VISTA PREVIA con datos de EJEMPLO — probá todos los botones. Con la API montada en Vercel (ADMIN_PASS) acá aparecen los registros REALES de tu app.</div>
+    <div style="background:#14151c;border:1px solid #2a2b38;border-radius:12px;padding:9px 12px;margin:10px 0;display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+      <span style="font-size:11px;font-weight:800;color:#9aa3b5">👁️ REVISAR INTERFAZ EN VIVO:</span>
+      <span style="background:#1a1a22;border:1px solid #f0b90b;color:#f0b90b;border-radius:16px;padding:6px 12px;font-size:12px;font-weight:800;cursor:pointer" onclick="window.open('piloto.html?demo=owner','_blank')">🏍️ Piloto</span>
+      <span style="background:#1a1a22;border:1px solid #f0b90b;color:#f0b90b;border-radius:16px;padding:6px 12px;font-size:12px;font-weight:800;cursor:pointer" onclick="window.open('local.html?demo=owner','_blank')">🏪 Local</span>
+      <span style="background:#1a1a22;border:1px solid #f0b90b;color:#f0b90b;border-radius:16px;padding:6px 12px;font-size:12px;font-weight:800;cursor:pointer" onclick="window.open('flotista.html?demo=owner','_blank')">🚚 Flotista</span>
+    </div>
     <div class="tabs" id="tabs"></div>
     <div id="vivoCard"></div>
     <div id="resumen"></div>
