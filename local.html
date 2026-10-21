@@ -47,7 +47,7 @@ input,textarea,select{-webkit-user-select:text;user-select:text}
   </div>
 
   <div id="app" style="display:none">
-    <h1 style="display:flex;align-items:center;gap:10px"><img src="img/dragon-fuego.webp" style="width:44px;height:44px;border-radius:10px;object-fit:cover" alt="Dragón DragoExpres"> Hola, <span id="l-nombre"></span></h1>
+    <h1 style="display:flex;align-items:center;gap:10px"><img src="img/dragon-local.png" style="width:44px;height:44px;border-radius:10px;object-fit:cover" alt="Dragón DragoExpres"> Hola, <span id="l-nombre"></span></h1>
     <p class="mini" id="l-zona"></p>
     <div id="pausaCard" class="card" style="display:none;background:#2a230f;border-color:#6b5a10;color:#ffe08a;text-align:center"></div>
     <div class="card" id="horarioCard" style="background:#14151c">
@@ -411,7 +411,7 @@ function pintar(j){
   var box=document.getElementById('pedidos');
   if(!j.activos||!j.activos.length){
     tocarAlarma(0);
-    box.innerHTML='<div class="card" style="text-align:center"><img src="img/dragon-fuego.webp" style="width:76px;border-radius:14px"><b>Sin pedidos ahora</b><p class="mini">Cuando un cliente pida de tu local, aparece acá al instante, SUENA y confirmás con un toque.</p></div>';
+    box.innerHTML='<div class="card" style="text-align:center"><img src="img/dragon-local.png" style="width:76px;border-radius:14px"><b>Sin pedidos ahora</b><p class="mini">Cuando un cliente pida de tu local, aparece acá al instante, SUENA y confirmás con un toque.</p></div>';
   }else{
     tocarAlarma(j.activos.filter(function(o){return !o.prep}).length);
     box.innerHTML=j.activos.map(function(o){
