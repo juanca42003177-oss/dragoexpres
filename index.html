@@ -58,6 +58,14 @@ footer b{color:var(--oro)}
 *{-webkit-user-select:none;-webkit-touch-callout:none;user-select:none}
 input,textarea,select{-webkit-user-select:text;user-select:text}
 </style>
+<script>
+/* Ingreso directo: si ya registraste/entraste a tu panel, te mandamos derecho a el */
+try{
+  if(localStorage.getItem('dxLocal')){location.replace('local.html')}
+  else if(localStorage.getItem('dxPiloto')){location.replace('piloto.html')}
+  else if(localStorage.getItem('dxFlota')){location.replace('flotista.html')}
+}catch(e){}
+</script>
 </head>
 <body>
 <div class="wrap">
@@ -71,11 +79,11 @@ input,textarea,select{-webkit-user-select:text;user-select:text}
   <img src="img/banner.png" alt="DragoExpres" style="width:100%;height:150px;object-fit:cover;border-radius:12px;margin-top:10px;border:1px solid #26210f">
   <div style="display:flex;gap:8px;margin-top:10px">
     <a href="pedir.html" style="flex:1;text-align:center;background:linear-gradient(135deg,#ffe08a,#f0b90b);border:0;border-radius:10px;padding:11px;font-weight:900;font-size:14px;color:#111;text-decoration:none"><img src="img/dragon-paquete.webp" style="width:16px;height:16px;object-fit:contain;border-radius:4px;vertical-align:-3px"> PEDIR AHORA</a>
-    <a href="ganancias.html" style="flex:1;text-align:center;background:#14151c;border:1px solid #f0b90b;border-radius:10px;padding:11px;font-weight:900;font-size:14px;color:#f0b90b;text-decoration:none"><img src="img/dragon-billetera.png" style="width:16px;height:16px;object-fit:cover;border-radius:4px;vertical-align:-3px"> SOY PILOTO</a>
+    <a href="ganancias.html" style="flex:1;text-align:center;background:#14151c;border:1px solid #f0b90b;border-radius:10px;padding:11px;font-weight:900;font-size:14px;color:#f0b90b;text-decoration:none"><img src="img/dragon-billetera.png" style="width:16px;height:16px;object-fit:contain;border-radius:4px;vertical-align:-3px"> SOY PILOTO</a>
   </div>
   </div>
   <div class="puertas">
-    <div class="puerta on" id="tUsuario" onclick="abrir('usuario')"><div class="i"><img src="img/dragon-paquete.webp" style="width:32px;height:32px;object-fit:contain;border-radius:8px"></div><div class="n">Quiero pedir</div><div class="s">Comida, viajes y repuestos</div></div>
+    <div class="puerta" id="tUsuario" onclick="abrir('usuario')"><div class="i"><img src="img/dragon-paquete.webp" style="width:32px;height:32px;object-fit:contain;border-radius:8px"></div><div class="n">Quiero pedir</div><div class="s">Comida, viajes y repuestos</div></div>
     <div class="puerta" id="tPiloto" onclick="location.href='ganancias.html'"><div class="i"><img src="img/dragon-billetera.png" style="width:32px;height:32px;object-fit:contain;border-radius:8px"></div><div class="n">Ser piloto</div><div class="s">Pagos semanales</div></div>
     <div class="puerta" id="tLocal" onclick="abrir('local')"><div class="i"><img src="img/dragon-local.png" style="width:32px;height:32px;object-fit:contain;border-radius:8px"></div><div class="n">Poné tu local</div><div class="s">Tu zona te ve</div></div>
     <div class="puerta" id="tFlota" onclick="abrir('flota')"><div class="i"><img src="img/dragon-volando.png" style="width:32px;height:32px;object-fit:contain;border-radius:8px"></div><div class="n">Tu moto o carro a trabajar</div><div class="s">Ganá el 25% sin manejar</div></div>
@@ -83,7 +91,7 @@ input,textarea,select{-webkit-user-select:text;user-select:text}
     <p style="text-align:center;margin:10px 0 0"><a href="local.html" style="color:#f0b90b;font-size:clamp(10.5px,3.6vw,13px);font-weight:700;white-space:nowrap;display:inline-block">🏪 ¿Ya registraste tu local? Entrá a tu panel acá</a></p>
   </div>
 
-  <div class="form on" id="fUsuario">
+  <div class="form" id="fUsuario">
     <h3>Quiero pedir <img src="img/dragon-paquete.webp" style="width:20px;height:20px;object-fit:contain;border-radius:5px;vertical-align:-4px"></h3>
     <p class="desc">Sé de los primeros en reclamar tu envío GRATIS: hacé 30 pedidos y tu pedido 31 viaja sin costo. ¡Promoción LIMITADA, una sola vez por usuario!</p>
     <label>Tu nombre</label><input id="uNombre" placeholder="Ej: María López">
@@ -95,7 +103,7 @@ input,textarea,select{-webkit-user-select:text;user-select:text}
   </div>
 
   <div class="form" id="fPiloto">
-    <h3>Quiero ser piloto <img src="img/dragon-billetera.png" style="width:20px;height:20px;object-fit:cover;border-radius:5px;vertical-align:-4px"></h3>
+    <h3>Quiero ser piloto <img src="img/dragon-billetera.png" style="width:20px;height:20px;object-fit:contain;border-radius:5px;vertical-align:-4px"></h3>
     <p class="desc">Trabajá con tu bicicleta, moto o carro en tu propia zona. Pagos semanales, y vos ponés vuestro horario. Te pedimos DPI, selfie, tu vehículo y tu caja térmica 📦 (obligatoria para que la comida llegue caliente) para darte la insignia de Piloto Verificado.</p>
     <label>Tu nombre</label><input id="pNombre" placeholder="Nombre completo">
     <label>WhatsApp</label><input id="pTel" type="tel" placeholder="Tu WhatsApp">
@@ -143,7 +151,7 @@ input,textarea,select{-webkit-user-select:text;user-select:text}
   </div>
 
   <div class="form" id="fFlota">
-    <h3>Tu vehículo a trabajar <img src="img/dragon-volando.png" style="width:20px;height:20px;object-fit:cover;border-radius:5px;vertical-align:-4px"></h3>
+    <h3>Tu vehículo a trabajar <img src="img/dragon-volando.png" style="width:20px;height:20px;object-fit:contain;border-radius:5px;vertical-align:-4px"></h3>
     <p class="desc">¿Tenés una moto, carro o pickup que querés poner a trabajar pero no la querés manejar vos? Registrala acá, le asignás un piloto verificado desde tu pantalla, y recibís el 25% de cada entrega sin salir de casa. Si querés manejarla VOS, usá la puerta de arriba y ganás el 100%.</p>
     <label>Tu nombre</label><input id="flNombre" placeholder="Nombre completo">
     <label>WhatsApp</label><input id="flTel" type="tel" placeholder="Tu WhatsApp">
@@ -173,7 +181,7 @@ input,textarea,select{-webkit-user-select:text;user-select:text}
 
   <div class="bene">
     <h4>⚡ Beneficios de los primeros</h4>
-    <div class="r"><img src="img/dragon-billetera.png" style="width:16px;height:16px;object-fit:cover;border-radius:5px;vertical-align:-4px"> <span><b>Pilotos:</b> vuestro primer mes con el 100% de vuestros envíos + DEVOLUCIÓN SEMANAL en cashback al cumplir 20 entregas (ninguna otra app hace esto).</span></div>
+    <div class="r"><img src="img/dragon-billetera.png" style="width:16px;height:16px;object-fit:contain;border-radius:5px;vertical-align:-4px"> <span><b>Pilotos:</b> vuestro primer mes con el 100% de vuestros envíos + DEVOLUCIÓN SEMANAL en cashback al cumplir 20 entregas (ninguna otra app hace esto).</span></div>
     <div class="r"><img src="img/dragon-local.png" style="width:16px;height:16px;object-fit:contain;border-radius:5px;vertical-align:-4px"> <span><b>Locales:</b> vuestros primeros 90 días sin comisión, y publicás vuestras propias promos (después solo 10%, comida y repuestos).</span></div>
     <div class="r"><img src="img/dragon-paquete.webp" style="width:16px;height:16px;object-fit:contain;border-radius:5px;vertical-align:-4px"> <span><b>Usuarios:</b> con 30 pedidos tu envío 31 va gratis (promo LIMITADA, una sola vez) + sorpresas de lanzamiento en vuestra zona.</span></div>
   </div>
@@ -192,7 +200,7 @@ input,textarea,select{-webkit-user-select:text;user-select:text}
   </div>
 </div>
 <div class="sec">
-  <h2>Repuestos: nadie más hace esto <img src="img/repuestos.png" style="width:22px;height:22px;object-fit:cover;border-radius:5px;vertical-align:-4px"></h2>
+  <h2>Repuestos: nadie más hace esto <img src="img/repuestos.png" style="width:22px;height:22px;object-fit:contain;border-radius:5px;vertical-align:-4px"></h2>
   <img src="img/repuestos.png" alt="Repuestos DragoExpres" style="width:100%;height:130px;object-fit:cover;border-radius:11px;border:1px solid #26210f">
   <p class="small" style="margin-top:8px;line-height:1.5;font-size:11.5px">Buscás por <b>tu modelo</b>: "pastillas para Honda CG125", "bomba de agua para Nissan Tiida". Las tiendas de tu zona compiten por tu pedido y el piloto te la lleva — y si querés, te la deja <b>instalada</b>.</p>
 </div>
@@ -278,8 +286,8 @@ function verDemo(cual){
       <div style="color:#9aa3b5;font-size:12.5px">Zona 11 · Buscá comida, viajes o repuestos</div>
       <div style="display:flex;gap:8px;margin:14px 0">
         <div style="flex:1;background:#14151c;border:1px solid #2a2b38;border-radius:12px;padding:12px;text-align:center"><div><img src="img/dragon-paquete.webp" style="width:26px;height:26px;object-fit:contain;border-radius:5px;vertical-align:-4px"></div><b style="font-size:12px">Comida</b></div>
-        <div style="flex:1;background:#14151c;border:1px solid #2a2b38;border-radius:12px;padding:12px;text-align:center"><div><img src="img/dragon-volando.png" style="width:26px;height:26px;object-fit:cover;border-radius:5px;vertical-align:-4px"></div><b style="font-size:12px">Viaje</b></div>
-        <div style="flex:1;background:#14151c;border:1px solid #2a2b38;border-radius:12px;padding:12px;text-align:center"><div><img src="img/repuestos.png" style="width:26px;height:26px;object-fit:cover;border-radius:5px;vertical-align:-4px"></div><b style="font-size:12px">Repuestos</b></div>
+        <div style="flex:1;background:#14151c;border:1px solid #2a2b38;border-radius:12px;padding:12px;text-align:center"><div><img src="img/dragon-volando.png" style="width:26px;height:26px;object-fit:contain;border-radius:5px;vertical-align:-4px"></div><b style="font-size:12px">Viaje</b></div>
+        <div style="flex:1;background:#14151c;border:1px solid #2a2b38;border-radius:12px;padding:12px;text-align:center"><div><img src="img/repuestos.png" style="width:26px;height:26px;object-fit:contain;border-radius:5px;vertical-align:-4px"></div><b style="font-size:12px">Repuestos</b></div>
       </div>
       <div style="background:#14151c;border:1px solid #2a2b38;border-radius:12px;padding:12px;margin-bottom:10px">
         <b style="font-size:13px">Pollería El Dragón</b> <span style="float:right;color:#f0b90b;font-weight:800">25-35 min</span>
@@ -305,7 +313,7 @@ function verDemo(cual){
     <div class="ds" id="dsPiloto" style="display:none">
       <div style="display:flex;gap:10px;align-items:center;margin-top:12px">
         <img src="img/piloto.png" style="width:52px;height:52px;border-radius:50%;border:2px solid #f0b90b">
-        <div><div style="font-weight:900;font-size:18px">Vos sos piloto <img src="img/dragon-billetera.png" style="width:18px;height:18px;object-fit:cover;border-radius:5px;vertical-align:-4px"></div></div>
+        <div><div style="font-weight:900;font-size:18px">Vos sos piloto <img src="img/dragon-billetera.png" style="width:18px;height:18px;object-fit:contain;border-radius:5px;vertical-align:-4px"></div></div>
       </div>
       <div style="color:#9aa3b5;font-size:12.5px">Carlos M. · Honda roja · C-123ABC · ✅ Verificado</div>
       <div style="background:#14151c;border:1px solid #2a2b38;border-radius:12px;padding:12px;margin-top:12px;display:flex;justify-content:space-between;align-items:center">
@@ -338,7 +346,7 @@ function verDemo(cual){
     </div>
     <div style="display:flex;position:fixed;bottom:0;left:0;right:0;max-width:480px;margin:0 auto;background:#14151c;border-top:1px solid #2a2b38">
       <div class="tabb" onclick="verDemo('Usuario')" style="flex:1;text-align:center;padding:12px 0;cursor:pointer"><img src="img/dragon-paquete.webp" style="width:18px;height:18px;object-fit:contain;border-radius:5px;vertical-align:-4px"><div style="font-size:10px">Usuario</div></div>
-      <div class="tabb" onclick="verDemo('Piloto')" style="flex:1;text-align:center;padding:12px 0;cursor:pointer"><img src="img/dragon-billetera.png" style="width:18px;height:18px;object-fit:cover;border-radius:5px;vertical-align:-4px"><div style="font-size:10px">Piloto</div></div>
+      <div class="tabb" onclick="verDemo('Piloto')" style="flex:1;text-align:center;padding:12px 0;cursor:pointer"><img src="img/dragon-billetera.png" style="width:18px;height:18px;object-fit:contain;border-radius:5px;vertical-align:-4px"><div style="font-size:10px">Piloto</div></div>
       <div class="tabb" onclick="verDemo('Local')" style="flex:1;text-align:center;padding:12px 0;cursor:pointer"><img src="img/dragon-local.png" style="width:18px;height:18px;object-fit:contain;border-radius:5px;vertical-align:-4px"><div style="font-size:10px">Local</div></div>
       <div class="tabb" onclick="location.href='admin.html'" style="flex:1;text-align:center;padding:12px 0;cursor:pointer">👑<div style="font-size:10px">Panel</div></div>
     </div>
@@ -470,7 +478,7 @@ function intentarEnviar() {
     fetch(apiBase() + '/register', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(reg) })
       .then(function(r){ return r.json(); })
       .then(function(j){
-        if (j && j.ok) { q.shift(); localStorage.setItem('dx_cola', JSON.stringify(q)); mostrarOk(reg.tipo, j.estado, reg.datos); if (q.length) intentarEnviar(); }
+        if (j && j.ok) { q.shift(); localStorage.setItem('dx_cola', JSON.stringify(q)); if(reg.tipo==='local'&&reg.datos&&reg.datos.tel){try{localStorage.setItem('dxLocal',reg.datos.tel)}catch(e){}} mostrarOk(reg.tipo, j.estado, reg.datos); if (q.length) intentarEnviar(); }
         else mostrarOkLocal(reg.tipo);
       })
       .catch(function(){ mostrarOkLocal(reg.tipo); });
