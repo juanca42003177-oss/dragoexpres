@@ -61,9 +61,11 @@ input,textarea,select{-webkit-user-select:text;user-select:text}
 <script>
 /* Ingreso directo: si ya registraste/entraste a tu panel, te mandamos derecho a el */
 try{
-  if(localStorage.getItem('dxLocal')){location.replace('local.html')}
-  else if(localStorage.getItem('dxPiloto')){location.replace('piloto.html')}
-  else if(localStorage.getItem('dxFlota')){location.replace('flotista.html')}
+  if(location.search.indexOf('reg=')<0){
+    if(localStorage.getItem('dxLocal')){location.replace('local.html')}
+    else if(localStorage.getItem('dxPiloto')){location.replace('piloto.html')}
+    else if(localStorage.getItem('dxFlota')){location.replace('flotista.html')}
+  }
 }catch(e){}
 </script>
 </head>
@@ -570,6 +572,6 @@ if(_qr==='local'||_qr==='usuario'||_qr==='flota'||_qr==='piloto'){abrir(_qr);doc
 catch(e){}
 try{if(localStorage.getItem('dxContratoOK')){var _c1=document.getElementById('pContrato');if(_c1)_c1.checked=true;var _c2=document.getElementById('lContrato');if(_c2)_c2.checked=true;}}catch(e){}
 </script>
-<script>if('serviceWorker' in navigator){window.addEventListener('load',function(){navigator.serviceWorker.register('sw.js').catch(function(){});});}</script>
+<script>if('serviceWorker' in navigator){window.addEventListener('load',function(){var _rg=location.search.match(/reg=(usuario|piloto|local|flota)/);if(_rg)setTimeout(function(){abrir(_rg[1])},350);navigator.serviceWorker.register('sw.js').catch(function(){});});}</script>
 </body>
 </html>
