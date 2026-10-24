@@ -371,11 +371,12 @@ function abrirDueno() {
 }
 verSvMochila();
 function abrir(t) {
-  ['Usuario','Piloto','Local','Flota'].forEach(function(x){ document.getElementById('t'+x).classList.remove('on'); });
-  ['usuario','piloto','local','flota'].forEach(function(x){ document.getElementById('f'+x.charAt(0).toUpperCase()+x.slice(1)).classList.remove('on'); });
-  document.getElementById('t'+t.charAt(0).toUpperCase()+t.slice(1)).classList.add('on');
-  document.getElementById('f'+t.charAt(0).toUpperCase()+t.slice(1)).classList.add('on');
-  document.getElementById('okBox').style.display='none';
+  // AUDITADO: ninguna puerta o formulario obligatorio — si falta uno, la app sigue
+  ['Usuario','Piloto','Local','Flota'].forEach(function(x){ var el=document.getElementById('t'+x); if(el) el.classList.remove('on'); });
+  ['usuario','piloto','local','flota'].forEach(function(x){ var el=document.getElementById('f'+x.charAt(0).toUpperCase()+x.slice(1)); if(el) el.classList.remove('on'); });
+  var tp=document.getElementById('t'+t.charAt(0).toUpperCase()+t.slice(1)); if(tp) tp.classList.add('on');
+  var fm=document.getElementById('f'+t.charAt(0).toUpperCase()+t.slice(1)); if(fm) fm.classList.add('on');
+  var ok=document.getElementById('okBox'); if(ok) ok.style.display='none';
 }
 function verSvRep() { var c = document.getElementById('p-sv-repuestos'); var n = document.getElementById('p-nota-repuestos'); if (n) n.style.display = (c && c.checked) ? 'block' : 'none'; verSvMochila(); }
 function svLleva() { return ['comida','repuestos'].some(function(sv){var c=document.getElementById('p-sv-'+sv);return c&&c.checked}); }
