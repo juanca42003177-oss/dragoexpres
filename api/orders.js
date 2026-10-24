@@ -261,7 +261,12 @@ module.exports = wrap(async (req, res) => {
     const TARIFA_FIJA = { comida: 15, repuesto: 20, viaje: 25 }; // tarifa fija DragoExpres: MAS BARATA que las apps grandes (InDrive ~Q27 a Oakland, PedidosYa Q15-25 + cargos)
     const nocturno = esNoche(now);
     const recargo = nocturno ? RECARGO_NOCHE : 0;
-    const envioTarifa = TARIFA_FIJA[tipo] + recargo; // de noche +Q5 (100% para el piloto, sin comisión)
+    // VIAJES (regla Juan 2026-10-24): el cliente propone su precio y el piloto decide si le conviene (estilo InDrive, discreto).
+    // Comida y repuestos siguen con tarifa FIJA: ahi esta la ganancia clara contra los menues inflados.
+    let tarifaBase = TARIFA_FIJA[tipo];
+    let tarifaPropuesta = false;
+    if (tipo === 'viaje') { const tp = dinero(b.tarifa); if (tp >= 10 && tp <= 150) { tarifaBase = tp; tarifaPropuesta = tp !== TARIFA_FIJA.viaje; } }
+    const envioTarifa = tarifaBase + recargo; // de noche +Q5 (100% para el piloto, sin comisión)
     // 🎁 PROMO CLIENTE FIEL (regla de Juan): cada 30 pedidos ENTREGADOS, el SIGUIENTE va con ENVÍO GRATIS.
     // El piloto cobra su envío completo como cashback (bonosPend) y se netea en la liquidación de 72h:
     // lo pagan las comisiones que ese mismo cliente ya generó. Nadie pone de su bolsa.
@@ -316,7 +321,7 @@ module.exports = wrap(async (req, res) => {
       cliente: { nombre, tel, direccion: String(b.direccion).slice(0, 500), referencia: String(b.referencia || '').slice(0, 500) },
       detalle: String(b.detalle).slice(0, 800),
       items: Array.isArray(b.items) ? b.items.slice(0, 30).map(x => ({ nombre: String(x.nombre || '').slice(0, 60), qty: Math.max(1, Math.min(50, +x.qty || 1)), precio: dinero(x.precio || 0), nota: String(x.nota || '').slice(0, 120) })) : undefined,
-      compra: dinero(b.compra || 0), servicio: servicio || undefined, envio, promoFiel: promoFiel || undefined, promoTarifa: promoFiel ? envioTarifa : undefined, propina, comision: promoFiel ? 0 : comisionDe(tipo, envioTarifa - recargo), comisionLocal, nocturno, recargo,
+      compra: dinero(b.compra || 0), servicio: servicio || undefined, envio, tarifaPropuesta: tarifaPropuesta || undefined, promoFiel: promoFiel || undefined, promoTarifa: promoFiel ? envioTarifa : undefined, propina, comision: promoFiel ? 0 : comisionDe(tipo, envioTarifa - recargo), comisionLocal, nocturno, recargo,
       estado: 'buscando', piloto: null, ts: now, pago, referencia, local: localObj || undefined, avisoWa: b.avisoWa !== false
     };
     // dispatch: primer piloto disponible de la zona
@@ -348,7 +353,7 @@ module.exports = wrap(async (req, res) => {
     peds.push(pedido);
     await ghPut('pedidos.json', fpd ? fpd.sha : null, peds, 'pedido nuevo ' + id);
     const ic = { comida: '🍔', viaje: '🛺', repuesto: '🔧' }[tipo];
-    await aviso(`🚀 DRAGOEXPRES — PEDIDO NUEVO ${ic}\n${id} · ${tipo.toUpperCase()} · ${zona || '(sin zona)'}\nCliente: ${nombre} (${tel})\n${pedido.local ? 'Local: ' + pedido.local.nombre + ' · ' : ''}Detalle: ${String(b.detalle).slice(0, 120)}${servicio ? '\n🔧 Servicio mecánico: ' + servicio.nombre + ' Q' + servicio.precio + ' (mecánico: ' + servicio.mecanico + ', llega en ' + servicio.veh + ' ' + servicio.color + ' ' + servicio.marca + ', placa ' + servicio.placa + ')' : ''}\nEnvío: Q${envio} (tarifa fija)${recargo ? ' · 🌙 Incluye recargo nocturno Q' + recargo + ' (100% piloto, sin comisión)' : ''}${propina ? ' · Propina voluntaria: Q' + propina + ' (100% piloto)' : ''} · Comisión DragoExpres: Q${pedido.comision}${pedido.comisionLocal ? ' · 10% al local (zona operativa >90 días): Q' + pedido.comisionLocal : ''}\n${pago === 'transferencia' ? '💳 Pago: TRANSFERENCIA al Banco Industrial' + (referencia ? ' · Ref: ' + referencia : ' · (sin referencia, verificar)') : '💵 Pago: EFECTIVO al piloto'}${promoFiel ? '\n🎁 ENVÍO GRATIS — PROMO CLIENTE FIEL: pedido n.º ' + (entFiel + 1) + ' del cliente (promo cliente fiel LIMITADA: 30 pedidos entregados = su envío gratis, UNA SOLA VEZ por usuario). El piloto cobra su envío COMPLETO (Q' + envioTarifa + ') como cashback en la liquidación de 72h. Lo pagan las comisiones que este cliente ya generó: NO sale de tu bolsa.' : ''}\n${pedido.piloto ? '→ Asignado AUTOMÁTICAMENTE a: ' + pedido.piloto.nombre + ' (' + pedido.piloto.tel + ')' : '→ SIN piloto disponible ahora, queda BUSCANDO'}`);
+    await aviso(`🚀 DRAGOEXPRES — PEDIDO NUEVO ${ic}\n${id} · ${tipo.toUpperCase()} · ${zona || '(sin zona)'}\nCliente: ${nombre} (${tel})\n${pedido.local ? 'Local: ' + pedido.local.nombre + ' · ' : ''}Detalle: ${String(b.detalle).slice(0, 120)}${servicio ? '\n🔧 Servicio mecánico: ' + servicio.nombre + ' Q' + servicio.precio + ' (mecánico: ' + servicio.mecanico + ', llega en ' + servicio.veh + ' ' + servicio.color + ' ' + servicio.marca + ', placa ' + servicio.placa + ')' : ''}\nEnvío: Q${envio} (${tipo === 'viaje' ? (tarifaPropuesta ? 'TARIFA PROPUESTA por el cliente' : 'tarifa normal de viajes') : 'tarifa fija'})${recargo ? ' · 🌙 Incluye recargo nocturno Q' + recargo + ' (100% piloto, sin comisión)' : ''}${propina ? ' · Propina voluntaria: Q' + propina + ' (100% piloto)' : ''} · Comisión DragoExpres: Q${pedido.comision}${pedido.comisionLocal ? ' · 10% al local (zona operativa >90 días): Q' + pedido.comisionLocal : ''}\n${pago === 'transferencia' ? '💳 Pago: TRANSFERENCIA al Banco Industrial' + (referencia ? ' · Ref: ' + referencia : ' · (sin referencia, verificar)') : '💵 Pago: EFECTIVO al piloto'}${promoFiel ? '\n🎁 ENVÍO GRATIS — PROMO CLIENTE FIEL: pedido n.º ' + (entFiel + 1) + ' del cliente (promo cliente fiel LIMITADA: 30 pedidos entregados = su envío gratis, UNA SOLA VEZ por usuario). El piloto cobra su envío COMPLETO (Q' + envioTarifa + ') como cashback en la liquidación de 72h. Lo pagan las comisiones que este cliente ya generó: NO sale de tu bolsa.' : ''}\n${pedido.piloto ? '→ Asignado AUTOMÁTICAMENTE a: ' + pedido.piloto.nombre + ' (' + pedido.piloto.tel + ')' : '→ SIN piloto disponible ahora, queda BUSCANDO'}`);
     return res.status(200).json({ ok: true, pedido });
   }
 
