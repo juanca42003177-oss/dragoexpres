@@ -443,6 +443,11 @@ input,textarea,select{-webkit-user-select:text;user-select:text}
     <button class="lB" onclick="onbFin(false)">Guardar y entrar</button>
   </div>
 </div>
+<script>
+/* FIX RETRASO 3-5s: revela el ingreso al instante, sin esperar el codigo pesado de abajo */
+try{var _u=JSON.parse(localStorage.getItem('dx_user')||'{}');var _onb=document.getElementById('onb');
+if(_u.onboarded){_onb.style.display='none'}else{_onb.className='on'}}catch(e){}
+</script>
 
 <!-- hoja de direcciones -->
 <div class="sheetFull" id="shDir"><div class="velo" onclick="cerrarSheets()"></div><div class="caja">
@@ -1396,7 +1401,8 @@ function repetir(j){
 (function(){
   var u=LS();
   if(u.zona)document.getElementById('zonaTag').textContent=u.zona;
-  cargarZonas();cargarLocales();extra();pintarCartBtn();
+  onbArranca();cargarLocales();extra();pintarCartBtn();
+  setTimeout(function(){cargarZonas()},30); /* el pintado de 368 zonas va despues del primer dibujo */
 })();
 </script>
 <script>if('serviceWorker' in navigator){window.addEventListener('load',function(){navigator.serviceWorker.register('sw.js').catch(function(){});});}</script>
