@@ -409,10 +409,10 @@ input,textarea,select{-webkit-user-select:text;user-select:text}
     <button class="back" onclick="onbGo(1)">‹</button>
     <h2 class="ob">Ingresa tu celular</h2>
     <p class="obs" style="margin-bottom:8px">Número de celular</p>
-    <div class="telBox"><span style="font-size:19px" id="onb-flag">🇬🇹</span><b id="onb-code" style="cursor:pointer" onclick="verPaises()">+502 ▾</b><span style="width:1.5px;height:22px;background:#ddd"></span><input id="onb-tel" type="tel" inputmode="numeric" placeholder="Ej: 5550 1234"></div>
+    <div class="telBox"><span style="font-size:19px" id="onb-flag">🇬🇹</span><b id="onb-code" style="cursor:pointer" onclick="verPaises()">+502 ▾</b><span style="width:1.5px;height:22px;background:#ddd"></span><input id="onb-tel" type="tel" inputmode="numeric" autocomplete="tel-national" placeholder="Ej: 5550 1234"></div>
     <div id="onbPaises" style="display:none;border:1px solid #ddd;border-radius:12px;background:#fff;margin-top:8px;max-height:190px;overflow-y:auto"></div>
     <p class="obs" style="margin:18px 0 8px">¿Cómo te llamás?</p>
-    <div class="telBox" style="border-color:#ccc"><input id="onb-nom" placeholder="Ej: María López"></div>
+    <div class="telBox" style="border-color:#ccc"><input id="onb-nom" autocomplete="name" placeholder="Ej: María López"></div>
     <button class="lB" onclick="onbCel()">Continuar</button>
   </div>
   <!-- paso 3: ubicacion -->
@@ -429,7 +429,7 @@ input,textarea,select{-webkit-user-select:text;user-select:text}
     <button class="back" style="float:right;color:#999;font-size:22px" onclick="onbFin(true)">✕</button>
     <h2 class="ob">Ingresá tu dirección</h2>
     <p class="obs" style="margin-bottom:10px">Así el piloto te encuentra sin llamadas.</p>
-    <div class="srch"><input id="onb-dir" placeholder="Dirección o punto de referencia"><span>🔍</span></div>
+    <div class="srch"><input id="onb-dir" autocomplete="street-address" placeholder="Dirección o punto de referencia (teclado del cel te la puede sugerir — o escribila como quieras)"><span>🔍</span></div>
     <div class="dirRow" onclick="onbUbicacion()"><span style="font-size:20px">🎯</span><div><b>Usar mi ubicación actual</b><span>El dragón detecta tu dirección por GPS</span></div></div>
     <div id="onb-saved"></div>
     <button class="lB" onclick="onbFin(false)">Guardar y entrar</button>
@@ -445,7 +445,7 @@ if(_u.onboarded){_onb.style.display='none'}else{_onb.className='on'}}catch(e){}
 <div class="sheetFull" id="shDir"><div class="velo" onclick="cerrarSheets()"></div><div class="caja">
   <h3>📍 Elegí tu dirección</h3>
   <div id="shDir-list"></div>
-  <div class="srch" style="margin-top:10px"><input id="shDir-nueva" placeholder="Nueva dirección o punto de referencia"><button style="background:var(--oro);border:0;border-radius:10px;padding:8px 12px;font-weight:900;cursor:pointer" onclick="shDirAdd()">Guardar</button></div>
+  <div class="srch" style="margin-top:10px"><input id="shDir-nueva" autocomplete="street-address" placeholder="Nueva dirección o punto de referencia"><button style="background:var(--oro);border:0;border-radius:10px;padding:8px 12px;font-weight:900;cursor:pointer" onclick="shDirAdd()">Guardar</button></div>
   <input id="shDir-label" list="dxLbList" placeholder="Ej: Casa, Trabajo, Hotel..." style="width:100%;box-sizing:border-box;margin-top:10px;border:1.5px solid #ccc;border-radius:10px;padding:9px;font-size:13.5px;background:#fff"><datalist id="dxLbList"><option>Casa</option><option>Trabajo</option><option>Hotel</option><option>Casa de la novia</option><option>Casa del novio</option><option>Casa de mis papás</option></datalist>
   <button class="lG" style="margin-top:10px" onclick="cerrarSheets()">Listo</button>
 </div></div>
