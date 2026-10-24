@@ -116,7 +116,7 @@ function mostrarOferta(o){
   var bruto=o.promoFiel?((o.promoTarifa||0)+(o.promoBonus||0)):o.envio;var gan=bruto-o.comision+(o.propina||0);
   document.getElementById('ofData').innerHTML='<div class="pedido"><h3>'+({comida:'🍔 Comida',viaje:'🛺 Viaje',repuesto:'🔧 Repuesto'}[o.tipo]||'📦')+' · '+o.id+'</h3>'+
    '<div class="dato">🏪 '+(o.local?o.local.nombre:'Local del cliente')+'</div>'+
-   '<div class="dato">👤 '+o.cliente.nombre+' · Zona '+o.zona+'</div>'+
+   '<div class="dato">👤 '+o.cliente.nombre+(o.zona?' · Zona '+o.zona:'')+'</div>'+
    '<div class="dato">📍 '+o.cliente.direccion+'</div>'+
    '<div class="dato">📝 '+String(o.detalle).slice(0,120)+'</div>'+
    (o.promoFiel?'<div class="dato" style="background:#e8f7ee;border:1px solid #79d29a;color:#14532d">🎁 <b>PEDIDO PROMO — CLIENTE FIEL:</b> el cliente <b>NO paga envío</b> (promo cliente fiel LIMITADA: se la ganó con 30 pedidos, una sola vez). A vos se te acredita tu envío <b>COMPLETO: Q'+bruto+'</b>'+(o.promoBonus?' <b>+ extra Q'+o.promoBonus+' por aceptar cuando nadie más quiso — ¡sos el afortunado!</b>':'')+' como <b>cashback</b> en tu liquidación de 72h, así como tu devolución del domingo. Cobrás la compra al cliente y tu cashback llega con la liquidación.</div>':'')+
@@ -255,7 +255,7 @@ function pintar(j){
   else if(PCALIF){cerrarOferta();act.style.display='block';sin.style.display='none';act.innerHTML='<div class="pedido"><h3>¿Cómo estuvo el cliente? ⭐</h3><div class="mini">'+PCALIF.cliente+'</div><div id="cest" style="margin:10px 0">'+[1,2,3,4,5].map(function(n){return '<span style="font-size:30px;cursor:pointer;padding:2px" onclick="calificarCliente('+n+')">⭐</span>'}).join('')+'</div></div>';}
   else{cerrarOferta();act.style.display='none';sin.style.display='block';
     var zb=j.zonaBuscando||[];
-    document.getElementById('zonaBuscando').innerHTML=zb.length?'<b style="color:#ffe08a">'+zb.length+' pedido(s) esperando piloto en tu zona:</b>'+zb.map(pedidoPequeno).join(''):'';
+    document.getElementById('zonaBuscando').innerHTML=zb.length?'<b style="color:#ffe08a">'+zb.length+' pedido(s) disponibles — mirá la dirección y tomá el que te convenga:</b>'+zb.map(pedidoPequeno).join(''):'';
   }
 }
 function pedidoHTML(o){
@@ -263,12 +263,12 @@ function pedidoHTML(o){
   var est=ESTADOS[o.estado]||o.estado;
   var pl=o.piloto||{nombre:'el piloto',tel:''};var wa='https://wa.me/502'+String(pl.tel||o.cliente.tel).replace(/\D/g,'').replace(/^502/,'')+'?text='+encodeURIComponent('Hola '+o.cliente.nombre+', soy '+pl.nombre+', tu piloto de DragoExpres (pedido '+o.id+').');
   var botones='';
-  if(o.estado==='asignado')botones='<button class="btn bA" onclick="hacer(\'aceptar\',\''+o.id+'\')">✅ ACEPTAR PEDIDO</button><button class="btn bR" onclick="hacer(\'rechazar\',\''+o.id+'\')">Rechazar</button>'+(o.tipo==='viaje'?'<button class="btn" style="background:#7a0a12" onclick="pedirMas(\''+o.id+'\','+o.envio+')">💰 PEDIR MÁS (viaje)</button>':'');
-  if(o.estado==='contraoferta')botones='<div class="mini" style="background:#241a05;border-radius:10px;padding:10px">⏱️ Le pediste <b>Q'+o.contra.monto+'</b> al cliente. Tiene '+o.contra.segundos+' segundos para decidir. Si rechaza, el viaje pasa a otro piloto.</div>';
+  if(o.estado==='asignado')botones='<button class="btn bA" onclick="hacer(\'aceptar\',\''+o.id+'\')">✅ ACEPTAR PEDIDO</button><button class="btn bR" onclick="hacer(\'rechazar\',\''+o.id+'\')">Rechazar</button>'+(o.tipo==='viaje'?'<button class="btn" style="background:#7a0a12" onclick="pedirMas(\''+o.id+'\','+o.envio+',\'viaje\')">💰 PEDIR MÁS (viaje)</button>':'<button class="btn" style="background:#7a0a12" onclick="pedirMas(\''+o.id+'\','+o.envio+',\'propina\')">🙏 PROPINA EXTRA (si está lejos)</button>');
+  if(o.estado==='contraoferta')botones='<div class="mini" style="background:#241a05;border-radius:10px;padding:10px">⏱️ Le pediste <b>Q'+o.contra.monto+(o.contra.tipo==='propina'?' de PROPINA EXTRA':' por el viaje')+'</b> al cliente. Tiene '+o.contra.segundos+' segundos para decidir. Si rechaza, el pedido pasa a otro piloto.</div>';
   if(o.estado==='aceptado')botones='<button class="btn bV" onclick="hacer(\'avanzar\',\''+o.id+'\')">🛺 YA VOY EN CAMINO</button><button class="btn bR" onclick="hacer(\'rechazar\',\''+o.id+'\')">No puedo</button>';
   if(o.estado==='en_camino')botones=(o.noResponde?'<button class="btn bR" onclick="cerrarNR()">⏱️ YA ESPERÉ 10 MIN — CERRAR</button>':'<button class="btn bR" onclick="noResponde()">🚫 Cliente no responde</button>')+'<button class="btn bA" onclick="hacer(\'avanzar\',\''+o.id+'\')">📦 ENTREGADO</button>';
   return '<div class="pedido'+(o.estado==='asignado'?' flash':'')+'"><h3>'+tipo+' · '+o.id+'</h3><div class="mini">'+est+'</div>'+
-  '<div class="dato">👤 '+o.cliente.nombre+' · '+o.zona+'</div>'+
+  '<div class="dato">👤 '+o.cliente.nombre+(o.zona?' · '+o.zona:'')+'</div>'+
   '<div class="dato">📍 '+o.cliente.direccion+(o.cliente.referencia?'<br><span class="mini">'+o.cliente.referencia+'</span>':'')+'</div>'+
   '<div class="dato">📝 '+o.detalle+'</div>'+
   (o.compra?'<div class="dato">💵 Compra'+(o.servicio?' + servicio':'')+': <b>Q'+(+o.compra+ +(o.servicio?o.servicio.precio:0))+'</b> (al local le pagás <b>Q'+(+o.compra+ +(o.servicio?o.servicio.precio:0)-(o.comisionLocal||0))+'</b>'+(o.comisionLocal?' · 10% zona operativa':'')+')</div><div class="dato" style="background:#fff3cd;border:1px solid #f0d98a;color:#5c4a10">⚠️ <b>El local solo entrega pagando:</b> llevá <b>Q'+(+o.compra+ +(o.servicio?o.servicio.precio:0)-(o.comisionLocal||0))+'</b> al recoger. Cobrás <b>Q'+(+o.compra+ +(o.servicio?o.servicio.precio:0)+ +o.envio+ +(o.propina||0))+'</b> al cliente, así salís ganando en una sola vuelta.</div>':'')+
@@ -282,19 +282,20 @@ function pedidoHTML(o){
  '<div style="display:flex;gap:6px;margin-top:6px"><input id="chat-in" placeholder="Escribí tu mensaje..." style="flex:1"><button class="btn bA" style="padding:9px 12px" onclick="enviarMsg()">➤</button></div></div>'+botones+'</div>';
 }
 function pedidoPequeno(o){
-  return '<div class="card" style="padding:10px;margin:8px 0"><b>'+({comida:'🍔',viaje:'🛺',repuesto:'🔧'}[o.tipo])+' '+o.id+'</b> · '+o.cliente.zona+'<div class="mini">'+String(o.detalle).slice(0,80)+' · Envío Q'+(o.promoFiel?((o.promoTarifa||0)+(o.promoBonus||0))+' 🎁 promo cliente fiel':o.envio)+(o.nocturno?' 🌙 (incluye tu extra nocturno de Q'+o.recargo+')':'')+((o.propina||0)>0?' + propina Q'+o.propina:'')+'</div><button class="btn bV" style="margin-top:8px;padding:9px" onclick="hacer(\'aceptar\',\''+o.id+'\')">TOMARLO</button>'+(o.tipo==='viaje'?'<button class="btn" style="margin-top:6px;padding:9px;background:#7a0a12" onclick="pedirMas(\''+o.id+'\','+o.envio+')">💰 PEDIR MÁS</button>':'')+'</div>';
+  return '<div class="card" style="padding:10px;margin:8px 0"><b>'+({comida:'🍔',viaje:'🛺',repuesto:'🔧'}[o.tipo])+' '+o.id+'</b> · '+(o.cliente.zona?o.cliente.zona+' · ':'')+String(o.cliente.direccion||'').slice(0,60)+'<div class="mini">'+String(o.detalle).slice(0,80)+' · Envío Q'+(o.promoFiel?((o.promoTarifa||0)+(o.promoBonus||0))+' 🎁 promo cliente fiel':o.envio)+(o.nocturno?' 🌙 (incluye tu extra nocturno de Q'+o.recargo+')':'')+((o.propina||0)>0?' + propina Q'+o.propina:'')+(o.compra?' · Compra Q'+o.compra:'')+'</div><button class="btn bV" style="margin-top:8px;padding:9px" onclick="hacer(\'aceptar\',\''+o.id+'\')">TOMARLO</button>'+(o.tipo==='viaje'?'<button class="btn" style="margin-top:6px;padding:9px;background:#7a0a12" onclick="pedirMas(\''+o.id+'\','+o.envio+',\'viaje\')">💰 PEDIR MÁS</button>':'<button class="btn" style="margin-top:6px;padding:9px;background:#7a0a12" onclick="pedirMas(\''+o.id+'\','+o.envio+',\'propina\')">🙏 PROPINA EXTRA (si está lejos)</button>')+'</div>';
 }
-async function pedirMas(id,tarifa){
+async function pedirMas(id,tarifa,modo){
   if(DEMO){alert('Vista previa: los cambios no se guardan.');return}
-  var v=prompt('Viaje con tarifa fija Q'+tarifa+'.\n¿Cuánto querés por este viaje? (más de Q'+tarifa+', hasta Q150)','');
+  modo=modo||'viaje';
+  var v=prompt(modo==='viaje'?('Viaje con tarifa fija Q'+tarifa+'.\n¿Cuánto querés por este viaje? (más de Q'+tarifa+', hasta Q150)'):('El envío sigue FIJO en Q'+tarifa+'.\n¿Cuánta propina extra pedís por la distancia? (Q1 a Q150, el cliente decide si la da)'),'');
   if(v===null)return;
   v=parseFloat(v);
-  if(!v||isNaN(v)||v<=tarifa){alert('Tenés que pedir MÁS de Q'+tarifa+'.');return}
+  if(!v||isNaN(v)||(modo==='viaje'&&v<=tarifa)||(v<1||v>150)){alert(modo==='viaje'?'Tenés que pedir MÁS de Q'+tarifa+'.':'La propina tiene que ser entre Q1 y Q150.');return}
   var r=await fetch(api('orders'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'pedirMas',id:id,tel:PILOTO.tel,monto:v})});
   var j=await r.json();
   if(!j.ok){alert(j.error);return}
   cerrarOferta();
-  alert('Pedido enviado ✅ Pedís Q'+v+'. El cliente tiene '+j.pedido.contra.segundos+' segundos para aceptar.'+(j.pedido.contra.pocos?' (Le dimos más tiempo porque hay pocos pilotos en la zona.)':''));
+  alert('Pedido enviado ✅ Pedís Q'+v+(modo==='viaje'?' por el viaje.':'. El cliente decide: si no la quiere, el pedido pasa a otro piloto.')+' El cliente tiene '+j.pedido.contra.segundos+' segundos para aceptar.'+(j.pedido.contra.pocos?' (Le dimos más tiempo porque hay pocos pilotos cerca.)':''));
   tick();
 }
 async function hacer(accion,id){

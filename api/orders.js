@@ -110,19 +110,20 @@ const ESTADOS = ['buscando', 'asignado', 'aceptado', 'en_camino', 'entregado', '
 const svOk = (r, tipo) => { const sv = { comida: 'comida', repuesto: 'repuestos', viaje: 'viajes' }[tipo] || 'comida'; const s = r && r.datos && r.datos.servicios; return !Array.isArray(s) || !s.length || s.indexOf(sv) >= 0; };
 
 // ---- CONTRAOFERTA DE VIAJES (estilo InDrive): el piloto pide mas, el cliente decide en 30s (60s si hay pocos pilotos) ----
-async function candidatosViaje(zona, excluir) {
+async function candidatosViaje() { return candidatosPedido('viaje', []); }
+async function candidatosPedido(tipo, excluir) {
   const fp = await ghGet('pilots.json'); const pilots = fp ? fp.data : [];
   const fr = await ghGet('registros.json'); const reg = fr ? fr.data : [];
   const aprobados = new Set(reg.filter(r => r.tipo === 'piloto' && r.estado === 'aprobado').map(r => dig(r.datos.tel)));
   const fpd = await ghGet('pedidos.json');
   const ocupados = new Set((fpd ? fpd.data : []).filter(o => o.piloto && ['asignado', 'aceptado', 'en_camino', 'contraoferta'].includes(o.estado)).map(o => dig(o.piloto.tel)));
   return pilots.filter(x => x.disponible && !(x.pendiente && !x.pendiente.pagado) && aprobados.has(dig(x.tel)) && !ocupados.has(dig(x.tel)) && !excluir.includes(x.tel))
-    .filter(x => { const r = reg.find(y => y.tipo === 'piloto' && dig(y.datos.tel) === dig(x.tel)); return r && r.datos.zona === zona && svOk(r, 'viaje') && r.datos.vehiculo !== 'bicicleta'; });
+    .filter(x => { const r = reg.find(y => y.tipo === 'piloto' && dig(y.datos.tel) === dig(x.tel)); return r && svOk(r, tipo) && (tipo !== 'viaje' || r.datos.vehiculo !== 'bicicleta'); });
 }
 
-async function redispatchViaje(o, peds, sha) {
+async function redispatchViaje(o, peds, sha) { // re-despacha cualquier tipo de pedido
   const ex = (o.rechazadoPor || []).concat(o.contraRechazos || []);
-  const cand = await candidatosViaje(o.zona, ex);
+  const cand = await candidatosPedido(o.tipo, ex);
   if (cand.length) {
     const fr = await ghGet('registros.json'); const reg = fr ? fr.data : [];
     const r = reg.find(y => y.tipo === 'piloto' && dig(y.datos.tel) === dig(cand[0].tel));
@@ -226,7 +227,7 @@ module.exports = wrap(async (req, res) => {
     const peds = fpd ? fpd.data : [];
     await expirarAsignados(peds, fpd ? fpd.sha : null);
     const mio = peds.filter(o => o.piloto && o.piloto.tel === tel && !['entregado', 'cancelado'].includes(o.estado));
-    const zona = peds.filter(o => o.estado === 'buscando' && o.zona === p.datos.zona);
+    const zona = peds.filter(o => o.estado === 'buscando'); // TODOS los pedidos visibles para TODOS los pilotos (regla Juan 2026-10-23)
     const califs = peds.filter(o => o.piloto && o.piloto.tel === tel && o.califCliente > 0);
     const calif = califs.length ? Math.round(califs.reduce((x, o) => x + o.califCliente, 0) / califs.length * 10) / 10 : null;
     const zonaF = zona.filter(o => !(o.rechazadoPor || []).includes(tel));
@@ -252,10 +253,10 @@ module.exports = wrap(async (req, res) => {
   // ---- crear pedido (usuario) con DISPATCH AUTOMATICO ----
   if (action === 'crear') {
     const tipo = ['comida', 'viaje', 'repuesto'].includes(b.tipo) ? b.tipo : 'comida';
-    const zona = String(b.zona || '').trim().slice(0, 80);
+    const zona = String(b.zona || '').trim().slice(0, 80); // zona OPCIONAL: la dirección basta (regla Juan 2026-10-23)
     const nombre = String(b.nombre || '').trim().slice(0, 80);
     const tel = String(b.tel || '').trim().slice(0, 25);
-    if (!zona || !nombre || !tel || !b.direccion) return res.status(200).json({ ok: false, error: 'Faltan datos: nombre, WhatsApp, zona y dirección.' });
+    if (!nombre || !tel || !b.direccion) return res.status(200).json({ ok: false, error: 'Faltan datos: nombre, WhatsApp y dirección.' });
     if (!b.detalle) return res.status(200).json({ ok: false, error: 'Contanos qué querés pedir.' });
     const TARIFA_FIJA = { comida: 15, repuesto: 20, viaje: 25 }; // tarifa fija DragoExpres: MAS BARATA que las apps grandes (InDrive ~Q27 a Oakland, PedidosYa Q15-25 + cargos)
     const nocturno = esNoche(now);
@@ -306,7 +307,7 @@ module.exports = wrap(async (req, res) => {
     const baseLocal = compra + (servicio ? servicio.precio : 0);
     if ((tipo === 'comida' || tipo === 'repuesto') && baseLocal > 0) { // 10% al local en comida Y repuestos (mercado virgen), con 90 dias de gracia por zona
       const fprev = await ghGet('pedidos.json');
-      const prev = (fprev ? fprev.data : []).filter(x => x.zona === zona && x.ts);
+      const prev = (fprev ? fprev.data : []).filter(x => x.ts && (zona ? x.zona === zona : (localObj && x.local && x.local.tel === localObj.tel)));
       const primera = prev.length ? Math.min(...prev.map(x => x.ts)) : now;
       if (now - primera >= GRACIA_LOCAL_MS) comisionLocal = dinero(baseLocal * PCT_LOCAL);
     }
@@ -325,7 +326,7 @@ module.exports = wrap(async (req, res) => {
     const fpd = await ghGet('pedidos.json'); const peds = fpd ? fpd.data : [];
     const ocupados = new Set(peds.filter(o => o.piloto && ['asignado', 'aceptado', 'en_camino'].includes(o.estado)).map(o => dig(o.piloto.tel)));
     const cand = pilots.filter(x => x.disponible && !(x.pendiente && !x.pendiente.pagado) && aprobados.has(dig(x.tel)) && !ocupados.has(dig(x.tel)))
-      .filter(x => { const r = reg.find(y => y.tipo === 'piloto' && dig(y.datos.tel) === dig(x.tel)); return r && r.datos.zona === zona && svOk(r, tipo) && (tipo !== 'viaje' || r.datos.vehiculo !== 'bicicleta'); })
+      .filter(x => { const r = reg.find(y => y.tipo === 'piloto' && dig(y.datos.tel) === dig(x.tel)); return r && svOk(r, tipo) && (tipo !== 'viaje' || r.datos.vehiculo !== 'bicicleta'); })
       .sort((a, b2) => {
         if (nocturno) { // de noche: primero los turnos 24hrs, después los demás (FIFO)
           const ra = reg.find(y => y.tipo === 'piloto' && dig(y.datos.tel) === dig(a.tel));
@@ -347,7 +348,7 @@ module.exports = wrap(async (req, res) => {
     peds.push(pedido);
     await ghPut('pedidos.json', fpd ? fpd.sha : null, peds, 'pedido nuevo ' + id);
     const ic = { comida: '🍔', viaje: '🛺', repuesto: '🔧' }[tipo];
-    await aviso(`🚀 DRAGOEXPRES — PEDIDO NUEVO ${ic}\n${id} · ${tipo.toUpperCase()} · ${zona}\nCliente: ${nombre} (${tel})\n${pedido.local ? 'Local: ' + pedido.local.nombre + ' · ' : ''}Detalle: ${String(b.detalle).slice(0, 120)}${servicio ? '\n🔧 Servicio mecánico: ' + servicio.nombre + ' Q' + servicio.precio + ' (mecánico: ' + servicio.mecanico + ', llega en ' + servicio.veh + ' ' + servicio.color + ' ' + servicio.marca + ', placa ' + servicio.placa + ')' : ''}\nEnvío: Q${envio} (tarifa fija)${recargo ? ' · 🌙 Incluye recargo nocturno Q' + recargo + ' (100% piloto, sin comisión)' : ''}${propina ? ' · Propina voluntaria: Q' + propina + ' (100% piloto)' : ''} · Comisión DragoExpres: Q${pedido.comision}${pedido.comisionLocal ? ' · 10% al local (zona operativa >90 días): Q' + pedido.comisionLocal : ''}\n${pago === 'transferencia' ? '💳 Pago: TRANSFERENCIA al Banco Industrial' + (referencia ? ' · Ref: ' + referencia : ' · (sin referencia, verificar)') : '💵 Pago: EFECTIVO al piloto'}${promoFiel ? '\n🎁 ENVÍO GRATIS — PROMO CLIENTE FIEL: pedido n.º ' + (entFiel + 1) + ' del cliente (promo cliente fiel LIMITADA: 30 pedidos entregados = su envío gratis, UNA SOLA VEZ por usuario). El piloto cobra su envío COMPLETO (Q' + envioTarifa + ') como cashback en la liquidación de 72h. Lo pagan las comisiones que este cliente ya generó: NO sale de tu bolsa.' : ''}\n${pedido.piloto ? '→ Asignado AUTOMÁTICAMENTE a: ' + pedido.piloto.nombre + ' (' + pedido.piloto.tel + ')' : '→ SIN piloto disponible ahora, queda BUSCANDO'}`);
+    await aviso(`🚀 DRAGOEXPRES — PEDIDO NUEVO ${ic}\n${id} · ${tipo.toUpperCase()} · ${zona || '(sin zona)'}\nCliente: ${nombre} (${tel})\n${pedido.local ? 'Local: ' + pedido.local.nombre + ' · ' : ''}Detalle: ${String(b.detalle).slice(0, 120)}${servicio ? '\n🔧 Servicio mecánico: ' + servicio.nombre + ' Q' + servicio.precio + ' (mecánico: ' + servicio.mecanico + ', llega en ' + servicio.veh + ' ' + servicio.color + ' ' + servicio.marca + ', placa ' + servicio.placa + ')' : ''}\nEnvío: Q${envio} (tarifa fija)${recargo ? ' · 🌙 Incluye recargo nocturno Q' + recargo + ' (100% piloto, sin comisión)' : ''}${propina ? ' · Propina voluntaria: Q' + propina + ' (100% piloto)' : ''} · Comisión DragoExpres: Q${pedido.comision}${pedido.comisionLocal ? ' · 10% al local (zona operativa >90 días): Q' + pedido.comisionLocal : ''}\n${pago === 'transferencia' ? '💳 Pago: TRANSFERENCIA al Banco Industrial' + (referencia ? ' · Ref: ' + referencia : ' · (sin referencia, verificar)') : '💵 Pago: EFECTIVO al piloto'}${promoFiel ? '\n🎁 ENVÍO GRATIS — PROMO CLIENTE FIEL: pedido n.º ' + (entFiel + 1) + ' del cliente (promo cliente fiel LIMITADA: 30 pedidos entregados = su envío gratis, UNA SOLA VEZ por usuario). El piloto cobra su envío COMPLETO (Q' + envioTarifa + ') como cashback en la liquidación de 72h. Lo pagan las comisiones que este cliente ya generó: NO sale de tu bolsa.' : ''}\n${pedido.piloto ? '→ Asignado AUTOMÁTICAMENTE a: ' + pedido.piloto.nombre + ' (' + pedido.piloto.tel + ')' : '→ SIN piloto disponible ahora, queda BUSCANDO'}`);
     return res.status(200).json({ ok: true, pedido });
   }
 
@@ -663,7 +664,7 @@ module.exports = wrap(async (req, res) => {
     return res.status(200).json({ ok: true, pedido: o });
   }
   }
-  // ---- piloto pide mas por un VIAJE (contraoferta estilo InDrive) ----
+  // ---- piloto pide mas: VIAJE = aumento de tarifa | COMIDA/REPUESTO = propina extra opcional por distancia (regla Juan 2026-10-23) ----
   if (action === 'pedirMas') {
     const tel = String(b.tel || '').trim(), id = String(b.id || '').trim();
     const monto = dinero(b.monto || 0);
@@ -672,7 +673,6 @@ module.exports = wrap(async (req, res) => {
     const fpd = await ghGet('pedidos.json'); const peds = fpd ? fpd.data : [];
     const o = peds.find(x => x.id === id);
     if (!o) return res.status(200).json({ ok: false, error: 'Pedido no encontrado.' });
-    if (o.tipo !== 'viaje') return res.status(200).json({ ok: false, error: 'El regateo solo es para viajes. Comida y repuestos van con tarifa fija.' });
     if (o.estado === 'contraoferta') return res.status(200).json({ ok: false, error: 'Ya pediste más. Esperá la respuesta del cliente.' });
     if (!['asignado', 'buscando'].includes(o.estado)) return res.status(200).json({ ok: false, error: 'Este pedido ya no está disponible.' });
     if (o.estado === 'asignado' && (!o.piloto || o.piloto.tel !== tel)) return res.status(200).json({ ok: false, error: 'Este pedido es de otro piloto.' });
@@ -682,16 +682,17 @@ module.exports = wrap(async (req, res) => {
     if (!p) return res.status(200).json({ ok: false, error: 'No sos piloto aprobado.' });
     const fps = await ghGet('pilots.json'); const stP = (fps ? fps.data : []).find(x => x.tel === tel) || {};
     if (stP.pendiente && !stP.pendiente.pagado) return res.status(200).json({ ok: false, error: 'Ponete al día con tus comisiones primero 😊' });
-    if (monto <= o.envio) return res.status(200).json({ ok: false, error: 'Tu precio tiene que ser MAYOR que la tarifa fija (Q' + o.envio + ').' });
+    if (o.tipo === 'viaje' && monto <= o.envio) return res.status(200).json({ ok: false, error: 'Tu precio tiene que ser MAYOR que la tarifa fija (Q' + o.envio + ').' });
+    const tipoContra = o.tipo === 'viaje' ? 'aumento' : 'propina';
     // pocos pilotos en la zona => el cliente obtiene 60s en vez de 30s
-    const otros = await candidatosViaje(o.zona, [tel]);
+    const otros = await candidatosPedido(o.tipo, [tel]);
     const pocos = otros.length < 1;
     const segundos = pocos ? 60 : 30;
     if (o.estado === 'buscando') { o.piloto = Object.assign({ tel, nombre: p.datos.nombre }, vehInfo(p.datos)); o.tsAsignado = now; }
     o.estado = 'contraoferta';
-    o.contra = { monto, ts: now, expira: now + segundos * 1000, pocos, segundos };
+    o.contra = { monto, ts: now, expira: now + segundos * 1000, pocos, segundos, tipo: tipoContra };
     await ghPut('pedidos.json', fpd.sha, peds, 'contraoferta ' + id);
-    await aviso(`🚀 DRAGOEXPRES — VIAJE ${id}\n🛺 ${p.datos.nombre} PIDE MÁS: Q${monto} (tarifa fija Q${o.envio})\n⏱️ El cliente tiene ${segundos}s para aceptar${pocos ? ' (60s porque hay POCOS PILOTOS en ' + o.zona + ')' : ''}\nCliente: ${o.cliente.nombre} (${o.cliente.tel})`);
+    await aviso(`🚀 DRAGOEXPRES — ${o.tipo.toUpperCase()} ${id}\n${tipoContra === 'propina' ? '🙏 ' + p.datos.nombre + ' PIDE PROPINA EXTRA: Q' + monto + ' (envío fijo Q' + o.envio + ', opcional para el cliente por distancia)' : '🛺 ' + p.datos.nombre + ' PIDE MÁS: Q' + monto + ' (tarifa fija Q' + o.envio + ')'}\n⏱️ El cliente tiene ${segundos}s para aceptar${pocos ? ' (60s porque hay POCOS PILOTOS cerca)' : ''}\nCliente: ${o.cliente.nombre} (${o.cliente.tel})`);
     return res.status(200).json({ ok: true, pedido: o });
   }
 
@@ -708,10 +709,12 @@ module.exports = wrap(async (req, res) => {
         await redispatchViaje(o, peds, fpd.sha);
         return res.status(200).json({ ok: false, error: 'Se te pasó el tiempo. El viaje volvió a búsqueda con la tarifa fija.' });
       }
-      o.envio = o.contra.monto; o.comision = comisionDe('viaje', o.envio); o.contra = null;
+      if (o.contra.tipo === 'propina') { o.propina = dinero((o.propina || 0) + o.contra.monto); } // propina extra 100% piloto, envío fijo
+      else { o.envio = o.contra.monto; o.comision = comisionDe('viaje', o.envio); }
+      o.contra = null;
       o.estado = 'aceptado'; o.tsAceptado = now; o.contraAceptado = now;
       await ghPut('pedidos.json', fpd.sha, peds, 'cliente acepto aumento ' + id);
-      await aviso(`🚀 DRAGOEXPRES — VIAJE ${id}\n✅ ${o.cliente.nombre} ACEPTÓ el aumento del piloto: ahora el envío es Q${o.envio}\n🛺 Piloto: ${o.piloto.nombre} · Tu comisión: Q${o.comision}`);
+      await aviso(`🚀 DRAGOEXPRES — ${o.tipo.toUpperCase()} ${id}\n✅ ${o.cliente.nombre} ACEPTÓ ${o.tipo === 'viaje' ? 'el aumento del piloto: ahora el envío es Q' + o.envio : 'la propina extra de Q' + (o.propina || 0) + ' (envío fijo Q' + o.envio + ')'}\n🛺 Piloto: ${o.piloto.nombre} · Tu comisión: Q${o.comision}`);
       return res.status(200).json({ ok: true, pedido: o });
     }
     o.contraRechazos = (o.contraRechazos || []).concat([o.piloto.tel]);
