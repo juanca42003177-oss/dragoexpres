@@ -68,11 +68,13 @@ module.exports = wrap(async (req, res) => {
 
   // 2) liquidación de 72h viva (si el cron de ciclo se atascó, avisa)
   let cicloVivo = true;
+  let fp = null;
+  for (let int = 0; int < 2 && !(fp && fp.data); int++) { try { fp = await ghGet('pozo.json'); } catch (e) { fp = null; } if (!(fp && fp.data)) await new Promise(r => setTimeout(r, 3000)); }
   try {
-    const fp = await ghGet('pozo.json');
     const ultimo = fp && fp.data ? (fp.data.tsUltimoCiclo || 0) : 0;
-    if (!ultimo || now - ultimo > TOLERANCIA_CICLO) { cicloVivo = false; problemas.push('liquidación 72h atascada: última ' + (ultimo ? new Date(ultimo - 6 * 3600 * 1000).toISOString().slice(0, 16).replace('T', ' ') + ' GT' : 'nunca')); }
-  } catch (e) { cicloVivo = false; problemas.push('no se pudo leer el estado del ciclo'); }
+    if (!fp || !fp.data) { problemas.push('ciclo: la lectura de pozo.json falló (puede ser transitorio de GitHub, ya se reintentó 2 veces)'); }
+    else if (!ultimo || now - ultimo > TOLERANCIA_CICLO) { cicloVivo = false; problemas.push('liquidación 72h atascada: última ' + (ultimo ? new Date(ultimo - 6 * 3600 * 1000).toISOString().slice(0, 16).replace('T', ' ') + ' GT' : 'nunca')); }
+  } catch (e) { problemas.push('ciclo: error leyendo el estado'); }
 
   const ok = problemas.length === 0;
 

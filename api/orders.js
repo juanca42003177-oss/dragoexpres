@@ -212,7 +212,12 @@ module.exports = wrap(async (req, res) => {
     const f = await ghGet('registros.json');
     const reg = f ? f.data : [];
     const p = reg.find(r => r.tipo === 'piloto' && r.estado === 'aprobado' && dig(r.datos.tel) === dig(tel));
-    if (!p) return res.status(200).json({ ok: false, error: 'No encontramos un piloto aprobado con ese WhatsApp.' });
+    if (!p) {
+      const pRec = reg.find(r => r.tipo === 'piloto' && dig(r.datos.tel) === dig(tel));
+      if (pRec && pRec.estado === 'rechazado_falta_dpi') return res.status(200).json({ ok: false, error: 'Tu registro fue rechazado: faltan las fotos de tu DPI (frente y reverso). Volvé a registrarte con ambas fotos y quedás verificado.' });
+      if (pRec && pRec.estado === 'pendiente_verificacion') return res.status(200).json({ ok: false, error: 'Tu registro sigue en revisión. Te avisamos apenas quedes aprobado.' });
+      return res.status(200).json({ ok: false, error: 'No encontramos un piloto aprobado con ese WhatsApp.' });
+    }
     if (p.datos.placa && String(p.datos.placa).trim().toUpperCase() !== placa) return res.status(200).json({ ok: false, error: 'La placa no coincide.' });
     const fp = await ghGet('pilots.json');
     const st = (fp ? fp.data : []).find(x => x.tel === tel) || { tel, disponible: false };

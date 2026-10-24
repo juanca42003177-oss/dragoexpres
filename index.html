@@ -121,7 +121,8 @@ try{
     <label>Placa (si tiene)</label><input id="pPlaca" placeholder="Ej: C-123ABC (bici: dejalo vacío)">
     <label style="display:flex;gap:8px;align-items:flex-start;margin-top:12px"><input type="hidden" id="pRef"><input type="checkbox" id="pPropio" style="width:auto;margin-top:3px"> <span>El vehículo es <b>MÍO</b>: soy dueño y lo manejo yo <span style="color:#f0b90b">(gano el 100%, sin split de flota)</span></span></label>
     <label>No. de DPI (13 dígitos)</label><input id="pDpi" inputmode="numeric" placeholder="Ej: 1234 56789 0101">
-    <label>Foto de tu DPI 📷</label><input type="file" accept="image/*" id="pDocDpi" style="padding:8px">
+    <label>Foto de tu DPI (frente) 📷</label><input type="file" accept="image/*" id="pDocDpi" style="padding:8px">
+    <label>Foto de tu DPI (reverso) 📷</label><input type="file" accept="image/*" id="pDocDpiRev" style="padding:8px">
     <label>Tu selfie 🤳</label><input type="file" accept="image/*" capture="user" id="pSelfie" style="padding:8px">
     <div id="pLicWrap">
     <label>Foto de tu licencia de conducir 🪪</label><input type="file" accept="image/*" capture="environment" id="pLicencia" style="padding:8px">
@@ -399,6 +400,7 @@ function validar(t,d) {
   if (t==='piloto' && d.vehiculo==='bicicleta' && !d.equipo) return 'Para bicicleta necesitás confirmar que trabajás con casco y rodilleras';
   if (t==='piloto' && String(d.dpi||'').replace(/\D/g,'').length!==13) return 'Poné el número de tu DPI completo (13 dígitos, sin espacios)';
   if (t==='piloto') { var mo=document.getElementById('pMochila'); if(!mo||!mo.files||!mo.files[0]) return 'Falta la foto de tu caja térmica 📦 — es obligatoria para llevar la comida caliente (como los repartidores de las apps grandes)'; }
+  if (t==='piloto') { var df1=document.getElementById('pDocDpi'), df2=document.getElementById('pDocDpiRev'); if(!df1||!df1.files||!df1.files[0]||!df2||!df2.files||!df2.files[0]) return 'Faltan las fotos de tu DPI (frente y reverso) 📷 — son obligatorias para verificar que sos vos de verdad. Sin ellas no podés ingresar.'; }
   if (t==='piloto') { var svs=['comida','repuestos','viajes'].filter(function(s){var c=document.getElementById('p-sv-'+s);return c&&c.checked}); if(!svs.length) return 'Marcá qué querés hacer (repartir comida, repartir repuestos o hacer viajes)'; }
   if (t==='piloto' && d.vehiculo!=='bicicleta' && !d.licenciaEnTramite) {
     var lf = document.getElementById('pLicencia');
@@ -461,6 +463,8 @@ async function enviar(t) {
       var btn = document.querySelector('#fPiloto .btn');
       if (btn) { btn.textContent = 'Enviando tus fotos...'; btn.disabled = true; }
       if (fd && fd.files && fd.files[0]) { var a = await subirDoc(fd.files[0], 'dpi', d.nombre, d.tel); if (a) docs.push(a); }
+      var dr = document.getElementById('pDocDpiRev');
+      if (dr && dr.files && dr.files[0]) { var ar = await subirDoc(dr.files[0], 'dpiReverso', d.nombre, d.tel); if (ar) docs.push(ar); }
       if (fs && fs.files && fs.files[0]) { var b = await subirDoc(fs.files[0], 'selfie', d.nombre, d.tel); if (b) docs.push(b); }
       var fl = document.getElementById('pLicencia');
       if (fl && fl.files && fl.files[0]) { var li = await subirDoc(fl.files[0], 'licencia', d.nombre, d.tel); if (li) docs.push(li); }
