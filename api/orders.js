@@ -80,9 +80,13 @@ function comisionDe(tipo, envio) {
   const e = dinero(envio);
   if (tipo === 'comida') return dinero(e * 0.05);   // 5% del envío: al piloto le queda CASI TODO (las grandes se quedan con 20-30%)
   if (tipo === 'repuesto') return dinero(e * 0.05);
+  // VIAJES (regla Juan 2026-10-24): plano hasta Q100 (Q2/Q3/Q5) — los cortos quedan IGUAL que siempre.
+  // De lo que PASA de Q100, 10% (un Capital-Gomera de Q500 deja Q45 de comision y Q455 al piloto; Uber le quita Q125).
   if (e <= 25) return 2;
   if (e <= 50) return 3;
-  return 5;
+  let c = 5;
+  if (e > 100) c += dinero((e - 100) * 0.10);
+  return dinero(c);
 }
 
 
@@ -674,7 +678,7 @@ module.exports = wrap(async (req, res) => {
     const tel = String(b.tel || '').trim(), id = String(b.id || '').trim();
     const monto = dinero(b.monto || 0);
     if (!tel || !id) return res.status(200).json({ ok: false, error: 'Faltan datos.' });
-    if (monto <= 0 || monto > 150) return res.status(200).json({ ok: false, error: 'Pedí un monto entre Q1 y Q150.' });
+    if (monto <= 0) return res.status(200).json({ ok: false, error: 'Pedí un monto mayor a cero.' }); // sin tope: negociacion libre (regla Juan)
     const fpd = await ghGet('pedidos.json'); const peds = fpd ? fpd.data : [];
     const o = peds.find(x => x.id === id);
     if (!o) return res.status(200).json({ ok: false, error: 'Pedido no encontrado.' });

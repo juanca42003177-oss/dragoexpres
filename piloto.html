@@ -287,10 +287,10 @@ function pedidoPequeno(o){
 async function pedirMas(id,tarifa,modo){
   if(DEMO){alert('Vista previa: los cambios no se guardan.');return}
   modo=modo||'viaje';
-  var v=prompt(modo==='viaje'?('Viaje con tarifa fija Q'+tarifa+'.\n¿Cuánto querés por este viaje? (más de Q'+tarifa+', hasta Q150)'):('El envío sigue FIJO en Q'+tarifa+'.\n¿Cuánta propina extra pedís por la distancia? (Q1 a Q150, el cliente decide si la da)'),'');
+  var v=prompt(modo==='viaje'?('Viaje con tarifa fija Q'+tarifa+'.\n¿Cuánto querés por este viaje? (más de Q'+tarifa+')'):('El envío sigue FIJO en Q'+tarifa+'.\n¿Cuánta propina extra pedís por la distancia? (el cliente decide si la da)'),'');
   if(v===null)return;
   v=parseFloat(v);
-  if(!v||isNaN(v)||(modo==='viaje'&&v<=tarifa)||(v<1||v>150)){alert(modo==='viaje'?'Tenés que pedir MÁS de Q'+tarifa+'.':'La propina tiene que ser entre Q1 y Q150.');return}
+  if(!v||isNaN(v)||(modo==='viaje'&&v<=tarifa)||(v<1||v>150)){alert(modo==='viaje'?'Tenés que pedir MÁS de Q'+tarifa+'.':'La propina tiene que ser mayor a cero.');return}
   var r=await fetch(api('orders'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'pedirMas',id:id,tel:PILOTO.tel,monto:v})});
   var j=await r.json();
   if(!j.ok){alert(j.error);return}
