@@ -1124,10 +1124,10 @@ function pintarTotal(){
   var t=compra+env+rec+PROPINA;
   var vb='';
   if(BILLETE>0){var vu=BILLETE-t;
-    if(vu>=0)vb='<br><span style="font-size:12px;opacity:.85">Pagás con Q'+BILLETE+' → el piloto te deja <b>Q'+vu+'</b> de vuelto</span>';
+    if(vu>=0)vb='<br><span style="font-size:12px;opacity:.85">Entregás un billete de Q'+BILLETE+' → el piloto te devuelve <b>Q'+vu+'</b> de vuelto</span>';
     else vb='<br><span style="font-size:12px;color:#c1121f">Con Q'+BILLETE+' no alcanza el total (Q'+t+')</span>';
   }
-  b.innerHTML='💵 <b>TOTAL EN EFECTIVO AL RECIBIR: Q'+t+'</b><br><span style="font-size:12px;opacity:.85">Compra Q'+compra+(window.PROMO_FIEL?' + 🎁 ENVÍO GRATIS (premio cliente fiel)':' + Envío Q'+(env+rec)+(rec?' (incluye Q5 nocturno)':''))+' + Propina Q'+PROPINA+'</span>'+vb;
+  b.innerHTML='💵 <b>TOTAL A PAGAR AL RECIBIR: Q'+t+'</b><br><span style="font-size:12px;opacity:.85">Es lo que le entregás al piloto: Compra Q'+compra+(window.PROMO_FIEL?' + 🎁 ENVÍO GRATIS (premio cliente fiel)':' + Envío Q'+(env+rec)+(rec?' (incluye Q5 nocturno)':''))+' + Propina Q'+PROPINA+'</span>'+vb;
 }
 
 async function enviar(){
