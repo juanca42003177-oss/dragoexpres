@@ -676,7 +676,7 @@ module.exports = wrap(async (req, res) => {
     if (o.estado === 'contraoferta') return res.status(200).json({ ok: false, error: 'Ya pediste más. Esperá la respuesta del cliente.' });
     if (!['asignado', 'buscando'].includes(o.estado)) return res.status(200).json({ ok: false, error: 'Este pedido ya no está disponible.' });
     if (o.estado === 'asignado' && (!o.piloto || o.piloto.tel !== tel)) return res.status(200).json({ ok: false, error: 'Este pedido es de otro piloto.' });
-    if ((o.contraRechazos || []).includes(tel)) return res.status(200).json({ ok: false, error: 'El cliente ya rechazó tu precio para este viaje.' });
+    if ((o.contraRechazos || []).includes(tel)) return res.status(200).json({ ok: false, error: o.tipo === 'viaje' ? 'El cliente ya rechazó tu precio para este viaje.' : 'El cliente ya dijo que no a la propina para este pedido. Decidí: aceptarlo así o rechazarlo.' });
     const fr = await ghGet('registros.json'); const reg = fr ? fr.data : [];
     const p = reg.find(r => r.tipo === 'piloto' && r.estado === 'aprobado' && dig(r.datos.tel) === dig(tel));
     if (!p) return res.status(200).json({ ok: false, error: 'No sos piloto aprobado.' });
@@ -715,6 +715,15 @@ module.exports = wrap(async (req, res) => {
       o.estado = 'aceptado'; o.tsAceptado = now; o.contraAceptado = now;
       await ghPut('pedidos.json', fpd.sha, peds, 'cliente acepto aumento ' + id);
       await aviso(`🚀 DRAGOEXPRES — ${o.tipo.toUpperCase()} ${id}\n✅ ${o.cliente.nombre} ACEPTÓ ${o.tipo === 'viaje' ? 'el aumento del piloto: ahora el envío es Q' + o.envio : 'la propina extra de Q' + (o.propina || 0) + ' (envío fijo Q' + o.envio + ')'}\n🛺 Piloto: ${o.piloto.nombre} · Tu comisión: Q${o.comision}`);
+      return res.status(200).json({ ok: true, pedido: o });
+    }
+    if (o.contra.tipo === 'propina') {
+      // PROPINA OPCIONAL (regla Juan): el usuario dijo que no — cero cobro extra.
+      // El pedido le queda al MISMO piloto: es decision suya hacerlo igual, sin propina.
+      o.contraRechazos = (o.contraRechazos || []).concat([o.piloto.tel]);
+      o.contra = null; o.estado = 'asignado'; o.tsAsignado = now; // ventana fresca de 30s para aceptar o rechazar
+      await ghPut('pedidos.json', fpd.sha, peds, 'cliente no dio propina ' + id);
+      await aviso(`🚀 DRAGOEXPRES — ${o.tipo.toUpperCase()} ${id}\n❌ ${o.cliente.nombre} NO dio la propina extra (opcional). El pedido le queda a ${o.piloto.nombre}: es su decision si lo hace sin propina o lo rechaza. Cero cobro obligatorio.`);
       return res.status(200).json({ ok: true, pedido: o });
     }
     o.contraRechazos = (o.contraRechazos || []).concat([o.piloto.tel]);
