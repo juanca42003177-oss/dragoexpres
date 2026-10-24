@@ -265,7 +265,7 @@ module.exports = wrap(async (req, res) => {
     // Comida y repuestos siguen con tarifa FIJA: ahi esta la ganancia clara contra los menues inflados.
     let tarifaBase = TARIFA_FIJA[tipo];
     let tarifaPropuesta = false;
-    if (tipo === 'viaje') { const tp = dinero(b.tarifa); if (tp >= 10 && tp <= 150) { tarifaBase = tp; tarifaPropuesta = tp !== TARIFA_FIJA.viaje; } }
+    if (tipo === 'viaje') { const tp = dinero(b.tarifa); if (tp > 0) { tarifaBase = tp; tarifaPropuesta = tp !== TARIFA_FIJA.viaje; } } // SIN límite de máximo (regla Juan: un Trebol-Escuintla puede negociarse en Q300)
     const envioTarifa = tarifaBase + recargo; // de noche +Q5 (100% para el piloto, sin comisión)
     // 🎁 PROMO CLIENTE FIEL (regla de Juan): cada 30 pedidos ENTREGADOS, el SIGUIENTE va con ENVÍO GRATIS.
     // El piloto cobra su envío completo como cashback (bonosPend) y se netea en la liquidación de 72h:
