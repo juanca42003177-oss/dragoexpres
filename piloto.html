@@ -52,9 +52,9 @@ input,textarea,select{-webkit-user-select:text;user-select:text}
 <div class="w">
   <div id="login">
     <h1>🏍️ Drago<span>Expres</span> — Piloto</h1>
-    <p class="mini">Entrá con tu WhatsApp y tu placa (los mismos con los que te registraste y te aprobaron).</p>
+    <p class="mini">Entrá con tu WhatsApp y tu placa. Si sos de <b>BICICLETA</b>, dejá la placa vacía y entrás solo con tu WhatsApp.</p>
     <label>WhatsApp</label><input id="l-tel" type="tel" placeholder="Ej: 55501234" inputmode="tel">
-    <label>Placa de tu vehículo</label><input id="l-placa" placeholder="Ej: C123ABC" style="text-transform:uppercase">
+    <label>Placa de tu vehículo <span style="opacity:.7">(bicicleta: dejalo vacío)</span></label><input id="l-placa" placeholder="Ej: C123ABC" style="text-transform:uppercase">
     <button class="btn bA" onclick="login()">ENTRAR</button>
     <p id="lerr" style="color:#ff8f8f;font-size:13px"></p>
     
@@ -220,7 +220,7 @@ function entrarVista(dueno){
 })();
 async function login(){
   var tel=document.getElementById('l-tel').value.trim(),placa=document.getElementById('l-placa').value.trim().toUpperCase();
-  if(!tel||!placa){document.getElementById('lerr').textContent='Poné tu WhatsApp y tu placa.';return}
+  if(!tel){document.getElementById('lerr').textContent='Poné tu WhatsApp.';return}
   var r=await fetch(api('orders'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'loginPiloto',tel:tel,placa:placa})});
   var j=await r.json();
   if(!j.ok){document.getElementById('lerr').textContent=j.error;return}
@@ -361,7 +361,7 @@ async function tick(){
 }
 (function(){
   var g={};try{g=JSON.parse(localStorage.getItem('dxPiloto')||'{}')}catch(e){}
-  if(g&&g.tel&&g.placa){document.getElementById('l-tel').value=g.tel;document.getElementById('l-placa').value=g.placa;login()}
+  if(g&&g.tel){document.getElementById('l-tel').value=g.tel;document.getElementById('l-placa').value=g.placa||'';login()}
 })();
 </script>
 <script>if('serviceWorker' in navigator){window.addEventListener('load',function(){navigator.serviceWorker.register('sw.js').catch(function(){});});}</script>
