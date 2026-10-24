@@ -495,7 +495,7 @@ function intentarEnviar() {
     fetch(apiBase() + '/register', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(reg) })
       .then(function(r){ return r.json(); })
       .then(function(j){
-        if (j && j.ok) { q.shift(); localStorage.setItem('dx_cola', JSON.stringify(q)); if(reg.tipo==='local'&&reg.datos&&reg.datos.tel){try{localStorage.setItem('dxLocal',reg.datos.tel)}catch(e){}} mostrarOk(reg.tipo, j.estado, reg.datos); if (q.length) intentarEnviar(); }
+        if (j && j.ok) { q.shift(); localStorage.setItem('dx_cola', JSON.stringify(q)); if(reg.tipo==='local'&&reg.datos&&reg.datos.tel){try{localStorage.setItem('dxLocal',reg.datos.tel)}catch(e){}} if(reg.tipo==='piloto'&&reg.datos&&reg.datos.tel){try{localStorage.setItem('dxPiloto',JSON.stringify({tel:reg.datos.tel,placa:(reg.datos.vehiculo==='bicicleta'?'':String(reg.datos.placa||'').toUpperCase())}))}catch(e){}} mostrarOk(reg.tipo, j.estado, reg.datos); if (q.length) intentarEnviar(); }
         else mostrarOkLocal(reg.tipo);
       })
       .catch(function(){ mostrarOkLocal(reg.tipo); });

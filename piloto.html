@@ -356,7 +356,7 @@ async function cambiarDis(){
 async function tick(){
   if(DEMO)return
   var g={};try{g=JSON.parse(localStorage.getItem('dxPiloto')||'{}')}catch(e){}
-  var r=await fetch(api('orders'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'loginPiloto',tel:g.tel,placa:g.placa})});
+  var r=await fetch(api('orders'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'loginPiloto',tel:g.tel,placa:g.placa||''})});
   var j=await r.json();if(j.ok)pintar(j);
 }
 (function(){
