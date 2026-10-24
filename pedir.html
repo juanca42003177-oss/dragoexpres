@@ -193,7 +193,7 @@ input,textarea,select{-webkit-user-select:text;user-select:text}
     <h2>¿Cómo funciona?</h2>
     <div class="pasos">
       <div class="paso"><span class="n">1</span><b>Pedís</b>Elegí qué querés y pagás después</div>
-      <div class="paso toca" onclick="abrirPedido('viaje')"><span class="n">2</span><b>Vuela el dragón</b>Un piloto de tu zona lo trae<br><span class="va">Tocá acá ›</span></div>
+      <div class="paso toca" onclick="abrirPedido('viaje')"><span class="n">2</span><b>Vuela el dragón</b>Un piloto disponible lo trae<br><span class="va">Tocá acá ›</span></div>
       <div class="paso toca" onclick="abrirPedido('repuesto')"><span class="n">3</span><b>Pagás en efectivo</b>Al recibir: compra al local + tarifa de envío. Propina solo si querés<br><span class="va">Tocá acá ›</span></div>
     </div>
     <button class="btn bA" style="margin:2px 0 8px" onclick="abrirPedido('comida')">HACER MI PRIMER PEDIDO</button>
@@ -1217,7 +1217,7 @@ async function actualizar(){
     document.getElementById('cfOk').onclick=function(){contraResp(true)};
     document.getElementById('cfNo').onclick=function(){contraResp(false)};
   }
-  if(o.estado==='buscando'){e.className='st sBus';e.textContent='Buscando piloto...';i.textContent='Encontrando al piloto disponible de tu zona'+((o.contraRechazos||[]).length?' (descartaste '+o.contraRechazos.length+' aumento(s), seguimos con la tarifa fija Q'+o.envio+')':'')}
+  if(o.estado==='buscando'){e.className='st sBus';e.textContent='Buscando piloto...';i.textContent='Encontrando un piloto que quiera tomar tu pedido'+((o.contraRechazos||[]).length?' (descartaste '+o.contraRechazos.length+' aumento(s), seguimos con la tarifa fija Q'+o.envio+')':'')}
   if(o.estado==='asignado'){e.className='st sAsig';e.textContent='Piloto asignado';i.textContent=o.piloto.nombre+' va a aceptar tu pedido'}
   if(o.estado==='aceptado'){e.className='st sAce';e.textContent='Aceptado ✅';i.textContent=o.piloto.nombre+' aceptó tu pedido'}
   if(['buscando','asignado','aceptado'].includes(o.estado)&&o.etaMin){i.textContent=i.textContent+' · ⏱️ llega en ~'+o.etaMin+' min'}
