@@ -116,9 +116,11 @@ try{
       🚲 En bicicleta solo se reparten <b>comida o repuestos</b>, y únicamente en tu área local (pedidos cortos). Es la regla: te protege a vos y al pedido.
       <label style="display:flex;gap:8px;align-items:flex-start;margin-top:8px;color:#ffe08a;font-size:12px"><input type="checkbox" id="pEquipo" style="width:auto;margin-top:2px"> Confirmo que trabajo con <b>casco y rodilleras</b> (equipo de protección obligatorio)</label>
     </div>
+    <div id="pVehDatosWrap">
     <label>Marca del vehículo</label><input id="pMarca" placeholder="Ej: Honda, Toyota, Trek...">
     <label>Color</label><input id="pColor" placeholder="Ej: rojo, negro...">
     <label>Placa (si tiene)</label><input id="pPlaca" placeholder="Ej: C-123ABC (bici: dejalo vacío)">
+    </div>
     <label style="display:flex;gap:8px;align-items:flex-start;margin-top:12px"><input type="hidden" id="pRef"><input type="checkbox" id="pPropio" style="width:auto;margin-top:3px"> <span>El vehículo es <b>MÍO</b>: soy dueño y lo manejo yo <span style="color:#f0b90b">(gano el 100%, sin split de flota)</span></span></label>
     <label>No. de DPI (13 dígitos)</label><input id="pDpi" inputmode="numeric" placeholder="Ej: 1234 56789 0101">
     <label>Foto de tu DPI (frente) 📷</label><input type="file" accept="image/*" id="pDocDpi" style="padding:8px">
@@ -404,6 +406,7 @@ function verVeh() {
   var bici = document.getElementById('pVeh').value === 'bicicleta';
   document.getElementById('biciNota').style.display = bici ? 'block' : 'none';
   document.getElementById('pLicWrap').style.display = bici ? 'none' : 'block'; // bicicleta no requiere licencia
+  var vdw = document.getElementById('pVehDatosWrap'); if (vdw) vdw.style.display = bici ? 'none' : 'block'; // bicicleta no tiene marca/color/placa
   var vwrap = document.getElementById('p-sv-viajes-wrap'); if (vwrap) { vwrap.style.display = bici ? 'none' : 'flex'; var vc = document.getElementById('p-sv-viajes'); if (bici && vc) vc.checked = false; } // bicicleta no hace viajes
 }
 function campos(t) {
