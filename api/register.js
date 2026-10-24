@@ -93,6 +93,14 @@ module.exports = wrap(async (req, res) => {
   const checks = [];
   const limpiar = (q) => String(q || '').replace(/\D/g, '');
   if ((d.tipo === 'piloto' || d.tipo === 'local') && d.contrato !== true) return res.status(200).json({ ok: false, error: 'Para registrarte tenés que aceptar el Contrato Digital de DragoExpres.' });
+  // UN NUMERO = UNA IDENTIDAD: el mismo WhatsApp no puede tener dos roles distintos (piloto/local/flota).
+  // Los rechazados por falta de DPI pueden re-registrarse; los usuarios (clientes) no bloquean.
+  if (d.tipo === 'piloto' || d.tipo === 'local' || d.tipo === 'flota') {
+    const rolTxt = { piloto: 'PILOTO', local: 'LOCAL', flota: 'FLOTISTA' };
+    const otro = data.find(r2 => r2.estado !== 'rechazado_falta_dpi' && ['piloto', 'local', 'flota'].includes(r2.tipo) && limpiar((r2.datos || {}).tel) === limpiar(d.tel));
+    if (otro && otro.tipo === d.tipo) return res.status(200).json({ ok: false, error: 'Ese WhatsApp ya está registrado como ' + rolTxt[d.tipo] + '. No hace falta registrarte otra vez: entrá directo a tu panel con ese número.' });
+    if (otro) return res.status(200).json({ ok: false, error: 'Ese WhatsApp ya está registrado como ' + rolTxt[otro.tipo] + ' en DragoExpres. Cada número es una sola identidad: para este rol usá otro número de WhatsApp.' });
+  }
   let dpiRechazado = false;
   if (d.tipo === 'piloto') {
     const dpiOk = limpiar(d.dpi).length === 13;

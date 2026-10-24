@@ -133,7 +133,8 @@ try{
     <p class="desc" style="font-size:11px;margin:0 0 8px">La caja cuadrada de reparto para llevar la comida CALIENTE. Sirve CUALQUIER marca, aunque sea de otra app: lo importante es que la comida llegue calentita. La comprás vos, es tuya y dura años.</p>
     <label style="margin-top:10px">¿Qué querés hacer con DragoExpres? <b style="color:#c1121f">(marcá lo tuyo)</b></label>
     <label style="display:flex;gap:8px;align-items:center"><input type="checkbox" id="p-sv-comida" style="width:auto" checked> <span>🍔 Repartir comida (con tu caja térmica)</span></label>
-    <label style="display:flex;gap:8px;align-items:center"><input type="checkbox" id="p-sv-repuestos" style="width:auto"> <span>🔧 Repartir repuestos de moto/carro</span></label>
+    <label style="display:flex;gap:8px;align-items:center"><input type="checkbox" id="p-sv-repuestos" style="width:auto" onchange="verSvRep()"> <span>🔧 Repartir repuestos de moto/carro</span></label>
+    <p class="mini" id="p-nota-repuestos" style="display:none;margin:4px 0 0;border-left:3px solid #f0b90b;padding-left:8px">Repuestos: SOLO nuevos y en su empaque cerrado 📦. Así tu caja térmica queda limpia para la comida y el cliente recibe su repuesto sin grasa.</p>
     <label style="display:flex;gap:8px;align-items:center" id="p-sv-viajes-wrap"><input type="checkbox" id="p-sv-viajes" style="width:auto"> <span>🛺 Hacer viajes de personas (solo moto o carro)</span></label>
     <p class="desc" style="font-size:11px;margin:0 0 8px">La verificación es automática: DPI bien escrito + tus fotos + tu caja térmica = quedás APROBADO AL INSTANTE y podés trabajar ya. Sin papeleo, sin esperar. Solo te llegan los pedidos de lo que elegiste.</p>
     <label>Tu área</label><input id="pZona" placeholder="Ej: Zona 11, Mixco, Villa Nueva...">
@@ -175,6 +176,10 @@ try{
     <div class="e"><img src="img/dragon-paquete.webp" alt="Dragón" style="width:44px;height:44px;object-fit:contain"></div>
     <h4 id="okT">¡Listo!</h4>
     <p id="okM"></p>
+    <div id="okPanel" style="display:none;margin-top:14px">
+      <button class="btn bA" id="okPanelBtn" style="font-size:15px">ENTRAR A MI PANEL</button>
+      <p class="mini" style="margin:6px 0 0">Tu panel es donde manejás todo: menú/catálogo, precios, promos, horario y la foto de tu negocio. Entrás con el WhatsApp que registraste.</p>
+    </div>
     <div id="okAvisos" style="display:none;margin-top:12px">
       <button class="btn bA" id="okPushBtn" onclick="okPush()">🔔 AVISARME EN MI CELULAR (gratis)</button>
       <p class="mini" style="margin:6px 0 10px">Así te llega al instante el aviso cuando el admin dé el OK. Sin costo, directo a tu teléfono.</p>
@@ -380,6 +385,7 @@ function abrir(t) {
   document.getElementById('f'+t.charAt(0).toUpperCase()+t.slice(1)).classList.add('on');
   document.getElementById('okBox').style.display='none';
 }
+function verSvRep() { var c = document.getElementById('p-sv-repuestos'); var n = document.getElementById('p-nota-repuestos'); if (n) n.style.display = (c && c.checked) ? 'block' : 'none'; }
 function verVeh() {
   var bici = document.getElementById('pVeh').value === 'bicicleta';
   document.getElementById('biciNota').style.display = bici ? 'block' : 'none';
@@ -534,6 +540,13 @@ function mostrarOk(t, estado, datos) {
   try{ if(('Notification' in window)&&Notification.permission==='granted') okPushSub(); }catch(e){}
   ['usuario','piloto','local','flota'].forEach(function(x){ document.getElementById('f'+x.charAt(0).toUpperCase()+x.slice(1)).classList.remove('on'); });
   document.getElementById('okBox').style.display='block';
+  var _pn = document.getElementById('okPanel'), _pb = document.getElementById('okPanelBtn');
+  if (_pn && _pb) {
+    var _dest = { usuario: 'pedir.html', piloto: 'piloto.html', local: 'local.html', flota: 'flotista.html' }[t];
+    var _lbl = { usuario: '📲 EMPEZAR A PEDIR YA', piloto: '🏍️ ENTRAR A MI PANTALLA DE PILOTO', local: '🖥️ ENTRAR A MI PANEL DE LOCAL — subir menú, precios y promos', flota: '🚛 ENTRAR A MI PANTALLA DE FLOTA' }[t];
+    _pb.textContent = _lbl; _pb.onclick = function(){ location.href = _dest; };
+    _pn.style.display = 'block';
+  }
   if (t === 'usuario' && datos && datos.nombre && datos.tel) { try { localStorage.setItem('dx_user', JSON.stringify({ nombre: datos.nombre, tel: datos.tel, zona: datos.zona || '', onboarded: true, regEnv: 1 })); } catch (e) { } }
   window.scrollTo({top:0, behavior:'smooth'});
 }
@@ -548,6 +561,7 @@ function mostrarOkLocal(t) {
   document.getElementById('okM').textContent = m[t] || m.usuario;
   ['usuario','piloto','local','flota'].forEach(function(x){ document.getElementById('f'+x.charAt(0).toUpperCase()+x.slice(1)).classList.remove('on'); });
   document.getElementById('okBox').style.display='block';
+  var _pn2 = document.getElementById('okPanel'); if (_pn2) _pn2.style.display = 'none';
 }
 // al abrir la pagina, reintentar lo pendiente
 intentarEnviar();
