@@ -842,10 +842,15 @@ module.exports = wrap(async (req, res) => {
   // y anonimiza sus pedidos y chats. Irreversible.
   if (action === 'eliminarCuenta') {
     const tel = String(b.tel || '').replace(/\D/g, '').slice(0, 25);
-    const rol = ['usuario', 'piloto', 'local', 'flotista'].includes(b.rol) ? b.rol : 'usuario';
-    const rolReg = rol === 'flotista' ? 'flota' : rol; // en registros.json el flotista se guarda como tipo 'flota'
-    const rolTxt = { usuario: 'cliente', piloto: 'piloto', local: 'local', flotista: 'flotista' }[rol];
     if (!tel) return res.status(200).json({ ok: false, error: 'Decinos tu WhatsApp para eliminar la cuenta correcta.' });
+    // El WhatsApp es la identidad unica (un numero = una cuenta). Buscamos la cuenta REAL de ese numero
+    // y esa es la que se borra, sin importar desde que pantalla lo pidio (fix: pilotos en pedir.html daban 'no existe').
+    const fr0 = await ghGet('registros.json');
+    const regMio = (fr0 ? fr0.data : []).find(r => dig((r.datos || {}).tel) === dig(tel));
+    if (!regMio) return res.status(200).json({ ok: false, error: 'No encontramos ninguna cuenta con ese WhatsApp.' });
+    const rolReg = regMio.tipo; // en registros.json el flotista se guarda como tipo 'flota'
+    const rol = rolReg === 'flota' ? 'flotista' : rolReg;
+    const rolTxt = { usuario: 'cliente', piloto: 'piloto', local: 'local', flotista: 'flotista' }[rol];
     // proteccion: no borrar cuentas con pedidos en curso
     const fpd0 = await ghGet('pedidos.json');
     const activos = ['buscando', 'asignado', 'aceptado', 'en_camino'];
