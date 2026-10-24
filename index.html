@@ -128,14 +128,15 @@ try{
     <label>Foto de tu licencia de conducir 🪪</label><input type="file" accept="image/*" capture="environment" id="pLicencia" style="padding:8px">
     <label style="display:flex;gap:8px;align-items:flex-start;margin-top:10px"><input type="checkbox" id="pLicTramite" style="width:auto;margin-top:3px"> <span>Mi licencia está <b>EN TRÁMITE</b> (la estoy tramitando) 📜<br><span style="color:#f0b90b">Pido la oportunidad de trabajar mientras la termino: el administrador decide con su OK. Cualquier multa por manejar sin licencia es mi responsabilidad.</span></span></label>
     </div>
-    <label style="margin-top:10px">Foto de tu caja térmica 📦 <b style="color:#c1121f">(OBLIGATORIA)</b></label>
+    <label style="margin-top:10px" id="pMochilaLabel">Foto de tu caja térmica 📦 <b style="color:#c1121f">(OBLIGATORIA)</b></label>
     <input type="file" accept="image/*" capture="environment" id="pMochila" style="padding:8px">
-    <p class="desc" style="font-size:11px;margin:0 0 8px">La caja cuadrada de reparto para llevar la comida CALIENTE. Sirve CUALQUIER marca, aunque sea de otra app: lo importante es que la comida llegue calentita. La comprás vos, es tuya y dura años.</p>
+    <p class="desc" style="font-size:11px;margin:0 0 8px" id="pMochilaNota">La caja cuadrada de reparto para llevar la comida CALIENTE. Sirve CUALQUIER marca, aunque sea de otra app: lo importante es que la comida llegue calentita. La comprás vos, es tuya y dura años.</p>
+    <p class="desc" style="font-size:11px;margin:0 0 8px;display:none" id="pMochilaOpcional">🚒 Solo vas a hacer viajes de personas: la caja térmica NO te hace falta (solo la piden los que reparten comida o repuestos). Si más adelante querés repartir comida también, subísela desde tu panel.</p>
     <label style="margin-top:10px">¿Qué querés hacer con DragoExpres? <b style="color:#c1121f">(marcá lo tuyo)</b></label>
-    <label style="display:flex;gap:8px;align-items:center"><input type="checkbox" id="p-sv-comida" style="width:auto" checked> <span>🍔 Repartir comida (con tu caja térmica)</span></label>
+    <label style="display:flex;gap:8px;align-items:center"><input type="checkbox" id="p-sv-comida" style="width:auto" checked onchange="verSvMochila()"> <span>🍔 Repartir comida (con tu caja térmica)</span></label>
     <label style="display:flex;gap:8px;align-items:center"><input type="checkbox" id="p-sv-repuestos" style="width:auto" onchange="verSvRep()"> <span>🔧 Repartir repuestos de moto/carro</span></label>
     <p class="mini" id="p-nota-repuestos" style="display:none;margin:4px 0 0;border-left:3px solid #f0b90b;padding-left:8px">Repuestos: SOLO nuevos y en su empaque cerrado 📦. Así tu caja térmica queda limpia para la comida y el cliente recibe su repuesto sin grasa.</p>
-    <label style="display:flex;gap:8px;align-items:center" id="p-sv-viajes-wrap"><input type="checkbox" id="p-sv-viajes" style="width:auto"> <span>🛺 Hacer viajes de personas (solo moto o carro)</span></label>
+    <label style="display:flex;gap:8px;align-items:center" id="p-sv-viajes-wrap"><input type="checkbox" id="p-sv-viajes" style="width:auto" onchange="verSvMochila()"> <span>🛺 Hacer viajes de personas (solo moto o carro)</span></label>
     <p class="desc" style="font-size:11px;margin:0 0 8px">La verificación es automática: DPI bien escrito + tus fotos + tu caja térmica = quedás APROBADO AL INSTANTE y podés trabajar ya. Sin papeleo, sin esperar. Solo te llegan los pedidos de lo que elegiste.</p>
     <label>Tu área</label><input id="pZona" placeholder="Ej: Zona 11, Mixco, Villa Nueva...">
     <label style="display:flex;gap:8px;align-items:flex-start;margin-top:14px"><input type="checkbox" id="p24" style="width:auto;margin-top:3px"> <span>Me animo a turnos de <b>24 horas</b> <span style="color:#f0b90b">(prioridad en pedidos nocturnos + el cliente paga Q5 extra de noche que es 100% tuyo + boletos extra para tu devolución dominical)</span></span></label>
@@ -378,6 +379,7 @@ function abrirDueno() {
     }
   }catch(e){abrir('piloto');}
 }
+verSvMochila();
 function abrir(t) {
   ['Usuario','Piloto','Local','Flota'].forEach(function(x){ document.getElementById('t'+x).classList.remove('on'); });
   ['usuario','piloto','local','flota'].forEach(function(x){ document.getElementById('f'+x.charAt(0).toUpperCase()+x.slice(1)).classList.remove('on'); });
@@ -385,7 +387,19 @@ function abrir(t) {
   document.getElementById('f'+t.charAt(0).toUpperCase()+t.slice(1)).classList.add('on');
   document.getElementById('okBox').style.display='none';
 }
-function verSvRep() { var c = document.getElementById('p-sv-repuestos'); var n = document.getElementById('p-nota-repuestos'); if (n) n.style.display = (c && c.checked) ? 'block' : 'none'; }
+function verSvRep() { var c = document.getElementById('p-sv-repuestos'); var n = document.getElementById('p-nota-repuestos'); if (n) n.style.display = (c && c.checked) ? 'block' : 'none'; verSvMochila(); }
+function svLleva() { return ['comida','repuestos'].some(function(sv){var c=document.getElementById('p-sv-'+sv);return c&&c.checked}); }
+function verSvMochila() {
+  var lleva = svLleva();
+  var lbl = document.getElementById('pMochilaLabel');
+  var nota = document.getElementById('pMochilaNota');
+  var opc = document.getElementById('pMochilaOpcional');
+  var fld = document.getElementById('pMochila');
+  if (lbl) lbl.innerHTML = lleva ? 'Foto de tu caja térmica 📦 <b style="color:#c1121f">(OBLIGATORIA)</b>' : 'Foto de tu caja térmica 📦 (opcional para vos)';
+  if (nota) nota.style.display = lleva ? 'block' : 'none';
+  if (opc) opc.style.display = lleva ? 'none' : 'block';
+  if (fld) fld.style.display = lleva ? 'block' : 'none';
+}
 function verVeh() {
   var bici = document.getElementById('pVeh').value === 'bicicleta';
   document.getElementById('biciNota').style.display = bici ? 'block' : 'none';
@@ -405,7 +419,7 @@ function validar(t,d) {
   if (!d.zona) return 'Decinos tu área';
   if (t==='piloto' && d.vehiculo==='bicicleta' && !d.equipo) return 'Para bicicleta necesitás confirmar que trabajás con casco y rodilleras';
   if (t==='piloto' && String(d.dpi||'').replace(/\D/g,'').length!==13) return 'Poné el número de tu DPI completo (13 dígitos, sin espacios)';
-  if (t==='piloto') { var mo=document.getElementById('pMochila'); if(!mo||!mo.files||!mo.files[0]) return 'Falta la foto de tu caja térmica 📦 — es obligatoria para llevar la comida caliente (como los repartidores de las apps grandes)'; }
+  if (t==='piloto' && svLleva()) { var mo=document.getElementById('pMochila'); if(!mo||!mo.files||!mo.files[0]) return 'Falta la foto de tu caja térmica 📦 — es obligatoria para repartir comida o repuestos (como los repartidores de las apps grandes)'; }
   if (t==='piloto') { var df1=document.getElementById('pDocDpi'), df2=document.getElementById('pDocDpiRev'); if(!df1||!df1.files||!df1.files[0]||!df2||!df2.files||!df2.files[0]) return 'Faltan las fotos de tu DPI (frente y reverso) 📷 — son obligatorias para verificar que sos vos de verdad. Sin ellas no podés ingresar.'; }
   if (t==='piloto') { var svs=['comida','repuestos','viajes'].filter(function(s){var c=document.getElementById('p-sv-'+s);return c&&c.checked}); if(!svs.length) return 'Marcá qué querés hacer (repartir comida, repartir repuestos o hacer viajes)'; }
   if (t==='piloto' && d.vehiculo!=='bicicleta' && !d.licenciaEnTramite) {
@@ -598,8 +612,7 @@ try{if(localStorage.getItem('dxContratoOK')){var _c1=document.getElementById('pC
     if(_rg){
       var _rol={dueno:'piloto'}[_rg[1]]||_rg[1];
       var _qs=new URLSearchParams(location.search);
-      setTimeout(function(){
-        try{
+      try{
           abrir(_rol);
           if(_rg[1]==='dueno'){try{document.getElementById('pPropio').checked=true}catch(e2){}}
           var _veh=_qs.get('veh');if(_veh){var pv=document.getElementById('pVeh');if(pv){pv.value=_veh;try{verVeh()}catch(e3){}}}
@@ -620,8 +633,7 @@ try{if(localStorage.getItem('dxContratoOK')){var _c1=document.getElementById('pC
             vb.style.cssText='display:block;color:#f0b90b;font-weight:800;font-size:14px;margin:2px 0 14px;text-decoration:none';
             var fm=document.getElementById('f'+rol);if(fm)fm.parentNode.insertBefore(vb,fm);
           }
-        }
-      },350);
+      }
     }
   }catch(e){}
   if('serviceWorker' in navigator){navigator.serviceWorker.register('sw.js').catch(function(){});}

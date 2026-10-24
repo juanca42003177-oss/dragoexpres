@@ -116,7 +116,11 @@ module.exports = wrap(async (req, res) => {
     checks.push({ k: 'FOTOS', ok: docsOk, txt: 'DPI frente' + (tieneDpiF ? '✅' : '❌') + ' + reverso' + (tieneDpiR ? '✅' : '❌') + ' + selfie' + (tieneSelfie ? '✅' : '❌') + (esBici ? ' (bicicleta: sin licencia)' : (enTramite && !tieneLic ? ' + licencia en trámite 📜' : ' + licencia' + (tieneLic ? '✅' : '❌'))) });
     if (!esBici) checks.push({ k: 'LICENCIA', ok: (tieneLic || enTramite), txt: (tieneLic ? 'Foto de licencia recibida' : (enTramite ? '📜 EN TRÁMITE — pide tu OK para trabajar mientras la tramita' : 'Falta la foto de la licencia')) });
     const tieneMochila = Array.isArray(d.docs) && d.docs.some(y => y.tipo === 'mochila');
-    checks.push({ k: 'MOCHILA', ok: tieneMochila, txt: tieneMochila ? 'Foto RECIBIDA 📦 (confirmá en las fotos de Telegram que sea una caja real)' : 'FALTA foto de la caja térmica (obligatoria: comida caliente)' });
+    // La caja termica solo se exige a quien reparte comida o repuestos.
+    // El piloto de moto/carro que SOLO hace viajes de personas no la necesita.
+    const soloViajes = Array.isArray(d.servicios) && d.servicios.length > 0 && d.servicios.every(sv => sv === 'viajes');
+    const necesitaCaja = !(soloViajes && !esBici);
+    checks.push({ k: 'MOCHILA', ok: (necesitaCaja ? tieneMochila : true), txt: (!necesitaCaja ? 'Solo viajes de personas: no necesita caja térmica' : (tieneMochila ? 'Foto RECIBIDA 📦 (confirmá en las fotos de Telegram que sea una caja real)' : 'FALTA foto de la caja térmica (obligatoria para repartir comida o repuestos)')) });
     if (!esBici) { const placaOk = /^[A-Z0-9-]{5,10}$/i.test(String(d.placa || '')); checks.push({ k: 'PLACA', ok: placaOk, txt: placaOk ? 'Placa válida: ' + d.placa : 'Placa inválida' }); }
     const dup = data.some(r2 => r2.tipo === 'piloto' && (limpiar((r2.datos || {}).tel) === limpiar(d.tel) || (d.placa && String((r2.datos || {}).placa || '').toUpperCase() === String(d.placa).toUpperCase())));
     checks.push({ k: 'ÚNICO', ok: !dup, txt: dup ? 'WhatsApp o placa ya registrados' : 'Sin duplicados' });
