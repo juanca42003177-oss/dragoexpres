@@ -84,8 +84,9 @@ module.exports = wrap(async (req, res) => {
     return res.status(200).json({ ok: true, stats: stats, pilotos: stats.pilotos, locales: stats.locales, flota: stats.flota });
   }
   const d = normalizar(req.body);
-  if (!d.tipo || !d.nombre || !d.tel || !d.zona) {
-    return res.status(200).json({ ok: false, error: 'Faltan datos: nombre, WhatsApp y área son obligatorios.' });
+  // zona OPCIONAL desde 2026-10-23: el usuario solo da su direccion, los pedidos los ven todos los pilotos
+  if (!d.tipo || !d.nombre || !d.tel) {
+    return res.status(200).json({ ok: false, error: 'Faltan datos: nombre y WhatsApp son obligatorios.' });
   }
   const f = await ghGet();
   const data = f ? f.data : [];
