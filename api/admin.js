@@ -1,5 +1,6 @@
 // Panel de administracion DragoExpres (solo Juan). Requiere ADMIN_PASS en Vercel.
 const wrap = require('./_cors');
+const { usaDb, dbGet, dbPut } = require('./_db');
 const { ensureBranch } = require('./_dx');
 const { pushA } = require('./_push');
 const dig = (t) => { const d = String(t || '').replace(/\D/g, ''); return d.length > 8 ? d.slice(-8) : d; };
@@ -10,6 +11,7 @@ const PATH = 'registros.json';
 const okPass = (p) => process.env.ADMIN_PASS && String(p).trim() === String(process.env.ADMIN_PASS).trim();
 
 async function ghGet(p = PATH) {
+  if (usaDb) return dbGet(p);
   const r = await fetch(`https://api.github.com/repos/${REPO}/contents/${p}?ref=${BRANCH}`, {
     headers: { Authorization: 'Bearer ' + TOKEN(), Accept: 'application/vnd.github+json' },
   });
@@ -18,6 +20,7 @@ async function ghGet(p = PATH) {
   return { sha: j.sha, data: JSON.parse(Buffer.from(j.content, 'base64').toString('utf8') || '[]') };
 }
 async function ghPut(p, sha, data, msg) {
+  if (usaDb) return dbPut(p, sha, data, msg);
   const r = await fetch(`https://api.github.com/repos/${REPO}/contents/${p}`, {
     method: 'PUT',
     headers: { Authorization: 'Bearer ' + TOKEN(), Accept: 'application/vnd.github+json', 'Content-Type': 'application/json' },
@@ -73,8 +76,8 @@ module.exports = wrap(async (req, res) => {
   }
   if (action === 'pedidos') {
     // pedidos.json vive en la misma rama; se lee aparte para no romper si aún no existe
-    const rp = await fetch(`https://api.github.com/repos/${REPO}/contents/pedidos.json?ref=${BRANCH}`, { headers: { Authorization: 'Bearer ' + TOKEN(), Accept: 'application/vnd.github+json' } });
-    const pedidos = rp.ok ? JSON.parse(Buffer.from((await rp.json()).content, 'base64').toString('utf8') || '[]') : [];
+    const frPd = await ghGet('pedidos.json');
+    const pedidos = frPd ? frPd.data : [];
     const comisiones = pedidos.reduce((s, o) => s + (o.estado === 'entregado' ? (o.comision || 0) + (o.comisionLocal || 0) : 0), 0);
     const porEstado = {};
     pedidos.forEach(o => porEstado[o.estado] = (porEstado[o.estado] || 0) + 1);
@@ -155,11 +158,11 @@ module.exports = wrap(async (req, res) => {
     if (!reg) return res.status(200).json({ ok: false, error: 'No encontrado.' });
     const telReal = String((reg.datos || {}).tel || '').replace(/\D/g, '') || tel; // tel canonico del registro (para pedidos/pilots)
     const H2 = () => ({ Authorization: 'Bearer ' + TOKEN(), Accept: 'application/vnd.github+json' });
-    const r2 = await fetch(`https://api.github.com/repos/${REPO}/contents/pedidos.json?ref=${BRANCH}`, { headers: H2() });
-    const peds = r2.ok ? JSON.parse(Buffer.from((await r2.json()).content, 'base64').toString('utf8') || '[]') : [];
+    const fr2 = await ghGet('pedidos.json');
+    const peds = fr2 ? fr2.data : [];
     const mios = peds.filter(x => x.piloto && String(x.piloto.tel).replace(/\D/g, '') === telReal && x.estado === 'entregado');
-    const r3 = await fetch(`https://api.github.com/repos/${REPO}/contents/pilots.json?ref=${BRANCH}`, { headers: H2() });
-    const pilots = r3.ok ? JSON.parse(Buffer.from((await r3.json()).content, 'base64').toString('utf8') || '[]') : [];
+    const fr3 = await ghGet('pilots.json');
+    const pilots = fr3 ? fr3.data : [];
     const st = pilots.find(x => String(x.tel).replace(/\D/g, '') === telReal) || {};
     const califs = mios.filter(x => x.califCliente > 0);
     const g = new Date(Date.now() - 21600000);
@@ -210,8 +213,8 @@ module.exports = wrap(async (req, res) => {
     return res.status(200).json({ ok: true });
   }
   if (action === 'pozo') {
-    const rp = await fetch(`https://api.github.com/repos/${REPO}/contents/pedidos.json?ref=${BRANCH}`, { headers: { Authorization: 'Bearer ' + TOKEN(), Accept: 'application/vnd.github+json' } });
-    const pedidos = rp.ok ? JSON.parse(Buffer.from((await rp.json()).content, 'base64').toString('utf8') || '[]') : [];
+    const frPz = await ghGet('pedidos.json');
+    const pedidos = frPz ? frPz.data : [];
     const TZ = 6 * 3600 * 1000;
     const g = new Date(Date.now() - TZ);
     const lunes = Date.UTC(g.getUTCFullYear(), g.getUTCMonth(), g.getUTCDate() - (g.getUTCDay() + 6) % 7) + TZ;
@@ -220,8 +223,8 @@ module.exports = wrap(async (req, res) => {
     const por = {};
     entregados.forEach(o => { if (o.piloto) { const k = o.piloto.tel; if (!por[k]) por[k] = { nombre: o.piloto.nombre, tel: k, entregas: 0, comisiones: 0 }; por[k].entregas++; por[k].comisiones += (o.comision || 0) + (o.comisionLocal || 0); } });
     let metaGlobal = 20;
-    try { const rpz = await fetch(`https://api.github.com/repos/${REPO}/contents/pozo.json?ref=${BRANCH}`, { headers: { Authorization: 'Bearer ' + TOKEN(), Accept: 'application/vnd.github+json' } }); if (rpz.ok) metaGlobal = (JSON.parse(Buffer.from((await rpz.json()).content, 'base64').toString('utf8')) || {}).metaGlobal || 20; } catch (e) { }
-    try { const rpl = await fetch(`https://api.github.com/repos/${REPO}/contents/pilots.json?ref=${BRANCH}`, { headers: { Authorization: 'Bearer ' + TOKEN(), Accept: 'application/vnd.github+json' } }); if (rpl.ok) { const sts = JSON.parse(Buffer.from((await rpl.json()).content, 'base64').toString('utf8')) || []; Object.values(por).forEach(p => { const st = sts.find(x => String(x.tel).replace(/\D/g, '') === String(p.tel).replace(/\D/g, '')); p.metaP = (st && st.metaP) || 20; }); } } catch (e) { }
+    try { const frZ = await ghGet('pozo.json'); if (frZ) metaGlobal = (frZ.data || {}).metaGlobal || 20; } catch (e) { }
+    try { const frL = await ghGet('pilots.json'); if (frL) { const sts = frL.data || []; Object.values(por).forEach(p => { const st = sts.find(x => String(x.tel).replace(/\D/g, '') === String(p.tel).replace(/\D/g, '')); p.metaP = (st && st.metaP) || 20; }); } } catch (e) { }
     const pilotos = Object.values(por).map(x => { x.metaEfectiva = Math.min(x.metaP || 20, metaGlobal); return { nombre: x.nombre, entregas: x.entregas, premio: Math.round(x.comisiones * 25) / 100, meta: x.metaEfectiva, metaP: x.metaP || 20 }; }).sort((x, y) => y.entregas - x.entregas);
     return res.status(200).json({ ok: true, meta: metaGlobal, comisiones, pozo: Math.round(pilotos.filter(p => p.entregas >= p.meta).reduce((s, p) => s + p.premio, 0) * 100) / 100, modo: 'individual', pilotos });
   }

@@ -2,10 +2,12 @@
 // Los registros (datos personales) se guardan en el repo PRIVADO de datos,
 // rama 'dragoexpres-data', archivo registros.json — nunca en repos publicos.
 const wrap = require('./_cors');
+const { usaDb, dbGet, dbPut } = require('./_db');
 const { REPO, BRANCH, TOKEN, H, ensureBranch, normalizar } = require('./_dx');
 const PATH = 'registros.json';
 const { pushA } = require('./_push');
 async function ghGetPath(path) {
+  if (usaDb) return dbGet(path);
   await ensureBranch();
   const rr = await fetch(`https://api.github.com/repos/${REPO}/contents/${path}?ref=${BRANCH}`, { headers: H() });
   if (!rr.ok) return null;
@@ -54,6 +56,7 @@ async function aviso(texto) {
 let cache = null;
 
 async function ghGet() {
+  if (usaDb) return dbGet(PATH);
   await ensureBranch();
   const r = await fetch(`https://api.github.com/repos/${REPO}/contents/${PATH}?ref=${BRANCH}`, { headers: H() });
   if (!r.ok) return null;
@@ -61,6 +64,7 @@ async function ghGet() {
   return { sha: j.sha, data: JSON.parse(Buffer.from(j.content, 'base64').toString('utf8') || '[]') };
 }
 async function ghPut(sha, data) {
+  if (usaDb) return dbPut(PATH, sha, data, 'registro nuevo');
   const r = await fetch(`https://api.github.com/repos/${REPO}/contents/${PATH}`, {
     method: 'PUT',
     headers: { ...H(), 'Content-Type': 'application/json' },
@@ -168,7 +172,7 @@ module.exports = wrap(async (req, res) => {
             const ff2 = await ghGetPath('pushsubs.json');
             if (ff2) {
               const quedan = ff2.data.filter(s => !muertas.has(s.endpoint));
-              await fetch(`https://api.github.com/repos/${REPO}/contents/pushsubs.json`, { method: 'PUT', headers: { ...H(), 'Content-Type': 'application/json' }, body: JSON.stringify({ message: 'push: limpia suscripciones muertas', content: Buffer.from(JSON.stringify(quedan)).toString('base64'), sha: ff2.sha, branch: BRANCH }) });
+              if (usaDb) { await dbPut('pushsubs.json', null, quedan, 'push: limpia suscripciones muertas'); } else { await fetch(`https://api.github.com/repos/${REPO}/contents/pushsubs.json`, { method: 'PUT', headers: { ...H(), 'Content-Type': 'application/json' }, body: JSON.stringify({ message: 'push: limpia suscripciones muertas', content: Buffer.from(JSON.stringify(quedan)).toString('base64'), sha: ff2.sha, branch: BRANCH }) }); }
             }
           } catch (e2) { }
         }

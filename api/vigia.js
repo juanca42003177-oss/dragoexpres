@@ -5,6 +5,7 @@
 // estado cambia (ok→falla y falla→ok, máximo 1 recordatorio cada 6h si
 // sigue fallando) para no gastar ni spamear.
 const wrap = require('./_cors');
+const { usaDb, dbGet, dbPut } = require('./_db');
 const { REPO, BRANCH, H, ensureBranch } = require('./_dx');
 
 const CICLO_MS = 72 * 3600 * 1000;
@@ -12,6 +13,7 @@ const TOLERANCIA_CICLO = 80 * 3600 * 1000; // ciclo + margen antes de gritar
 const RERECORDAR = 6 * 3600 * 1000; // si sigue fallando, recorda cada 6h
 
 async function ghGet(path) {
+  if (usaDb) return dbGet(path);
   await ensureBranch();
   const r = await fetch(`https://api.github.com/repos/${REPO}/contents/${path}?ref=${BRANCH}`, { headers: H() });
   if (!r.ok) return null;
@@ -19,6 +21,7 @@ async function ghGet(path) {
   return { sha: j.sha, data: JSON.parse(Buffer.from(j.content, 'base64').toString('utf8') || '[]') };
 }
 async function ghPut(path, sha, data, msg) {
+  if (usaDb) return dbPut(path, sha, data, msg);
   const r = await fetch(`https://api.github.com/repos/${REPO}/contents/${path}`, {
     method: 'PUT',
     headers: { ...H(), 'Content-Type': 'application/json' },

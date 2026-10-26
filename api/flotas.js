@@ -2,6 +2,7 @@
 // El flotista asigna su vehículo a un conductor aprobado y gana 25% del
 // neto del conductor; el conductor se queda 75%. flotas.json en la bodega.
 const wrap = require('./_cors');
+const { usaDb, dbGet, dbPut } = require('./_db');
 const { REPO, BRANCH, H, ensureBranch } = require('./_dx');
 
 const TZ = 6 * 3600 * 1000;
@@ -9,6 +10,7 @@ const semana = () => 'S' + Math.floor((Date.now() - TZ) / (7 * 864e5));
 const dinero = (q) => { const n = Number(q); return (isNaN(n) || !isFinite(n) || n < 0) ? 0 : Math.round(n * 100) / 100; };
 
 async function ghGet(path) {
+  if (usaDb) return dbGet(path);
   await ensureBranch();
   const r = await fetch(`https://api.github.com/repos/${REPO}/contents/${path}?ref=${BRANCH}`, { headers: H() });
   if (!r.ok) return null;
@@ -16,6 +18,7 @@ async function ghGet(path) {
   return { sha: j.sha, data: JSON.parse(Buffer.from(j.content, 'base64').toString('utf8') || '[]') };
 }
 async function ghPut(path, sha, data, msg) {
+  if (usaDb) return dbPut(path, sha, data, msg);
   const r = await fetch(`https://api.github.com/repos/${REPO}/contents/${path}`, {
     method: 'PUT',
     headers: { ...H(), 'Content-Type': 'application/json' },

@@ -9,6 +9,7 @@
 // El premio se acredita como bono (st.bonosPend) y descuenta de lo que transfiere en la próxima liquidación:
 // Juan comparte las comisiones que ese mismo piloto generó — nunca pone de su bolsillo ni paga con la plata de otros.
 const wrap = require('./_cors');
+const { usaDb, dbGet, dbPut } = require('./_db');
 const { REPO, BRANCH, H, ensureBranch } = require('./_dx');
 
 const TZ = 6 * 3600 * 1000;
@@ -26,6 +27,7 @@ function lunesGT() {
   return Date.UTC(g.getUTCFullYear(), g.getUTCMonth(), g.getUTCDate() - diasDesdeLunes) + TZ;
 }
 async function ghGet(path) {
+  if (usaDb) return dbGet(path);
   await ensureBranch();
   const r = await fetch(`https://api.github.com/repos/${REPO}/contents/${path}?ref=${BRANCH}`, { headers: H() });
   if (!r.ok) return null;
@@ -33,6 +35,7 @@ async function ghGet(path) {
   return { sha: j.sha, data: JSON.parse(Buffer.from(j.content, 'base64').toString('utf8') || '[]') };
 }
 async function ghPut(path, sha, data, msg) {
+  if (usaDb) return dbPut(path, sha, data, msg);
   const r = await fetch(`https://api.github.com/repos/${REPO}/contents/${path}`, {
     method: 'PUT',
     headers: { ...H(), 'Content-Type': 'application/json' },

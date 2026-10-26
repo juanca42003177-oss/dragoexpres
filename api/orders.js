@@ -7,6 +7,7 @@
 // usuario↔piloto↔local: DragoExpres no toca el dinero; las comisiones
 // Comisiones: 5% del envío comida/repuestos + Q2-Q5 viajes; al local 10% de la compra en comida y repuestos tras 90 días de zona.
 const wrap = require('./_cors');
+const { usaDb, dbGet, dbPut } = require('./_db');
 // horario de atencion: null/undefined = abierto siempre; soporta cruce de medianoche
 const abiertoAhora = (h, abre, cierra) => {
   if (abre === undefined || abre === null || cierra === undefined || cierra === null) return true;
@@ -37,6 +38,7 @@ const dinero = (q) => { const n = Number(q); return (isNaN(n) || !isFinite(n) ||
 const dig = (t) => { const d = String(t || '').replace(/\D/g, ''); return d.length > 8 ? d.slice(-8) : d; };
 
 async function ghGet(path) {
+  if (usaDb) return dbGet(path);
   await ensureBranch();
   const r = await fetch(`https://api.github.com/repos/${REPO}/contents/${path}?ref=${BRANCH}`, { headers: H() });
   if (!r.ok) return null;
@@ -44,6 +46,7 @@ async function ghGet(path) {
   return { sha: j.sha, data: JSON.parse(Buffer.from(j.content, 'base64').toString('utf8') || '[]') };
 }
 async function ghPut(path, sha, data, msg) {
+  if (usaDb) return dbPut(path, sha, data, msg);
   const r = await fetch(`https://api.github.com/repos/${REPO}/contents/${path}`, {
     method: 'PUT',
     headers: { ...H(), 'Content-Type': 'application/json' },
