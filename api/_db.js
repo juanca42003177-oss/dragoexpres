@@ -1,8 +1,10 @@
 // DragoExpres storage adapter. Prefer Supabase when configured and healthy.
 // If its credentials/API fail, fall back to the existing GitHub JSON bodega so
 // the live app remains readable and writable while configuration is repaired.
-const SUPABASE_URL = (process.env.SUPABASE_URL || '').replace(/\/+$/, '');
-const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
+// trim(): Vercel a veces guarda la llave con un espacio o salto de línea pegado
+// (regla aprendida 2026-10-26: la llave buena tiene 219 caracteres, una dañada tenía 220).
+const SUPABASE_URL = (process.env.SUPABASE_URL || '').trim().replace(/\/+$/, '');
+const SUPABASE_KEY = (process.env.SUPABASE_SERVICE_ROLE_KEY || '').trim();
 const usaDb = !!(SUPABASE_URL && SUPABASE_KEY);
 const REPO = process.env.GITHUB_DATA_REPO || 'juanca42003177-oss/dragon-labs-data';
 const BRANCH = 'dragoexpres-data';

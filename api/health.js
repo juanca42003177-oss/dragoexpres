@@ -4,15 +4,17 @@ module.exports = wrap(async (req, res) => {
   const q = req.query || {};
   // ?diag=1 → muestra si Vercel entregó las variables de Supabase y si la base responde.
   if (q.diag === '1') {
-    const { usaDb, dbGet } = require('./_db');
-    const URL_ENV = process.env.SUPABASE_URL ? 'SI' : 'NO';
-    const KEY_ENV = process.env.SUPABASE_SERVICE_ROLE_KEY ? 'SI (' + process.env.SUPABASE_SERVICE_ROLE_KEY.length + ' caracteres)' : 'NO';
-    let dbPrueba = 'no aplica (modo GitHub)';
-    if (usaDb) {
-      try { const r = await dbGet('salud.json'); dbPrueba = 'OK, responde (' + (r ? r.data && Object.keys(r.data).length + ' claves en salud.json' : 'archivo no existe pero autenticó') + ')'; }
-      catch (e) { dbPrueba = 'FALLA: ' + String(e.message || e).slice(0, 80); }
+    const URL_RAW = (process.env.SUPABASE_URL || '').trim();
+    const KEY_RAW = (process.env.SUPABASE_SERVICE_ROLE_KEY || '').trim();
+    // sonda DIRECTA a Supabase (sin pasar por el respaldo, para ver la verdad)
+    let sonda = 'no aplica (faltan variables)';
+    if (URL_RAW && KEY_RAW) {
+      try {
+        const r = await fetch(`${URL_RAW.replace(/\/+$/, '')}/rest/v1/bodega?select=path&limit=1`, { headers: { apikey: KEY_RAW, Authorization: 'Bearer ' + KEY_RAW } });
+        sonda = 'HTTP ' + r.status + (r.ok ? ' — Supabase AUTENTICA bien' : ' — Supabase RECHAZA (llave o URL mal pegada)');
+      } catch (e) { sonda = 'sin conexión: ' + String(e.message || e).slice(0, 60); }
     }
-    return res.status(200).json({ ok: true, app: 'dragoexpres', ts: Date.now(), env: { SUPABASE_URL: URL_ENV, SUPABASE_SERVICE_ROLE_KEY: KEY_ENV }, modo: usaDb ? 'SUPABASE' : 'GITHUB', dbPrueba });
+    return res.status(200).json({ ok: true, app: 'dragoexpres', ts: Date.now(), env: { SUPABASE_URL: URL_RAW ? 'SI' : 'NO', SUPABASE_SERVICE_ROLE_KEY: KEY_RAW ? 'SI (' + KEY_RAW.length + ' caracteres, la buena son 219)' : 'NO' }, modo: 'SUPABASE', sonda });
   }
   res.status(200).json({ ok: true, app: 'dragoexpres', ts: Date.now() });
 });
