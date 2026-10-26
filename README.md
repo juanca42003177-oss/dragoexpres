@@ -6,3 +6,5 @@ by Dragon Trade Labs.
 - `api/` — funciones Vercel: registro en repo privado de datos.
 
 Activación de servicio: por área, al llegar a 25 pilotos + 25 locales verificados.
+
+<!-- redespliegue para activar SUPABASE_URL y SUPABASE_SERVICE_ROLE_KEY (2026-10-26T23:36) -->
