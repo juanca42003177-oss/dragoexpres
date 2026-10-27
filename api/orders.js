@@ -595,13 +595,14 @@ module.exports = wrap(async (req, res) => {
     // y quedaba PEGADO en contraoferta para siempre (bug del viaje Q100 de Juan, 2026-10-27).
     let shaP = fpd ? fpd.sha : null;
     for (const o of peds) {
-      if (String(o.cliente && o.cliente.tel || '').replace(/\D/g, '') === tel && o.estado === 'contraoferta' && o.contra && Date.now() > o.contra.expira) {
+      if (o.piloto && String(o.cliente && o.cliente.tel || '').replace(/\D/g, '') === tel && o.estado === 'contraoferta' && o.contra && Date.now() > o.contra.expira) {
         o.contraRechazos = (o.contraRechazos || []).concat([o.piloto.tel]); o.contraExpiro = Date.now();
         await redispatchViaje(o, peds, shaP);
         shaP = null; // redispatch ya guardó; solo procesamos una por llamada para evitar conflicto de versión
         break;
       }
     }
+    const mios = peds.filter(x => String(x.cliente && x.cliente.tel || '').replace(/\D/g, '') === tel).slice(-30).reverse();
     const entF = peds.filter(x => String(x.cliente && x.cliente.tel || '').replace(/\D/g, '') === tel && x.estado === 'entregado').length;
     const usado = peds.some(x => String(x.cliente && x.cliente.tel || '').replace(/\D/g, '') === tel && x.promoFiel && x.estado === 'entregado');
     return res.status(200).json({ ok: true, pedidos: mios, fiel: { entregas: entF, promoAhora: !usado && entF > 0 && entF % 30 === 0, faltan: entF % 30 === 0 ? 0 : 30 - (entF % 30), usado } });
