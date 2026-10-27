@@ -531,7 +531,7 @@ module.exports = wrap(async (req, res) => {
       let o = peds.find(x => x.id === String(b.id).trim());
       if (!o) return res.status(200).json({ ok: false, error: 'Pedido no encontrado.' });
       if (o.estado === 'contraoferta' && o.contra && Date.now() > o.contra.expira) {
-        o.contraRechazos = (o.contraRechazos || []).concat([o.piloto.tel]); o.contraExpiro = Date.now();
+        o.contraExpiro = Date.now(); // expiró, NO es un rechazo: el piloto puede volver a ofertar
         await redispatchViaje(o, peds, fpd.sha);
         o = peds.find(x => x.id === String(b.id).trim());
       }
@@ -597,7 +597,7 @@ module.exports = wrap(async (req, res) => {
     let shaP = fpd ? fpd.sha : null;
     for (const o of peds) {
       if (o.piloto && String(o.cliente && o.cliente.tel || '').replace(/\D/g, '') === tel && o.estado === 'contraoferta' && o.contra && Date.now() > o.contra.expira) {
-        o.contraRechazos = (o.contraRechazos || []).concat([o.piloto.tel]); o.contraExpiro = Date.now();
+        o.contraExpiro = Date.now(); // expiró, NO es un rechazo: el piloto puede volver a ofertar
         await redispatchViaje(o, peds, shaP);
         shaP = null; // redispatch ya guardó; solo procesamos una por llamada para evitar conflicto de versión
         break;
@@ -749,9 +749,9 @@ module.exports = wrap(async (req, res) => {
     if (String(o.cliente.tel).replace(/\D/g, '') !== tel) return res.status(200).json({ ok: false, error: 'No es tu pedido.' });
     if (action === 'contraOk') {
       if (o.contra && Date.now() > o.contra.expira) {
-        o.contraRechazos = (o.contraRechazos || []).concat([o.piloto.tel]); o.contraExpiro = Date.now();
+        o.contraExpiro = Date.now(); // se le pasó el tiempo, NO es un rechazo: el piloto puede volver a ofertar
         await redispatchViaje(o, peds, fpd.sha);
-        return res.status(200).json({ ok: false, error: 'Se te pasó el tiempo. El viaje volvió a búsqueda con la tarifa fija.' });
+        return res.status(200).json({ ok: false, error: 'Se te pasó el tiempo. El viaje volvió a búsqueda con la tarifa fija — el piloto puede ofrecerte de nuevo.' });
       }
       if (o.contra.tipo === 'propina') { o.propina = dinero((o.propina || 0) + o.contra.monto); } // propina extra 100% piloto, envío fijo
       else { o.envio = o.contra.monto; o.comision = comisionDe('viaje', o.envio); }
