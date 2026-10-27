@@ -1151,6 +1151,18 @@ function pintarTotal(){
 async function enviar(){
   var v=function(id){var e=document.getElementById(id);return e?e.value.trim():''};
   var u=LS();
+  /* GUARDIÁN DE SUCURSAL LEJANA (lógica de las grandes): si el local elegido está a más de
+     15 km de tu ubicación te avisamos ANTES de mandar, así no pedís sin querer a la Gomera
+     estando en Villa Nueva. Vos decidís: seguir (el piloto puede pedir ajuste) o cambiar. */
+  try{
+    var uG=LS();
+    if(LOCAL_TEL&&uG.gps&&LOCALES){
+      var ll=LOCALES.find(function(x){return String(x.tel)===String(LOCAL_TEL)});
+      if(ll&&ll.gps){var dk=distKm2(uG.gps,ll.gps);
+        if(dk>15&&!confirm('⚠️ '+ll.nombre+' está a '+dk.toFixed(0)+' km de tu ubicación ('+(ll.zona||'otra zona')+'). Es un VIAJE LARGO y el piloto puede pedirte ajuste de tarifa.\n\n¿Confirmás que querés pedirle a ESTE local?')){return}
+      }
+    }
+  }catch(e){}
   var telCli=v('f-tel')||u.tel;MI_TEL=telCli;
   var d={action:'crear',tipo:TIPO,local:(LOCAL_TEL?{nombre:LOCAL_PRE,tel:LOCAL_TEL}:undefined),nombre:v('f-nombre')||u.nombre,tel:telCli,zona:zonaValor(),direccion:v('f-dir'),referencia:v('f-ref'),detalle:v('f-det'),compra:v('f-compra')||0,servicio:SERV?SERV.id:undefined,envio:TARIFA[TIPO]||15,propina:PROPINA,avisoWa:(LS().avisoWa!==false)};
   if(window._CART_PED&&d.local&&window._CART_PED.tel===d.local.tel){d.items=window._CART_PED.items.map(function(x){return{nombre:x.nombre,precio:x.precio,qty:x.qty,nota:x.nota||''}})}
