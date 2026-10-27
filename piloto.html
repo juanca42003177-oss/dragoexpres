@@ -160,18 +160,27 @@ function sosDown(){
 }
 async function enviarSOS(){
   if(DEMO){alert('Vista previa: el SOS no se envía.');return}
-  function enviar(lat,lng){
-    fetch(api('orders'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'sos',tel:PILOTO.tel,lat:lat,lng:lng})})
+  function enviar(lat,lng,acc){
+    fetch(api('orders'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'sos',tel:PILOTO.tel,lat:lat,lng:lng,acc:acc})})
     .then(function(r){return r.json()}).then(function(j){
       var b=document.getElementById('sosBtn');
-      if(j.ok){if(b){b.textContent='✅ SOS ENVIADO — el admin ya tiene tu ubicación';b.style.background='#1c3a1c'}
+      if(j.ok){if(b){b.textContent=(lat?'✅ SOS ENVIADO — el admin ya tiene tu ubicación':'✅ SOS ENVIADO — sin GPS: compartí tu ubicación por WhatsApp');b.style.background='#1c3a1c'}
         var ov=document.getElementById('sosLlamadas');if(ov){ov.style.display='block';ov.innerHTML='<div class="card" style="border-color:#6b2a2a;background:#2a1414"><b>🚨 Alerta enviada. El administrador ya vio tu ubicación.</b><div class="mini" style="margin:8px 0">Si estás en peligro, llamá también a las autoridades con un toque:</div><a href="tel:122" style="display:block;text-decoration:none;background:#7f1010;border:2px solid #ff4d4d;color:#fff;font-weight:900;border-radius:14px;padding:12px;margin:6px 0;text-align:center">👮 Llamar a la Policía (122)</a><a href="tel:911" style="display:block;text-decoration:none;background:#7f1010;border:2px solid #ff4d4d;color:#fff;font-weight:900;border-radius:14px;padding:12px;margin:6px 0;text-align:center">📞 Emergencias (911)</a></div>'}
         ov&&ov.scrollIntoView({behavior:'smooth'});}
       else{if(b){b.textContent='🚨 SOS EMERGENCIA — mantené presionado 3 segundos';b.style.background='#7f1010'}alert(j.error||'No se pudo enviar, llamá al 110/120 directo.');}
     });
   }
-  if(!navigator.geolocation){enviar(14.6349,-90.5069);return}
-  navigator.geolocation.getCurrentPosition(function(pos){enviar(pos.coords.latitude,pos.coords.longitude)},function(){enviar(14.6349,-90.5069)},{enableHighAccuracy:true,timeout:8000});
+  /* REGLA DE ORO DEL SOS (corregido 2026-10-26): NUNCA inventar ubicacion.
+     Antes, si el GPS fallaba, mandaba coordenadas fijas de la capital como si fueran reales
+     y el admin corria a un lugar equivocado. Ahora: GPS fresco con mas paciencia;
+     si no hay GPS, el SOS sale IGUAL pero SIN ubicacion, avisando que hay que pedirla por WhatsApp. */
+  if(!navigator.geolocation){enviar(null,null,null);return}
+  var b1=document.getElementById('sosBtn');if(b1){b1.textContent='🚨 OBTENIENDO TU UBICACIÓN GPS… — mantené presionado'}
+  navigator.geolocation.getCurrentPosition(
+    function(pos){enviar(pos.coords.latitude,pos.coords.longitude,pos.coords.accuracy)},
+    function(){enviar(null,null,null)},
+    {enableHighAccuracy:true,timeout:20000,maximumAge:0}
+  );
 }
 async function verBilletera(){
   BW=!BW;document.getElementById('billetera').style.display=BW?'block':'none';document.getElementById('bArrow').textContent=BW?'▴':'▾';

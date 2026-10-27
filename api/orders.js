@@ -922,12 +922,14 @@ module.exports = wrap(async (req, res) => {
   // ---- PILOTO: BOTÓN SOS (emergencia: manda su ubicación exacta al admin por Telegram) ----
   if (action === 'sos') {
     const tel = String(b.tel || '').trim();
-    const lat = +b.lat, lng = +b.lng;
-    if (!tel || !isFinite(lat) || !isFinite(lng)) return res.status(200).json({ ok: false, error: 'No pudimos leer tu ubicación. Activá el GPS e intentá de nuevo.' });
+    // REGLA DE ORO (2026-10-26): el SOS NUNCA se rechaza por falta de GPS y NUNCA se inventa ubicacion.
+    const tieneGps = isFinite(+b.lat) && isFinite(+b.lng) && (b.lat !== null && b.lng !== undefined && b.lat !== '' );
+    const lat = +b.lat, lng = +b.lng, acc = Math.round(+b.acc) || null;
+    if (!tel) return res.status(200).json({ ok: false, error: 'Falta tu número de piloto.' });
     const fp = await ghGet('pilots.json'); const arr = fp ? fp.data : [];
     let st = arr.find(x => x.tel === tel);
     if (!st) { st = { tel, disponible: false }; arr.push(st); }
-    st.sos = { ts: now, lat, lng };
+    st.sos = { ts: now, lat: tieneGps ? lat : null, lng: tieneGps ? lng : null, acc, sinGps: tieneGps ? undefined : true };
     await ghPut('pilots.json', fp ? fp.sha : null, arr, 'sos ' + tel);
     let nombre = tel, zona = '?', placa = '';
     try {
@@ -935,8 +937,11 @@ module.exports = wrap(async (req, res) => {
       const p = reg.find(r => r.tipo === 'piloto' && dig(r.datos.tel) === dig(tel));
       if (p) { nombre = p.datos.nombre; zona = p.datos.zona; placa = p.datos.placa || ''; }
     } catch (e) { }
-    const maps = 'https://maps.google.com/?q=' + lat + ',' + lng;
-    await aviso(`🚨🚨🚨 DRAGOEXPRES — SOS DE PILOTO 🚨🚨🚨\n${nombre} (${tel}) marcó EMERGENCIA\nZona: ${zona}${placa ? ' · Placa: ' + placa : ''}\n📍 UBICACIÓN EXACTA: ${maps}\nEscribile y verificá que esté bien. La ubicación es del momento en que tocó el botón.`);
+    const maps = tieneGps ? 'https://maps.google.com/?q=' + lat + ',' + lng : null;
+    const textoUbic = tieneGps
+      ? `📍 UBICACIÓN: ${maps}${acc ? '\n🎯 Precisión del GPS: ±' + acc + ' m' + (acc > 300 ? ' — ⚠️ SEÑAL DÉBIL: verificá por WhatsApp antes de moverte' : '') : ''}\nLa ubicación es del momento en que tocó el botón.`
+      : `⚠️ SIN UBICACIÓN: el GPS del piloto no dio señal. PEDILE SU UBICACIÓN POR WHATSAPP AHORA (un toque: WhatsApp → adjuntar → Ubicación) antes de moverte.`;
+    await aviso(`🚨🚨🚨 DRAGOEXPRES — SOS DE PILOTO 🚨🚨🚨\n${nombre} (${tel}) marcó EMERGENCIA\nZona: ${zona}${placa ? ' · Placa: ' + placa : ''}\n${textoUbic}\nEscribile y verificá que esté bien.`);
     return res.status(200).json({ ok: true, maps });
   }
 
