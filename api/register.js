@@ -98,13 +98,20 @@ module.exports = wrap(async (req, res) => {
   const checks = [];
   const limpiar = (q) => String(q || '').replace(/\D/g, '');
   if ((d.tipo === 'piloto' || d.tipo === 'local') && d.contrato !== true) return res.status(200).json({ ok: false, error: 'Para registrarte tenés que aceptar el Contrato Digital de DragoExpres.' });
-  // UN NUMERO = UNA IDENTIDAD: el mismo WhatsApp no puede tener dos roles distintos (piloto/local/flota).
-  // Los rechazados por falta de DPI pueden re-registrarse; los usuarios (clientes) no bloquean.
-  if (d.tipo === 'piloto' || d.tipo === 'local' || d.tipo === 'flota') {
-    const rolTxt = { piloto: 'PILOTO', local: 'LOCAL', flota: 'FLOTISTA' };
-    const otro = data.find(r2 => r2.estado !== 'rechazado_falta_dpi' && ['piloto', 'local', 'flota'].includes(r2.tipo) && limpiar((r2.datos || {}).tel) === limpiar(d.tel));
+  // UN NUMERO = UNA IDENTIDAD (regla de Juan, corregida 2026-10-26): NINGUN rol puede usar un
+  // WhatsApp ya registrado — antes los usuarios no bloqueaban y podian coexistir con un piloto
+  // del mismo numero. Ahora cualquier rol existente bloquea, y un DPI repetido tambien se rechaza.
+  {
+    const rolTxt = { piloto: 'PILOTO', local: 'LOCAL', flota: 'FLOTISTA', usuario: 'USUARIO' };
+    const otro = data.find(r2 => r2.estado !== 'rechazado_falta_dpi' && limpiar((r2.datos || {}).tel) === limpiar(d.tel));
     if (otro && otro.tipo === d.tipo) return res.status(200).json({ ok: false, error: 'Ese WhatsApp ya está registrado como ' + rolTxt[d.tipo] + '. No hace falta registrarte otra vez: entrá directo a tu panel con ese número.' });
     if (otro) return res.status(200).json({ ok: false, error: 'Ese WhatsApp ya está registrado como ' + rolTxt[otro.tipo] + ' en DragoExpres. Cada número es una sola identidad: para este rol usá otro número de WhatsApp.' });
+    // UN DPI = UNA PERSONA: nadie se registra dos veces aunque cambie de número.
+    const dpiNuevo = limpiar(d.dpi);
+    if (dpiNuevo.length === 13) {
+      const otroDpi = data.find(r2 => r2.estado !== 'rechazado_falta_dpi' && limpiar((r2.datos || {}).dpi || '') === dpiNuevo);
+      if (otroDpi) return res.status(200).json({ ok: false, error: 'Ese DPI ya está registrado en DragoExpres como ' + (rolTxt[otroDpi.tipo] || otroDpi.tipo) + '. Una persona tiene una sola cuenta: si necesitás cambiar de rol, escribínos por WhatsApp.' });
+    }
   }
   let dpiRechazado = false;
   if (d.tipo === 'piloto') {
