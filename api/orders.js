@@ -795,7 +795,10 @@ module.exports = wrap(async (req, res) => {
       if (o.estado === 'asignado' && (!o.piloto || o.piloto.tel !== tel)) return res.status(200).json({ ok: false, error: 'Este pedido es de otro piloto.' });
       if ((o.rechazadoPor || []).includes(tel)) return res.status(200).json({ ok: false, error: 'Rechazaste este pedido, se lo dejamos a otro piloto.' });
       if (!['asignado', 'buscando'].includes(o.estado)) return res.status(200).json({ ok: false, error: 'Este pedido ya no está disponible.' });
-      if (o.estado === 'buscando' && o.zona !== p.datos.zona) return res.status(200).json({ ok: false, error: 'Pedido de otra zona.' });
+      /* REGLA DE TODO EL PAÍS (Juan 2026-10-23 y 2026-10-27): el piloto ve los pedidos
+         'buscando' de toda Guatemala y toma los que le convengan. El viejo candado
+         'Pedido de otra zona' bloqueaba tomar pedidos de otra zona aunque el piloto
+         los viera en su lista (bug del test de Juan, 2026-10-27). Ya no existe. */
       o.estado = 'aceptado'; o.piloto = Object.assign({ tel, nombre: p.datos.nombre }, vehInfo(p.datos)); o.tsAceptado = now;
       await ghPut('pedidos.json', fpd.sha, peds, 'aceptado ' + id);
       await aviso(`🚀 DRAGOEXPRES — Pedido ${id}\n✅ ${p.datos.nombre} ACEPTÓ el pedido (${o.tipo})\nCliente: ${o.cliente.nombre}\n→ El piloto va en camino. Estado: ACEPTADO`);
