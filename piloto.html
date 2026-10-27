@@ -150,6 +150,7 @@ async function rapida(q){if(DEMO)return;
   tick();}
 function distKmP(a,b){var R=6371,d=Math.PI/180,dl=(b.lat-a.lat)*d,dg=(b.lng-a.lng)*d,x=Math.sin(dl/2)*Math.sin(dl/2)+Math.cos(a.lat*d)*Math.cos(b.lat*d)*Math.sin(dg/2)*Math.sin(dg/2);return R*2*Math.atan2(Math.sqrt(x),Math.sqrt(1-x))}
 function pintarMapaPiloto(o){
+  try{window.TARIFAPROP=window.TARIFAPROP||{};if(o){window.TARIFAPROP[o.id]=!!o.tarifaPropuesta}}catch(e){}
   var mp=document.getElementById('pmMap'),ir=document.getElementById('pmIr'),hi=document.getElementById('pmHint');
   if(!mp||!o||['entregado','cancelado'].includes(o.estado)){if(mp)mp.style.display='none';if(hi)hi.textContent='';if(ir)ir.style.display='none';if(window.PMM){window.PMM.remove();window.PMM=null}return}
   var yo=window.MYGPS||null, dest=(o.cliente&&o.cliente.gps)||null;
@@ -312,7 +313,7 @@ function pedidoHTML(o){
   '<div class="dato">📍 '+o.cliente.direccion+(o.cliente.referencia?'<br><span class="mini">'+o.cliente.referencia+'</span>':'')+'</div>'+
   '<div class="dato">📝 '+o.detalle+'</div>'+
   (o.compra?'<div class="dato">💵 Compra'+(o.servicio?' + servicio':'')+': <b>Q'+(+o.compra+ +(o.servicio?o.servicio.precio:0))+'</b> (al local le pagás <b>Q'+(+o.compra+ +(o.servicio?o.servicio.precio:0)-(o.comisionLocal||0))+'</b>'+(o.comisionLocal?' · 10% zona operativa':'')+')</div><div class="dato" style="background:#fff3cd;border:1px solid #f0d98a;color:#5c4a10">⚠️ <b>El local solo entrega pagando:</b> llevá <b>Q'+(+o.compra+ +(o.servicio?o.servicio.precio:0)-(o.comisionLocal||0))+'</b> al recoger. Cobrás <b>Q'+(+o.compra+ +(o.servicio?o.servicio.precio:0)+ +o.envio+ +(o.propina||0))+'</b> al cliente, así salís ganando en una sola vuelta.</div>':'')+
-  (o.promoFiel?'<div class="dato">Tu envío: <b style="color:#f0b90b">Q'+((o.promoTarifa||0)+(o.promoBonus||0))+'</b> 🎁 <b>CASHBACK PROMO cliente fiel</b> (el cliente no paga envío; se te acredita completo en tu liquidación de 72h)':'<div class="dato">Tu envío: <b style="color:#f0b90b">Q'+o.envio+'</b>'+(o.tarifaPropuesta?' <span style="color:#ffd479">(tarifa propuesta por el cliente)</span>':'')+' (menos Q'+o.comision+' de comisión = <b>Q'+(o.envio-o.comision)+'</b> para vos)')+((o.propina||0)>0?' · <b style="color:#f0b90b">+ Q'+o.propina+' de propina</b>':'')+'</div>'+
+  (o.promoFiel?'<div class="dato">Tu envío: <b style="color:#f0b90b">Q'+((o.promoTarifa||0)+(o.promoBonus||0))+'</b> 🎁 <b>CASHBACK PROMO cliente fiel</b> (el cliente no paga envío; se te acredita completo en tu liquidación de 72h)':'<div class="dato">Tu envío: <b style="color:#f0b90b">Q'+o.envio+'</b>'+(o.tarifaPropuesta?(o.contraAceptado?' <span style="color:#ffd479">(precio NEGOCIADO: tu oferta aceptada)</span>':' <span style="color:#ffd479">(OFERTA del cliente, podés pedír más)</span>'):'')+' (menos Q'+o.comision+' de comisión = <b>Q'+(o.envio-o.comision)+'</b> para vos)')+((o.propina||0)>0?' · <b style="color:#f0b90b">+ Q'+o.propina+' de propina</b>':'')+'</div>'+
   '<div class="dato">⏱️ '+(o.prep?('El local confirmó: listo en ~'+o.prep.min+' min'):(o.local?'Esperando confirmación del local…':''))+'</div>'+
   '<a class="wa" href="'+wa+'" target="_blank">💬 Escribille al cliente</a>'+
   '<div id="pmMap" style="height:190px;border-radius:12px;margin-top:10px;display:none"></div>'+
@@ -330,7 +331,7 @@ function pedidoPequeno(o){
 async function pedirMas(id,tarifa,modo){
   if(DEMO){alert('Vista previa: los cambios no se guardan.');return}
   modo=modo||'viaje';
-  var v=prompt(modo==='viaje'?('Viaje con tarifa fija Q'+tarifa+'.\n¿Cuánto querés por este viaje? (más de Q'+tarifa+')'):('El envío sigue FIJO en Q'+tarifa+'.\n¿Cuánta propina extra pedís por la distancia? (el cliente decide si la da)'),'');
+  var v=prompt(modo==='viaje'?((window.TARIFAPROP&&window.TARIFAPROP[id])?('El cliente OFRECIÓ Q'+tarifa+' por este viaje.\n¿Cuánto pedís? (tenés que pedir MÁS de Q'+tarifa+')'):('Viaje con tarifa fija Q'+tarifa+'.\n¿Cuánto querés por este viaje? (más de Q'+tarifa+')')):('El envío sigue FIJO en Q'+tarifa+'.\n¿Cuánta propina extra pedís por la distancia? (el cliente decide si la da)'),'');
   if(v===null)return;
   v=parseFloat(v);
   if(!v||isNaN(v)||(modo==='viaje'&&v<=tarifa)||(v<1||v>150)){alert(modo==='viaje'?'Tenés que pedir MÁS de Q'+tarifa+'.':'La propina tiene que ser mayor a cero.');return}

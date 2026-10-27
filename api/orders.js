@@ -736,7 +736,7 @@ module.exports = wrap(async (req, res) => {
     await ghPut('pedidos.json', fpd.sha, peds, 'contraoferta ' + id);
     // PUSH al cliente: sin esto solo se enteraba si tenía abierta la pantalla de seguimiento (bug Juan 2026-10-27)
     try { await pushATel(o.cliente.tel, { title: tipoContra === 'propina' ? '🙏 Tu piloto pide propina de Q' + monto : '🛺 Tu piloto pide Q' + monto + ' por el viaje', body: 'Tenés ' + segundos + ' segundos para decidir. Abrí la app AHORA para aceptar o rechazar.', tag: 'dx-' + id, url: 'https://dragoexpres.vercel.app/pedir.html' }); } catch (e) { }
-    await aviso(`🚀 DRAGOEXPRES — ${o.tipo.toUpperCase()} ${id}\n${tipoContra === 'propina' ? '🙏 ' + p.datos.nombre + ' PIDE PROPINA EXTRA: Q' + monto + ' (envío fijo Q' + o.envio + ', opcional para el cliente por distancia)' : '🛺 ' + p.datos.nombre + ' PIDE MÁS: Q' + monto + ' (tarifa fija Q' + o.envio + ')'}\n⏱️ El cliente tiene ${segundos}s para aceptar${pocos ? ' (60s porque hay POCOS PILOTOS cerca)' : ''}\nCliente: ${o.cliente.nombre} (${o.cliente.tel})`);
+    await aviso(`🚀 DRAGOEXPRES — ${o.tipo.toUpperCase()} ${id}\n${tipoContra === 'propina' ? '🙏 ' + p.datos.nombre + ' PIDE PROPINA EXTRA: Q' + monto + ' (envío fijo Q' + o.envio + ', opcional para el cliente por distancia)' : '🛺 ' + p.datos.nombre + ' PIDE MÁS: Q' + monto + (o.tarifaPropuesta ? ' (el cliente OFRECÍA Q' + o.envio + ' como propuesta)' : ' (tarifa fija Q' + o.envio + ')')}\n⏱️ El cliente tiene ${segundos}s para aceptar${pocos ? ' (60s porque hay POCOS PILOTOS cerca)' : ''}\nCliente: ${o.cliente.nombre} (${o.cliente.tel})`);
     return res.status(200).json({ ok: true, pedido: o });
   }
 
