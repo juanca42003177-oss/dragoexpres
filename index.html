@@ -506,6 +506,15 @@ function intentarEnviar() {
       .then(function(r){ return r.json(); })
       .then(function(j){
         if (j && j.ok) { q.shift(); localStorage.setItem('dx_cola', JSON.stringify(q)); if(reg.tipo==='local'&&reg.datos&&reg.datos.tel){try{localStorage.setItem('dxLocal',reg.datos.tel)}catch(e){}} if(reg.tipo==='piloto'&&reg.datos&&reg.datos.tel){try{localStorage.setItem('dxPiloto',JSON.stringify({tel:reg.datos.tel,placa:(reg.datos.vehiculo==='bicicleta'?'':String(reg.datos.placa||'').toUpperCase())}))}catch(e){}} mostrarOk(reg.tipo, j.estado, reg.datos); if (q.length) intentarEnviar(); }
+        else if (j && j.ok === false) {
+          /* RECHAZO definitivo del servidor (ej: número o DPI ya registrado): se muestra el
+             MOTIVO REAL, se saca de la cola y se sigue con los demás. Antes el rechazo se
+             quedaba pegado reintentando para siempre y bloqueaba toda la cola detrás
+             (bug de la "fila eterna" de Juan, 2026-10-27). */
+          q.shift(); localStorage.setItem('dx_cola', JSON.stringify(q));
+          alert(j.error || 'No pudimos registrar esto. Revisá tus datos e intentá de nuevo.');
+          if (q.length) intentarEnviar();
+        }
         else mostrarOkLocal(reg.tipo);
       })
       .catch(function(){ mostrarOkLocal(reg.tipo); });
