@@ -567,6 +567,7 @@ module.exports = wrap(async (req, res) => {
     return res.status(200).json({ ok: true });
   }
   // LOCAL: marcar su ubicacion exacta en el mapa (para que el cliente lo visite)
+  if (action === 'dxping') { return res.status(200).json({ ok: true, v: '1421317-recoger' }); }
   if (action === 'localGps') {
     const tel = String(b.tel || '').trim();
     const lat = +b.lat, lng = +b.lng;
