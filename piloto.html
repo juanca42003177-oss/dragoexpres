@@ -96,7 +96,7 @@ input,textarea,select{-webkit-user-select:text;user-select:text}
   </div>
 </div>
 <script>
-var PILOTO=null,POLL=null,PCALIF=null,ESTADOS={asignado:'NUEVO PEDIDO — ACEPTALO',aceptado:'PEDIDO ACEPTADO — marcá CUANDO SALGAS',en_camino:'EN CAMINO — marcá ENTREGADO al llegar',contraoferta:'ESPERANDO AL CLIENTE — decidís con tu precio'};
+var PILOTO=null,POLL=null,PCALIF=null,ESTADOS={asignado:'NUEVO PEDIDO — ACEPTALO',aceptado:'PEDIDO ACEPTADO — marcá CUANDO SALGAS',en_camino:'EN CAMINO — marcá ENTREGADO al llegar',recogido:'🧍 PASAJERO A BORDO — rumbo a su destino · marcá 🏁 LLEGAMOS',contraoferta:'ESPERANDO AL CLIENTE — decidís con tu precio'};
 
 var OF=null,OFINT=null;
 
@@ -220,7 +220,7 @@ function pintarMapaPiloto(o){
   try{window.TARIFAPROP=window.TARIFAPROP||{};if(o){window.TARIFAPROP[o.id]=!!o.tarifaPropuesta}}catch(e){}
   var mp=document.getElementById('pmMap'),ir=document.getElementById('pmIr'),hi=document.getElementById('pmHint');
   if(!mp||!o||['entregado','cancelado'].includes(o.estado)){if(mp)mp.style.display='none';if(hi)hi.textContent='';if(ir)ir.style.display='none';if(window.PMM){window.PMM.remove();window.PMM=null}return}
-  var yo=window.MYGPS||null, dest=(o.cliente&&o.cliente.gps)||null;
+  var yo=window.MYGPS||null, dest=(o.estado==='recogido'&&o.destinoGPS)?o.destinoGPS:((o.cliente&&o.cliente.gps)||null);
   hi.textContent='';ir.style.display='none';
   if(!dest){mp.style.display='none';hi.textContent='📍 El cliente pidió sin ubicación. Cuando abra su pantalla de seguimiento, su punto cae acá solo. También podés pedírsela por el chat.';return}
   if(!yo){mp.style.display='none';hi.textContent='📍 Activá tu GPS (permiso de ubicación del navegador) y acá ves el mapa del viaje con la distancia y tu avance.';return}
@@ -234,7 +234,7 @@ function pintarMapaPiloto(o){
   L.marker([dest.lat,dest.lng],{icon:L.divIcon({className:'',html:'<div style="font-size:24px">📍</div>',iconSize:[28,28],iconAnchor:[14,14]})}).addTo(window.PMM).bindPopup('Tu destino');
   L.polyline([[yo.lat,yo.lng],[dest.lat,dest.lng]],{color:'#f0b90b',weight:3,dashArray:'6,8'}).addTo(window.PMM);
   window.PMM.fitBounds([[yo.lat,yo.lng],[dest.lat,dest.lng]],{padding:[18,18]});
-  hi.textContent='📍 Faltan '+(dk<1?Math.round(dk*1000)+' m':dk.toFixed(1)+' km')+' — llegás en ~'+min+' min. El punto 📍 es tu destino.';
+  hi.textContent=(o.estado==='recogido'?'🏁 Pasajero a bordo — te faltan ':'📍 Faltan '+(dk<1?Math.round(dk*1000)+' m':dk.toFixed(1)+' km')+' — llegás en ~'+min+' min. El punto 📍 es tu destino.');
   ir.style.display='block';
   ir.href='https://www.google.com/maps/dir/?api=1&destination='+dest.lat+','+dest.lng;
   var gr=document.getElementById('pmGrande');if(gr){gr.style.display='block';gr.textContent='🗺️ MAPA GRANDE DE RUTA'}
@@ -375,7 +375,8 @@ function pedidoHTML(o){
   if(o.estado==='asignado')botones='<button class="btn bA" onclick="hacer(\'aceptar\',\''+o.id+'\')">✅ ACEPTAR PEDIDO</button><button class="btn bR" onclick="hacer(\'rechazar\',\''+o.id+'\')">Rechazar</button>'+(o.tipo==='viaje'?'<button class="btn" style="background:#7a0a12" onclick="pedirMas(\''+o.id+'\','+o.envio+',\'viaje\')">💰 PEDIR MÁS (viaje)</button>':'<button class="btn" style="background:#7a0a12" onclick="pedirMas(\''+o.id+'\','+o.envio+',\'propina\')">🙏 PROPINA EXTRA (si está lejos)</button>');
   if(o.estado==='contraoferta')botones='<div class="mini" style="background:#241a05;border-radius:10px;padding:10px">⏱️ Le pediste <b>Q'+o.contra.monto+(o.contra.tipo==='propina'?' de PROPINA (opcional)':' por el viaje')+'</b> al cliente. Tiene '+o.contra.segundos+' segundos para decidir.'+(o.contra.tipo==='propina'?' Si no la da, el pedido te queda a vos: decidís si lo hacés sin propina o lo rechazás. Nada obligatorio.':' Si rechaza, el pedido pasa a otro piloto.')+'</div>';
   if(o.estado==='aceptado')botones='<button class="btn bV" onclick="hacer(\'avanzar\',\''+o.id+'\')">🛺 YA VOY EN CAMINO</button><button class="btn bR" onclick="hacer(\'rechazar\',\''+o.id+'\')">No puedo</button>';
-  if(o.estado==='en_camino')botones=(o.noResponde?'<button class="btn bR" onclick="cerrarNR()">⏱️ YA ESPERÉ 10 MIN — CERRAR</button>':'<button class="btn bR" onclick="noResponde()">🚫 Cliente no responde</button>')+'<button class="btn bA" onclick="hacer(\'avanzar\',\''+o.id+'\')">📦 ENTREGADO</button>';
+  if(o.estado==='en_camino')botones=(o.noResponde?'<button class="btn bR" onclick="cerrarNR()">⏱️ YA ESPERÉ 10 MIN — CERRAR</button>':'<button class="btn bR" onclick="noResponde()">🚫 Cliente no responde</button>')+(o.tipo==='viaje'?'<button class="btn bV" onclick="hacer(\'recoger\',\''+o.id+'\')">🧍 YA LO RECOGÍ — RUMBO A SU DESTINO</button>':'')+'<button class="btn bA" onclick="hacer(\'avanzar\',\''+o.id+'\')">📦 ENTREGADO</button>';
+  if(o.estado==='recogido')botones='<button class="btn bA" onclick="hacer(\'avanzar\',\''+o.id+'\')">🏁 LLEGAMOS A TU DESTINO — ENTREGADO</button>';
   return '<div class="pedido'+(o.estado==='asignado'?' flash':'')+'"><h3>'+tipo+' · '+o.id+'</h3><div class="mini">'+est+'</div>'+
   '<div class="dato">👤 '+o.cliente.nombre+(o.zona?' · '+o.zona:'')+'</div>'+
   '<div class="dato">📍 '+o.cliente.direccion+(o.cliente.referencia?'<br><span class="mini">'+o.cliente.referencia+'</span>':'')+'</div>'+
@@ -418,6 +419,9 @@ async function hacer(accion,id){
   var r=await fetch(api('orders'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:accion,tel:PILOTO.tel,id:id})});
   var j=await r.json();
   if(!j.ok){alert(j.error);return}
+  /* AUDITORÍA 1000%: GPS AL INSTANTE tras cada cambio de estado — el mapa del cliente
+     sale en segundos, no en 2 minutos (el retraso era el ciclo de 30s del gpsLoop). */
+  ULT_GPS=0;try{gpsLoop()}catch(e){}
   if(j.pedido&&j.pedido.estado==='entregado'){PCALIF={id:id,cliente:j.pedido.cliente.nombre};}
   try{avisarCliente(j.pedido)}catch(e){}
   tick();
@@ -454,7 +458,9 @@ var ULT_GPS=0;var GPS_WARN=false;
 function gpsLoop(){
   if(!PILOTO||!navigator.geolocation)return;
   var dis=document.getElementById('sw').className.includes('on')||document.getElementById('pedidoActivo').style.display!=='none';
-  if(!dis||Date.now()-ULT_GPS<30000)return;
+  if(!dis)return;
+  var _g=(document.getElementById('pedidoActivo').style.display!=='none'&&!window.MYGPS)?8000:30000;
+  if(Date.now()-ULT_GPS<_g)return;
   navigator.geolocation.getCurrentPosition(function(pos){
     ULT_GPS=Date.now();
     try{window.MYGPS={lat:pos.coords.latitude,lng:pos.coords.longitude,acc:pos.coords.accuracy}}catch(e){} /* para mi mapa del viaje */

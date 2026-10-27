@@ -112,7 +112,7 @@ function vehInfo(d) {
   d = d || {};
   return { vehiculo: d.vehiculo || '', marca: d.marca || '', color: d.color || '', placa: d.placa || '' };
 }
-const ESTADOS = ['buscando', 'asignado', 'aceptado', 'en_camino', 'entregado', 'cancelado'];
+const ESTADOS = ['buscando', 'asignado', 'aceptado', 'en_camino', 'recogido', 'entregado', 'cancelado'];
 // cada piloto trabaja SOLO en lo que eligió al registrarse (sin servicios definidos = todos, compatibilidad)
 const svOk = (r, tipo) => { const sv = { comida: 'comida', repuesto: 'repuestos', viaje: 'viajes' }[tipo] || 'comida'; const s = r && r.datos && r.datos.servicios; return !Array.isArray(s) || !s.length || s.indexOf(sv) >= 0; };
 
@@ -123,7 +123,7 @@ async function candidatosPedido(tipo, excluir) {
   const fr = await ghGet('registros.json'); const reg = fr ? fr.data : [];
   const aprobados = new Set(reg.filter(r => r.tipo === 'piloto' && r.estado === 'aprobado').map(r => dig(r.datos.tel)));
   const fpd = await ghGet('pedidos.json');
-  const ocupados = new Set((fpd ? fpd.data : []).filter(o => o.piloto && ['asignado', 'aceptado', 'en_camino', 'contraoferta'].includes(o.estado)).map(o => dig(o.piloto.tel)));
+  const ocupados = new Set((fpd ? fpd.data : []).filter(o => o.piloto && ['asignado', 'aceptado', 'en_camino', 'recogido', 'contraoferta'].includes(o.estado)).map(o => dig(o.piloto.tel)));
   return pilots.filter(x => x.disponible && !(x.pendiente && !x.pendiente.pagado) && aprobados.has(dig(x.tel)) && !ocupados.has(dig(x.tel)) && !excluir.includes(x.tel))
     .filter(x => { const r = reg.find(y => y.tipo === 'piloto' && dig(y.datos.tel) === dig(x.tel)); return r && svOk(r, tipo) && (tipo !== 'viaje' || r.datos.vehiculo !== 'bicicleta'); });
 }
@@ -253,7 +253,7 @@ module.exports = wrap(async (req, res) => {
     if (!st) { st = { tel, disponible: false }; arr.push(st); }
     const fpd = await ghGet('pedidos.json');
     const peds = fpd ? fpd.data : [];
-    const ocupado = peds.some(o => o.piloto && o.piloto.tel === tel && ['asignado', 'aceptado', 'en_camino'].includes(o.estado));
+    const ocupado = peds.some(o => o.piloto && o.piloto.tel === tel && ['asignado', 'aceptado', 'en_camino', 'recogido'].includes(o.estado));
     if (val && ocupado) return res.status(200).json({ ok: false, error: 'Terminá tu pedido activo primero.' });
     st.disponible = val; st.desde = val ? now : 0;
     await ghPut('pilots.json', fp ? fp.sha : null, arr, 'piloto disponibilidad ' + tel);
@@ -331,7 +331,7 @@ module.exports = wrap(async (req, res) => {
       cliente: { nombre, tel, direccion: String(b.direccion).slice(0, 500), referencia: String(b.referencia || '').slice(0, 500), gps: (b.gps && isFinite(+b.gps.lat) && isFinite(+b.gps.lng)) ? { lat: +b.gps.lat, lng: +b.gps.lng } : undefined },
       detalle: String(b.detalle).slice(0, 800),
       items: Array.isArray(b.items) ? b.items.slice(0, 30).map(x => ({ nombre: String(x.nombre || '').slice(0, 60), qty: Math.max(1, Math.min(50, +x.qty || 1)), precio: dinero(x.precio || 0), nota: String(x.nota || '').slice(0, 120) })) : undefined,
-      compra: dinero(b.compra || 0), servicio: servicio || undefined, envio, tarifaPropuesta: tarifaPropuesta || undefined, promoFiel: promoFiel || undefined, promoTarifa: promoFiel ? envioTarifa : undefined, propina, comision: promoFiel ? 0 : comisionDe(tipo, envioTarifa - recargo), comisionLocal, nocturno, recargo,
+      compra: dinero(b.compra || 0), servicio: servicio || undefined, envio, tarifaPropuesta: tarifaPropuesta || undefined, destinoGPS: (b.destinoGPS && isFinite(+b.destinoGPS.lat) && isFinite(+b.destinoGPS.lng)) ? { lat: +b.destinoGPS.lat, lng: +b.destinoGPS.lng } : undefined, promoFiel: promoFiel || undefined, promoTarifa: promoFiel ? envioTarifa : undefined, propina, comision: promoFiel ? 0 : comisionDe(tipo, envioTarifa - recargo), comisionLocal, nocturno, recargo,
       estado: 'buscando', piloto: null, ts: now, pago, referencia, local: localObj || undefined, avisoWa: b.avisoWa !== false
     };
     // dispatch: primer piloto disponible de la zona
@@ -339,7 +339,7 @@ module.exports = wrap(async (req, res) => {
     const fr = await ghGet('registros.json'); const reg = fr ? fr.data : [];
     const aprobados = new Set(reg.filter(r => r.tipo === 'piloto' && r.estado === 'aprobado').map(r => dig(r.datos.tel)));
     const fpd = await ghGet('pedidos.json'); const peds = fpd ? fpd.data : [];
-    const ocupados = new Set(peds.filter(o => o.piloto && ['asignado', 'aceptado', 'en_camino'].includes(o.estado)).map(o => dig(o.piloto.tel)));
+    const ocupados = new Set(peds.filter(o => o.piloto && ['asignado', 'aceptado', 'en_camino', 'recogido'].includes(o.estado)).map(o => dig(o.piloto.tel)));
     const cand = pilots.filter(x => x.disponible && !(x.pendiente && !x.pendiente.pagado) && aprobados.has(dig(x.tel)) && !ocupados.has(dig(x.tel)))
       .filter(x => { const r = reg.find(y => y.tipo === 'piloto' && dig(y.datos.tel) === dig(x.tel)); return r && svOk(r, tipo) && (tipo !== 'viaje' || r.datos.vehiculo !== 'bicicleta'); })
       .sort((a, b2) => {
@@ -646,8 +646,8 @@ module.exports = wrap(async (req, res) => {
     const o = peds.find(x => x.id === id);
     if (!o || ['entregado', 'cancelado'].includes(o.estado)) return res.status(200).json({ ok: false, error: 'Este pedido ya cerró.' });
     if (!o.local || String(o.local.tel).replace(/\D/g, '') !== tel) return res.status(200).json({ ok: false, error: 'No es un pedido de tu local.' });
-    const teniaPiloto = !!(o.piloto && ['asignado', 'aceptado', 'en_camino'].includes(o.estado));
-    const salioConPiloto2 = !!(o.piloto && o.estado === 'en_camino');
+    const teniaPiloto = !!(o.piloto && ['asignado', 'aceptado', 'en_camino', 'recogido'].includes(o.estado));
+    const salioConPiloto2 = !!(o.piloto && (o.estado === 'en_camino' || o.estado === 'recogido'));
     const telPiloto2 = o.piloto ? o.piloto.tel : null;
     o.estado = 'cancelado'; o.canceladoPor = 'local'; o.canceladoRazon = razon; o.canceladoTs = now;
     if (salioConPiloto2) o.compensa = COMP_GAS;
@@ -663,10 +663,10 @@ module.exports = wrap(async (req, res) => {
     const o = peds.find(x => x.id === id);
     if (!o || ['entregado', 'cancelado'].includes(o.estado)) return res.status(200).json({ ok: false, error: 'Este pedido ya cerró.' });
     if (String(o.cliente.tel).replace(/\D/g, '') !== tel) return res.status(200).json({ ok: false, error: 'No es tu pedido.' });
-    const conViaje = !!(o.piloto && ['asignado', 'aceptado', 'en_camino'].includes(o.estado));
+    const conViaje = !!(o.piloto && ['asignado', 'aceptado', 'en_camino', 'recogido'].includes(o.estado));
     const cancelos = peds.filter(x => x.canceladoPor === 'cliente' && x.canceloConViaje && String(x.cliente.tel).replace(/\D/g, '') === tel).length;
     if (conViaje && cancelos >= 2) return res.status(200).json({ ok: false, error: 'Cancelaste varios viajes con el piloto ya en camino. Escribí al chat de soporte para poder volver a pedir.' });
-    const salioConPiloto = !!(o.piloto && o.estado === 'en_camino');
+    const salioConPiloto = !!(o.piloto && (o.estado === 'en_camino' || o.estado === 'recogido'));
     o.estado = 'cancelado'; o.canceladoPor = 'cliente'; o.canceladoTs = now; o.canceloConViaje = conViaje;
     if (conViaje) { o.pilotoAlCancelar = o.piloto ? { nombre: o.piloto.nombre, tel: o.piloto.tel } : null; o.piloto = null; }
     if (salioConPiloto) o.compensa = COMP_GAS;
@@ -802,7 +802,7 @@ module.exports = wrap(async (req, res) => {
       const fr = await ghGet('registros.json'); const reg = fr ? fr.data : [];
       const p = reg.find(r => r.tipo === 'piloto' && r.estado === 'aprobado' && dig(r.datos.tel) === dig(tel));
       if (!p) return res.status(200).json({ ok: false, error: 'No sos piloto aprobado.' });
-      if (peds.some(x => x.id !== id && x.piloto && dig(x.piloto.tel) === dig(tel) && ['asignado', 'aceptado', 'en_camino', 'contraoferta'].includes(x.estado) && !(x.estado === 'asignado' && x.tsAsignado && now - x.tsAsignado > OFERTA_MS))) return res.status(200).json({ ok: false, error: 'Ya tenés un pedido activo. Terminá ese primero y volvés a recibir otros.' });
+      if (peds.some(x => x.id !== id && x.piloto && dig(x.piloto.tel) === dig(tel) && ['asignado', 'aceptado', 'en_camino', 'recogido', 'contraoferta'].includes(x.estado) && !(x.estado === 'asignado' && x.tsAsignado && now - x.tsAsignado > OFERTA_MS))) return res.status(200).json({ ok: false, error: 'Ya tenés un pedido activo. Terminá ese primero y volvés a recibir otros.' });
       const fps = await ghGet('pilots.json'); const stP = (fps ? fps.data : []).find(x => x.tel === tel) || {};
       if (stP.pendiente && !stP.pendiente.pagado) return res.status(200).json({ ok: false, error: 'Primero ponete al día con tus comisiones (Q' + stP.pendiente.monto + '): transferilas a la cuenta del banco y avisale al admin por WhatsApp. En cuanto confirme, volvés a recibir pedidos como si nada 😊' });
       if (o.tipo === 'viaje' && p.datos.vehiculo === 'bicicleta') return res.status(200).json({ ok: false, error: 'Los viajes de personas son para moto o carro: en bicicleta no se puede llevar pasajero. Los pedidos de comida y repuestos sí son tuyos 🐉' });
@@ -839,9 +839,18 @@ module.exports = wrap(async (req, res) => {
       await aviso(`🚀 DRAGOEXPRES — Pedido ${id}\n⚠️ Un piloto rechazó → volvió a BUSCANDO, se lo ofrecemos a otro piloto de la zona.`);
       return res.status(200).json({ ok: true, pedido: o });
     }
+    if (action === 'recoger') { // VIAJE estilo las grandes: pasajero A BORDO → fase de DESTINO
+      if (o.tipo !== 'viaje') return res.status(200).json({ ok: false, error: 'Esto es solo para viajes de personas.' });
+      if (o.estado !== 'en_camino') return res.status(200).json({ ok: false, error: 'Primero marcá YA VOY EN CAMINO (vas a buscarlo).' });
+      o.estado = 'recogido'; o.tsRecogido = now;
+      await ghPut('pedidos.json', fpd.sha, peds, 'recogido ' + id);
+      try { await pushATel(o.cliente.tel, { title: '🛺 ¡Tu piloto te recogió!', body: 'Vamos a tu destino. Abrí la app: la ruta y el tiempo en vivo ya están en el mapa.', tag: 'dx-' + id, url: 'https://dragoexpres.vercel.app/pedir.html' }); } catch (e) { }
+      await aviso(`🚀 DRAGOEXPRES — VIAJE ${id}\n🧍 ${o.piloto.nombre} RECOGIÓ a ${o.cliente.nombre}. Fase de DESTINO.`);
+      return res.status(200).json({ ok: true, pedido: o });
+    }
     if (action === 'avanzar') {
       if (o.estado === 'aceptado') o.estado = 'en_camino';
-      else if (o.estado === 'en_camino') {
+      else if (o.estado === 'en_camino' || o.estado === 'recogido') {
         o.estado = 'entregado'; o.tsEntregado = now;
         await ghPut('pedidos.json', fpd.sha, peds, 'entregado ' + id); // guardar el estado ANTES de pagar al piloto
         // PAGO CON REINTENTO: si otra entrega concurrente movió pilots.json (HTTP 409), se relee fresco y se reaplica. La racha/boletos NO se duplican porque cada intento parte de datos recién leídos.
