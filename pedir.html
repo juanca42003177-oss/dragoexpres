@@ -647,6 +647,12 @@ function abrirCat(tipo){
     if(!es)return;
     if(u.zona&&l.zona&&l.zona!==u.zona)otros.push(l);else propios.push(l);
   });
+  /* LOGICA DE LAS GRANDES (PedidosYa/Rappi): orden por DISTANCIA REAL desde tu ubicacion.
+     Con tu GPS y el del local, la sucursal cercana sale siempre primero; la lejana queda abajo
+     con su distancia y demora visibles. Sin GPS cae al orden por zona (como antes). */
+  var DM=distLocales();
+  function cmpD(a,b){var da=(DM&&DM[a.tel]!==undefined)?DM[a.tel]:null,db=(DM&&DM[b.tel]!==undefined)?DM[b.tel]:null;return ((da===null)-(db===null))||((da!==null&&db!==null)?da-db:0)}
+  if(DM){propios.sort(cmpD);otros.sort(cmpD)}
   var loc=propios.concat(otros);
   var h='';
   if(!loc.length){
@@ -656,7 +662,8 @@ function abrirCat(tipo){
     var idx=LOCALES.indexOf(l);
     var cerrado=l.abierto===false;var pausado=l.pausado?true:false;
     h+='<div class="loc"'+((cerrado||pausado)?' style="opacity:0.55"':'')+'><div class="avatar">'+(l.fotoLocal?'<img src="'+l.fotoLocal+'" style="width:100%;height:100%;object-fit:cover;border-radius:50%">':(l.nombre||'?').charAt(0).toUpperCase())+'</div>'
-      +'<div class="info"><b>'+l.nombre+'</b><span><span class="chip">'+(l.rubro||'Local')+'</span>'+(u.zona&&l.zona&&l.zona!==u.zona?' · 📍 '+l.zona:'')+(pausado?' · <span style="color:#ffd479">⏸️ Saturado ahora</span>':cerrado?' · <span style="color:#ff8f8f">🔴 Cerrado · abre '+String(l.abre).padStart(2,'0')+':00</span>':' · <span style="color:#7ee2a8">🟢 Abierto</span>')+'</span></div>'
+      +(DM&&DM[l.tel]!==undefined?(DM[l.tel]<1?' · 📍 '+Math.round(DM[l.tel]*1000)+' m':' · 📍 '+DM[l.tel].toFixed(1)+' km · envío ~'+Math.max(10,Math.round((DM[l.tel]/20*60+10)/5)*5)+' min'):(u.zona&&l.zona&&l.zona!==u.zona?' · 📍 '+l.zona:''))+
+      +'<div class="info"><b>'+l.nombre+'</b><span><span class="chip">'+(l.rubro||'Local')+'</span>'+(pausado?' · <span style="color:#ffd479">⏸️ Saturado ahora</span>':cerrado?' · <span style="color:#ff8f8f">🔴 Cerrado · abre '+String(l.abre).padStart(2,'0')+':00</span>':' · <span style="color:#7ee2a8">🟢 Abierto</span>')+'</span></div>'
       +'<button class="btnW" onclick="verMenu('+idx+')">'+(String(((l||{}).rubro||'')).toLowerCase().indexOf('repuesto')>=0?'Catálogo 📋':'Menú 📋')+'</button>'
       +(l.gps?'<button class="btnW" onclick="verMapaLocal('+idx+')" title="Ver dónde está y cómo llegar">📍 Mapa</button>':'')
       +(cerrado||pausado?'':'<button class="btnS" onclick="cerrarCat();verMenu('+idx+')">Pedir aquí</button>')+'</div>';
@@ -1197,6 +1204,8 @@ async function clienteCancela(){
 }
 function cerrarTrk(){document.getElementById('trk').style.display='none';if(PID){clearInterval(window.TINT);PID=null}cargarMisPedidos()}
 function seguir(id){PID=id;actualizar();window.TINT=setInterval(actualizar,12012)}
+function distKm2(a,b){var R=6371,d=Math.PI/180,dl=(b.lat-a.lat)*d,dg=(b.lng-a.lng)*d,x=Math.sin(dl/2)*Math.sin(dl/2)+Math.cos(a.lat*d)*Math.cos(b.lat*d)*Math.sin(dg/2)*Math.sin(dg/2);return R*2*Math.atan2(Math.sqrt(x),Math.sqrt(1-x))}
+function distLocales(){var u=LS();if(!u.gps)return null;var m={};(LOCALES||[]).forEach(function(l){if(l.gps)m[l.tel]=distKm2(u.gps,l.gps)});return m}
 function pedirGps(){
   if(!navigator.geolocation){alert('Tu navegador no tiene GPS.');return}
   navigator.geolocation.getCurrentPosition(function(p){var u=LS();u.gps={lat:p.coords.latitude,lng:p.coords.longitude};SS(u);actualizar()},function(){alert('No pudimos leer tu GPS. Salí afuera o cerca de una ventana y probá de nuevo.')},{enableHighAccuracy:true,timeout:20000,maximumAge:0});
