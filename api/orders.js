@@ -547,6 +547,18 @@ module.exports = wrap(async (req, res) => {
   }
 
   // locales aprobados para el listado del consumidor (pantalla Inicio)
+  // LOCAL: marcar su ubicacion exacta en el mapa (para que el cliente lo visite)
+  if (action === 'localGps') {
+    const tel = String(b.tel || '').trim();
+    const lat = +b.lat, lng = +b.lng;
+    if (!tel || !isFinite(lat) || !isFinite(lng)) return res.status(200).json({ ok: false, error: 'Ubicación no válida.' });
+    const fr = await ghGet('registros.json'); const arr = fr ? fr.data : [];
+    const loc = arr.find(r => r.tipo === 'local' && String((r.datos && (r.datos.whatsapp || r.datos.tel)) || '').replace(/\D/g, '') === tel.replace(/\D/g, ''));
+    if (!loc) return res.status(200).json({ ok: false, error: 'Local no encontrado.' });
+    loc.datos.gps = { lat, lng, tsGPS: now };
+    await ghPut('registros.json', fr ? fr.sha : null, arr, 'local ' + tel + ' marca ubicacion');
+    return res.status(200).json({ ok: true, gps: loc.datos.gps });
+  }
   if (action === 'locales') {
     const fr = await ghGet('registros.json'); const regs = fr ? fr.data : [];
     const fl = await ghGet('locales.json'); const lrows = fl ? fl.data : [];
@@ -560,6 +572,7 @@ module.exports = wrap(async (req, res) => {
         zona: (r.datos && r.datos.zona) || r.zona || '',
         tel, rubro: (r.datos && (r.datos.rubro || r.datos.tipo)) || 'Comida',
         fotoLocal: (r.datos && r.datos.fotoLocal) || '',
+        gps: (r.datos && r.datos.gps) || null,
         abre: tieneHor ? row.horarioAbre : null, cierra: tieneHor ? row.horarioCierra : null,
         abierto: tieneHor ? abiertoAhora(horaGT, row.horarioAbre, row.horarioCierra) : true,
         pausado: !!(row.hasta && row.hasta > Date.now()),

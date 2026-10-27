@@ -658,11 +658,22 @@ function abrirCat(tipo){
     h+='<div class="loc"'+((cerrado||pausado)?' style="opacity:0.55"':'')+'><div class="avatar">'+(l.fotoLocal?'<img src="'+l.fotoLocal+'" style="width:100%;height:100%;object-fit:cover;border-radius:50%">':(l.nombre||'?').charAt(0).toUpperCase())+'</div>'
       +'<div class="info"><b>'+l.nombre+'</b><span><span class="chip">'+(l.rubro||'Local')+'</span>'+(u.zona&&l.zona&&l.zona!==u.zona?' · 📍 '+l.zona:'')+(pausado?' · <span style="color:#ffd479">⏸️ Saturado ahora</span>':cerrado?' · <span style="color:#ff8f8f">🔴 Cerrado · abre '+String(l.abre).padStart(2,'0')+':00</span>':' · <span style="color:#7ee2a8">🟢 Abierto</span>')+'</span></div>'
       +'<button class="btnW" onclick="verMenu('+idx+')">'+(String(((l||{}).rubro||'')).toLowerCase().indexOf('repuesto')>=0?'Catálogo 📋':'Menú 📋')+'</button>'
+      +(l.gps?'<button class="btnW" onclick="verMapaLocal('+idx+')" title="Ver dónde está y cómo llegar">📍 Mapa</button>':'')
       +(cerrado||pausado?'':'<button class="btnS" onclick="cerrarCat();verMenu('+idx+')">Pedir aquí</button>')+'</div>';
   });
   document.getElementById('catLista').innerHTML=h;
 }
 function cerrarCat(){document.getElementById('veil').style.display='none';document.getElementById('catSheet').style.display='none'}
+function verMapaLocal(idx){
+  var l=LOCALES[idx];if(!l||!l.gps)return;
+  var m=document.getElementById('locMapa');if(!m){m=document.createElement('div');m.id='locMapa';m.style.cssText='position:fixed;inset:0;background:rgba(6,6,10,.97);z-index:120;padding:16px;display:flex;flex-direction:column';m.innerHTML='<div style="display:flex;align-items:center;gap:10px"><button onclick="this.closest(\'#locMapa\').style.display=\'none\'" style="font-size:22px;background:none;border:0;color:#f0b90b;cursor:pointer">✕</button><b style="color:#fff">📍 '+(l.nombre||'Local')+'</b></div><div id="locMapaL" style="flex:1;border-radius:14px;margin-top:10px"></div><a id="locComo" target="_blank" rel="noopener" style="display:block;text-align:center;background:#f0b90b;color:#111;font-weight:900;border-radius:12px;padding:12px;margin-top:10px;text-decoration:none">🧭 Cómo llegar (Google Maps)</a><div style="color:#bbb;font-size:12px;text-align:center;margin-top:8px">Zona: '+(l.zona||'—')+' — por si querés visitarlo en persona</div>';document.body.appendChild(m)}
+  m.style.display='flex';
+  document.getElementById('locComo').href='https://www.google.com/maps/dir/?api=1&destination='+l.gps.lat+','+l.gps.lng;
+  setTimeout(function(){if(window.LML){window.LML.remove();window.LML=null}
+    window.LML=L.map('locMapaL').setView([l.gps.lat,l.gps.lng],16);
+    L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'© OpenStreetMap'}).addTo(window.LML);
+    L.marker([l.gps.lat,l.gps.lng]).addTo(window.LML).bindPopup('<b>'+(l.nombre||'Local')+'</b><br>'+(l.zona||''));},60);
+}
 function invitarLocalSheet(){cerrarSheet();tab('perfil');var el=document.getElementById('inv-nombre');if(el){el.scrollIntoView({behavior:'smooth'});el.focus();toast('Escribí el nombre de tu local favorito y le mandamos la invitación')}}
 var MENUQ_CACHE={};
 async function buscarProductos(q){
@@ -1185,7 +1196,11 @@ async function clienteCancela(){
   cerrarTrk();
 }
 function cerrarTrk(){document.getElementById('trk').style.display='none';if(PID){clearInterval(window.TINT);PID=null}cargarMisPedidos()}
-function seguir(id){PID=id;actualizar();window.TINT=setInterval(actualizar,12000)}
+function seguir(id){PID=id;actualizar();window.TINT=setInterval(actualizar,12012)}
+function pedirGps(){
+  if(!navigator.geolocation){alert('Tu navegador no tiene GPS.');return}
+  navigator.geolocation.getCurrentPosition(function(p){var u=LS();u.gps={lat:p.coords.latitude,lng:p.coords.longitude};SS(u);actualizar()},function(){alert('No pudimos leer tu GPS. Salí afuera o cerca de una ventana y probá de nuevo.')},{enableHighAccuracy:true,timeout:20000,maximumAge:0});
+}
 async function enviarMsg(){
   var inp=document.getElementById('chat-in');if(!inp)return;var t=inp.value.trim();if(!t||!PID)return;
   try{await fetch(api('orders'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'msg',id:PID,de:'cliente',tel:ULT_TEL,texto:t})});inp.value='';actualizar();}catch(e){}
@@ -1242,11 +1257,30 @@ async function actualizar(){
     var trk2=document.getElementById('trk');if(trk2)trk2.appendChild(cbn);
   }
   var mapa=document.getElementById('mapa');
+  var eta=document.getElementById('etaVivo');if(!eta){eta=document.createElement('div');eta.id='etaVivo';eta.style.cssText='background:#fdeeee;border:2px solid #c1121f;border-radius:12px;padding:10px;margin:8px 0;font-weight:900;color:#7a0c15';mapa.parentNode.insertBefore(eta,mapa.nextSibling)}
+  function distKm(a,b){var R=6371,d=Math.PI/180,dl=(b.lat-a.lat)*d,dg=(b.lng-a.lng)*d,x=Math.sin(dl/2)*Math.sin(dl/2)+Math.cos(a.lat*d)*Math.cos(b.lat*d)*Math.sin(dg/2)*Math.sin(dg/2);return R*2*Math.atan2(Math.sqrt(x),Math.sqrt(1-x))}
   if(j.gps&&j.gps.lat){
     mapa.style.display='block';
-    if(!window.LMAP){window.LMAP=L.map('mapa').setView([j.gps.lat,j.gps.lng],15);L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'© OpenStreetMap'}).addTo(window.LMAP);window.LMK=L.circleMarker([j.gps.lat,j.gps.lng],{radius:10,color:'#d1121f',fillColor:'#f0b90b',fillOpacity:.9}).addTo(window.LMAP).bindPopup('Tu piloto DragoExpres');}
-    else{window.LMK.setLatLng([j.gps.lat,j.gps.lng]);window.LMAP.setView([j.gps.lat,j.gps.lng]);}
-  }else{mapa.style.display='none'}
+    if(!window.LMAP){window.LMAP=L.map('mapa').setView([j.gps.lat,j.gps.lng],15);L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'© OpenStreetMap'}).addTo(window.LMAP);window.LMK=L.circleMarker([j.gps.lat,j.gps.lng],{radius:10,color:'#d1121f',fillColor:'#f0b90b',fillOpacity:.9}).addTo(window.LMAP).bindPopup('Tu piloto DragoExpres')}
+    else{window.LMK.setLatLng([j.gps.lat,j.gps.lng]);window.LMAP.setView([j.gps.lat,j.gps.lng])}
+    var uE=LS();
+    if(uE.gps&&uE.gps.lat){
+      // ETA VIVO: se recalcula solo cada vez que el piloto avanza (poll de 12s)
+      var dkm=distKm(j.gps,uE.gps);
+      var vel=(o.piloto&&o.piloto.vehiculo==='bicicleta')?10:(o.piloto&&o.piloto.vehiculo==='moto')?22:20;
+      var min=Math.max(1,Math.round(dkm/vel*60+2));
+      var dtxt=dkm<1?Math.round(dkm*1000)+' m':dkm.toFixed(1)+' km';
+      eta.style.display='block';
+      eta.innerHTML='⏱️ <b>Llega en ~'+min+' min</b> · a '+dtxt+' de tu puerta<br><span style="font-weight:400;font-size:12px">Se actualiza solo conforme '+((o.piloto||{}).nombre||'tu piloto')+' avanza'+(min<=2?' — ¡ya está llegando! 🛺':'')+'</span>';
+      if(!window.LMC){window.LMC=L.circleMarker([uE.gps.lat,uE.gps.lng],{radius:8,color:'#1259c1',fillColor:'#4d9cff',fillOpacity:.9}).addTo(window.LMAP).bindPopup('Tu ubicación')}
+      else{window.LMC.setLatLng([uE.gps.lat,uE.gps.lng])}
+      if(window.LLN){window.LMAP.removeLayer(window.LLN)}
+      window.LLN=L.polyline([[j.gps.lat,j.gps.lng],[uE.gps.lat,uE.gps.lng]],{color:'#c1121f',weight:2,dashArray:'5,7',opacity:.7}).addTo(window.LMAP);
+    }else{
+      eta.style.display='block';
+      eta.innerHTML='⏱️ Activá tu ubicación y te decimos CUÁNTO falta en tiempo real, actualizándose conforme avanza tu piloto. <button onclick="pedirGps()" style="font-weight:900;border:0;border-radius:8px;padding:6px 10px;background:#7a0c15;color:#fff;cursor:pointer">📍 Activar mi ubicación</button>';
+    }
+  }else{mapa.style.display='none';eta.style.display='none'}
   var cf=document.getElementById('calif');
   if(o.estado==='entregado'&&!o.califCliente){
     cf.style.display='block';

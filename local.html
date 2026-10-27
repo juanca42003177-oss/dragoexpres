@@ -64,6 +64,13 @@ input,textarea,select{-webkit-user-select:text;user-select:text}
       </div>
       <div class="mini" id="h-estado" style="margin-top:6px;color:#ffd479"></div>
     </div>
+    <div class="card" id="gpsCard" style="background:#14151c">
+      <b>📍 Mi ubicación en el mapa</b>
+      <p class="mini" style="margin:4px 0 8px">Marcá tu posición UNA VEZ y los clientes te ven en el mapa: para visitarte en persona y para saber por dónde estás. Tu dirección sirve al piloto Y al cliente.</p>
+      <button class="bMini" id="gpsBtn" onclick="marcarGps()">Marcar mi ubicación actual</button>
+      <a class="bMini bX" id="gpsVer" style="display:none" target="_blank" rel="noopener">Ver en Google Maps</a>
+      <div class="mini" id="gpsEstado" style="margin-top:6px;color:#ffd479"></div>
+    </div>
     <button class="btn bR" id="pausaBtn" onclick="pausar(30)">⏸️ Cocina saturada: pausar 30 min</button>
     <h3 style="color:#f0b90b;margin:16px 0 4px;font-size:15px" id="h-menu">📋 Mi menú</h3>
     <p class="mini" style="margin:4px 0 8px">Cargá tus productos con foto y precio. Si algo se te acaba, marcá AGOTADO con un toque: el cliente lo ve gris y no lo puede pedir. Sin foto también funciona.</p>
@@ -134,6 +141,19 @@ input,textarea,select{-webkit-user-select:text;user-select:text}
 </div>
 <script>
 var TEL=null,PAUSA=null,POLL=null;
+function gpsVer(g){var a=document.getElementById('gpsVer');if(!a)return;a.style.display='inline-block';a.href='https://maps.google.com/?q='+g.lat+','+g.lng}
+function marcarGps(){
+  var b=document.getElementById('gpsBtn'),e=document.getElementById('gpsEstado');
+  if(!navigator.geolocation){e.textContent='Tu navegador no tiene GPS.';return}
+  b.textContent='Obteniendo tu GPS…';b.disabled=true;
+  navigator.geolocation.getCurrentPosition(async function(p){
+    try{var r=await fetch(api('orders'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'localGps',tel:TEL,lat:p.coords.latitude,lng:p.coords.longitude})});var j=await r.json();
+      if(j.ok){e.textContent='✅ Ubicación guardada. Los clientes ya te ven en el mapa para visitarte.';gpsVer(j.gps)}
+      else{e.textContent=j.error||'No se pudo guardar.'}
+    }catch(err){e.textContent='Sin conexión, probá de nuevo.'}
+    b.textContent='Actualizar mi ubicación';b.disabled=false;
+  },function(){e.textContent='No pudimos leer tu GPS. Abrí la app con vista al cielo o cerca de una ventana y probá de nuevo.';b.textContent='Marcar mi ubicación actual';b.disabled=false},{enableHighAccuracy:true,timeout:20000,maximumAge:0});
+}
 function api(fn){return (location.hostname.includes('vercel.app')?'/api':'https://dragoexpres.vercel.app/api')+'/'+fn}
 
 // ===== ALARMA: campanilla que NO PARA hasta confirmar el pedido (estilo tableta PedidosYa) =====
