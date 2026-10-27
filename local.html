@@ -295,9 +295,11 @@ function itemRow(it){
   '<div style="flex:1;min-width:0"><b style="font-size:14px">'+it.nombre+'</b>'+
   (it.desc?'<div class="mini" style="margin-top:2px">'+it.desc+'</div>':'')+
   '<div style="margin-top:5px;display:flex;align-items:center;gap:8px"><b style="color:#f0b90b;font-size:15px">Q'+it.precio+'</b>'+
+  (it.promo?'<span style="background:#4a1206;color:#ffd479;border-radius:8px;padding:2px 8px;font-size:10.5px;font-weight:800">🎯 OFERTA</span>':'')+
   (it.agotado?'<span style="background:#3a1414;color:#ff9f9f;border-radius:8px;padding:2px 8px;font-size:10.5px;font-weight:800">AGOTADO</span>':'')+
   '</div></div>'+
   '<div style="display:flex;flex-direction:column;gap:6px;flex:none">'+
+  '<button class="bMini" onclick="menuTogglePromo(\''+it.id+'\')" style="'+(it.promo?'background:#7a0c15;color:#ffd479;border-color:#ffd479':'')+'">'+(it.promo?'🎯 Quitar oferta':'🎯 Poner oferta')+'</button>'+
   '<button class="bMini" onclick="menuToggle(\''+it.id+'\')">'+(it.agotado?'Habilitar':'Agotar')+'</button>'+
   '<button class="bMini bX" onclick="menuDel(\''+it.id+'\')">✕</button></div></div>';
 }
@@ -436,6 +438,12 @@ async function menuAdd(){
   document.getElementById('m-nombre').value='';document.getElementById('m-precio').value='';document.getElementById('m-desc').value='';
   document.getElementById('m-preview').style.display='none';FOTOB64='';
   document.getElementById('m-foto').value='';
+}
+async function menuTogglePromo(id){
+  if(DEMO)return;
+  try{var r=await fetch(api('orders'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'menuEdit',tel:TEL,id:id,promo:!MENU.find(function(x){return x.id===id}).promo})});
+  var j=await r.json();if(!j.ok){alert(j.error||'No se pudo.');return}}catch(e){}
+  await cargarMenu();
 }
 async function menuToggle(id){
   if(DEMO){alert('Vista previa: los cambios no se guardan.');return}

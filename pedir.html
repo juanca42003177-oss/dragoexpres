@@ -204,6 +204,8 @@ input,textarea,select{-webkit-user-select:text;user-select:text}
 <div class="vista" id="v-promos">
   <div class="hdr"><div class="row"><img src="img/icono.png"><b>Promociones</b></div></div>
   <div class="sec">
+    <div id="prAbiertos" style="margin-bottom:14px"></div>
+    <div id="prOfertas" style="margin-bottom:14px"></div>
     <div class="bn bn1" id="bnFielBox" style="margin-bottom:12px;min-width:100%"><span class="em">🎁</span><b id="bnFiel">Sé de los primeros en reclamar tu envío GRATIS</b><span id="bnFielSub">Promoción LIMITADA, una sola vez por usuario: tu pedido 31 viaja sin costo de envío.</span></div>
     <div class="pcard"><b>🏍️ Repartí con DragoExpres</b><p class="mini">Trabajá con tu bici, moto o carro en tu propia zona. Pagos semanales + cashback al cumplir tus 20 entregas.</p><button class="btn bA" onclick="location.href='ganancias.html'">Quiero ser piloto</button></div>
     <div class="pcard"><b>🏪 Poné tu local</b><p class="mini">Tu local visto por toda tu zona. Vos ponés precios y promos. Registro gratis y sin comisión los primeros meses.</p><button class="btn bA" onclick="location.href='index.html?rol=local'">Registrar mi local</button></div>
@@ -621,6 +623,7 @@ function tab(v){
   });
   window.scrollTo(0,0);
   if(v==='pedidos')cargarMisPedidos();
+  if(v==='promos')cargarPromos();
   if(v==='perfil')pintarPerfil();
 }
 
@@ -1231,6 +1234,50 @@ function seguir(id){PID=id;try{var _u=LS();if(_u&&_u.tel)MI_TEL=_u.tel}catch(e){
      y el botón de cancelar decía "No es tu pedido" aunque el pedido fuera del cliente. */
   actualizar();window.TINT=setInterval(actualizar,12012)}
 function distKm2(a,b){var R=6371,d=Math.PI/180,dl=(b.lat-a.lat)*d,dg=(b.lng-a.lng)*d,x=Math.sin(dl/2)*Math.sin(dl/2)+Math.cos(a.lat*d)*Math.cos(b.lat*d)*Math.sin(dg/2)*Math.sin(dg/2);return R*2*Math.atan2(Math.sqrt(x),Math.sqrt(1-x))}
+async function cargarPromos(){
+  var ab=document.getElementById('prAbiertos'),of=document.getElementById('prOfertas');
+  if(!ab)return;
+  ab.innerHTML='<p class="mini">Cargando locales cerca tuyo…</p>';of.innerHTML='';
+  var u=LS();
+  var DM=distLocales();
+  var R=25; // radio de 25 km a la redonda (regla Juan 2026-10-27)
+  var cerca=[];
+  (LOCALES||[]).forEach(function(l){if(l.abierto===false)return;var d=(DM&&DM[l.tel]!==undefined)?DM[l.tel]:null;if(DM&&l.gps&&d!==null&&d>R)return;cerca.push({l:l,d:d})});
+  cerca.sort(function(a,b){return ((a.d===null)-(b.d===null))||((a.d!==null&&b.d!==null)?a.d-b.d:0)});
+  var h='';
+  if(!cerca.length){
+    h='<div class="pcard"><b>🟢 Abiertos cerca tuyo</b><p class="mini">'+(DM?'Nadie abierto a menos de 25 km de tu ubicación por ahora. Andá cargando la app: cuando un local de tu área abra, aparece acá solo.':'Activá tu ubicación (📍 en tu perfil) y acá aparecen TODOS los locales abiertos a 25 km a la redonda, del más cercano al más lejano.')+'</p></div>';
+  }else{
+    h='<div class="pcard" style="background:#fdeeee;border-color:#c1121f"><b>🟢 Abiertos cerca tuyo ('+cerca.length+')</b><p class="mini">Del más cercano al más lejano, a 25 km a la redonda'+(DM?'':' — activá tu ubicación para ver distancias')+'.</p></div>';
+    cerca.forEach(function(c){
+      var idx=LOCALES.indexOf(c.l);
+      h+='<div class="loc"><div class="avatar">'+(c.l.fotoLocal?'<img src="'+c.l.fotoLocal+'" style="width:100%;height:100%;object-fit:cover;border-radius:50%">':(c.l.nombre||'?').charAt(0).toUpperCase())+'</div>'
+        +'<div class="info"><b>'+c.l.nombre+'</b><span><span class="chip">'+(c.l.rubro||'Local')+'</span>'+(c.d!==null?(c.d<1?' · 📍 '+Math.round(c.d*1000)+' m':' · 📍 '+c.d.toFixed(1)+' km'):'')+' · <span style="color:#7ee2a8">🟢 Abierto</span></span></div>'
+        +'<button class="btnS" onclick="verMenu('+idx+')">Pedir aquí</button></div>';
+    });
+  }
+  ab.innerHTML=h;
+  // 🔥 ofertas reales de los menús de los locales cercanos
+  try{
+    var ofertas=[];
+    for(var i=0;i<cerca.length&&i<10;i++){
+      var l=cerca[i].l;
+      var r=await fetch(api('orders'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'menu',tel:l.tel})});
+      var j=await r.json();
+      if(j.ok&&(j.items||[]).length)(j.items).forEach(function(it){if(it.promo&&!it.agotado)ofertas.push({it:it,l:l})});
+    }
+    if(ofertas.length){
+      var oh='<div class="pcard" style="background:#fff8e1;border-color:#b8860b"><b>🔥 Ofertas de locales ahora ('+ofertas.length+')</b><p class="mini">Puestas por los locales en sus menús, a tu alcance a un toque.</p></div>';
+      ofertas.slice(0,12).forEach(function(o2){
+        var idx=LOCALES.indexOf(o2.l);
+        oh+='<div class="loc"><div class="avatar">'+((o2.it.foto?'<img src="'+o2.it.foto+'" style="width:100%;height:100%;object-fit:cover;border-radius:50%">':'🎯'))+'</div>'
+          +'<div class="info"><b>'+o2.it.nombre+'</b><span><span class="chip" style="background:#4a1206;color:#ffd479">OFERTA</span> Q'+o2.it.precio+' · '+o2.l.nombre+'</span></div>'
+          +'<button class="btnS" onclick="verMenu('+idx+')">Pedir aquí</button></div>';
+      });
+      of.innerHTML=oh;
+    }else{of.innerHTML='<div class="pcard"><b>🔥 Ofertas de locales</b><p class="mini">Cuando los locales marquen sus productos con 🎯 OFERTA, aparecen acá solos.</p></div>'}
+  }catch(e){of.innerHTML=''}
+}
 function distLocales(){var u=LS();if(!u.gps)return null;var m={};(LOCALES||[]).forEach(function(l){if(l.gps)m[l.tel]=distKm2(u.gps,l.gps)});return m}
 function pedirGps(){
   if(!navigator.geolocation){alert('Tu navegador no tiene GPS.');return}

@@ -463,6 +463,7 @@ module.exports = wrap(async (req, res) => {
       const it = m.items.find(x => x.id === String(b.id || ''));
       if (!it) return res.status(200).json({ ok: false, error: 'Producto no encontrado.' });
       if (b.agotado !== undefined) it.agotado = b.agotado === true || b.agotado === 'true';
+      if (b.promo !== undefined) it.promo = b.promo === true || b.promo === 'true'; // 🎯 OFERTA visible en la pestaña Promos
       if (b.precio !== undefined) it.precio = dinero(b.precio);
       if (b.nombre !== undefined) it.nombre = String(b.nombre).trim().slice(0, 60);
       if (b.desc !== undefined) it.desc = String(b.desc).trim().slice(0, 120);
