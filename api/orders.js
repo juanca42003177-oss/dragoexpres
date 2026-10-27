@@ -234,7 +234,10 @@ module.exports = wrap(async (req, res) => {
     const peds = fpd ? fpd.data : [];
     await expirarAsignados(peds, fpd ? fpd.sha : null);
     const mio = peds.filter(o => o.piloto && o.piloto.tel === tel && !['entregado', 'cancelado'].includes(o.estado));
-    const zona = peds.filter(o => o.estado === 'buscando'); // TODOS los pedidos visibles para TODOS los pilotos (regla Juan 2026-10-23)
+    const soyBici = p && p.datos && p.datos.vehiculo === 'bicicleta';
+    // TODOS los pedidos visibles para TODOS los pilotos (regla Juan 2026-10-23),
+    // EXCEPTO: los VIAJES de personas no los ve ni los toma un piloto de BICICLETA (regla Juan 2026-10-27)
+    const zona = peds.filter(o => o.estado === 'buscando' && !(soyBici && o.tipo === 'viaje'));
     const califs = peds.filter(o => o.piloto && o.piloto.tel === tel && o.califCliente > 0);
     const calif = califs.length ? Math.round(califs.reduce((x, o) => x + o.califCliente, 0) / califs.length * 10) / 10 : null;
     const zonaF = zona.filter(o => !(o.rechazadoPor || []).includes(tel));
@@ -586,7 +589,19 @@ module.exports = wrap(async (req, res) => {
     const tel = String(b.tel || '').replace(/\D/g, '');
     if (!tel) return res.status(200).json({ ok: false, error: 'Decinos tu numero.' });
     const fpd = await ghGet('pedidos.json'); const peds = fpd ? fpd.data : [];
-    const mios = peds.filter(x => String(x.cliente && x.cliente.tel || '').replace(/\D/g, '') === tel).slice(-30).reverse();
+    await expirarAsignados(peds, fpd ? fpd.sha : null);
+    // Contraofertas expiradas: si el cliente no respondió en 60s, el pedido vuelve a 'buscando'
+    // automáticamente (como las grandes). Antes solo se procesaba al consultar el pedido exacto
+    // y quedaba PEGADO en contraoferta para siempre (bug del viaje Q100 de Juan, 2026-10-27).
+    let shaP = fpd ? fpd.sha : null;
+    for (const o of peds) {
+      if (String(o.cliente && o.cliente.tel || '').replace(/\D/g, '') === tel && o.estado === 'contraoferta' && o.contra && Date.now() > o.contra.expira) {
+        o.contraRechazos = (o.contraRechazos || []).concat([o.piloto.tel]); o.contraExpiro = Date.now();
+        await redispatchViaje(o, peds, shaP);
+        shaP = null; // redispatch ya guardó; solo procesamos una por llamada para evitar conflicto de versión
+        break;
+      }
+    }
     const entF = peds.filter(x => String(x.cliente && x.cliente.tel || '').replace(/\D/g, '') === tel && x.estado === 'entregado').length;
     const usado = peds.some(x => String(x.cliente && x.cliente.tel || '').replace(/\D/g, '') === tel && x.promoFiel && x.estado === 'entregado');
     return res.status(200).json({ ok: true, pedidos: mios, fiel: { entregas: entF, promoAhora: !usado && entF > 0 && entF % 30 === 0, faltan: entF % 30 === 0 ? 0 : 30 - (entF % 30), usado } });
@@ -771,6 +786,7 @@ module.exports = wrap(async (req, res) => {
       if (peds.some(x => x.id !== id && x.piloto && dig(x.piloto.tel) === dig(tel) && ['asignado', 'aceptado', 'en_camino', 'contraoferta'].includes(x.estado) && !(x.estado === 'asignado' && x.tsAsignado && now - x.tsAsignado > OFERTA_MS))) return res.status(200).json({ ok: false, error: 'Ya tenés un pedido activo. Terminá ese primero y volvés a recibir otros.' });
       const fps = await ghGet('pilots.json'); const stP = (fps ? fps.data : []).find(x => x.tel === tel) || {};
       if (stP.pendiente && !stP.pendiente.pagado) return res.status(200).json({ ok: false, error: 'Primero ponete al día con tus comisiones (Q' + stP.pendiente.monto + '): transferilas a la cuenta del banco y avisale al admin por WhatsApp. En cuanto confirme, volvés a recibir pedidos como si nada 😊' });
+      if (o.tipo === 'viaje' && p.datos.vehiculo === 'bicicleta') return res.status(200).json({ ok: false, error: 'Los viajes de personas son para moto o carro: en bicicleta no se puede llevar pasajero. Los pedidos de comida y repuestos sí son tuyos 🐉' });
       if (o.estado === 'contraoferta') return res.status(200).json({ ok: false, error: 'Esperá: le ofreciste un aumento al cliente. Si acepta, el viaje es tuyo.' });
       if (o.estado === 'asignado' && (!o.piloto || o.piloto.tel !== tel)) return res.status(200).json({ ok: false, error: 'Este pedido es de otro piloto.' });
       if ((o.rechazadoPor || []).includes(tel)) return res.status(200).json({ ok: false, error: 'Rechazaste este pedido, se lo dejamos a otro piloto.' });
