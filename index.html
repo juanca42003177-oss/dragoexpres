@@ -63,9 +63,15 @@ input,textarea,select{-webkit-user-select:text;user-select:text}
 /* Ingreso directo: si ya registraste/entraste a tu panel, te mandamos derecho a el */
 try{
   if(location.search.indexOf('reg=')<0 && location.search.indexOf('rol=')<0 && location.search.indexOf('registrar')<0){
-    if(localStorage.getItem('dxLocal')){location.replace('local.html')}
-    else if(localStorage.getItem('dxPiloto')){location.replace('piloto.html')}
-    else if(localStorage.getItem('dxFlota')){location.replace('flotista.html')}
+    var _ses=0;['dxLocal','dxPiloto','dxFlota'].forEach(function(k){if(localStorage.getItem(k))_ses++});
+    /* UNA sola sesion -> directo a su panel (como siempre).
+       DOS o mas (ej. el dueno probando usuario + piloto en el mismo telefono) -> portada:
+       nadie secuestra, elegis el panel vos (PEDIR AHORA = usuario, Soy piloto = piloto). */
+    if(_ses===1){
+      if(localStorage.getItem('dxLocal')){location.replace('local.html')}
+      else if(localStorage.getItem('dxPiloto')){location.replace('piloto.html')}
+      else if(localStorage.getItem('dxFlota')){location.replace('flotista.html')}
+    }
   }
 }catch(e){}
 </script>
