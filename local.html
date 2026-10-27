@@ -507,6 +507,12 @@ function pintar(j){
   var cn=document.getElementById('cancelHoyBox');if(cn)cn.remove();
   if(j.cancelHoy&&j.cancelHoy.length){var cnb=document.createElement('div');cnb.id='cancelHoyBox';cnb.style.cssText='background:#2a1414;border:1px solid #6b2a2a;color:#ffb3b3;border-radius:12px;padding:10px;margin:10px 0';cnb.innerHTML='<b>Hoy te cancelaron '+j.cancelHoy.length+' pedido(s):</b>'+j.cancelHoy.map(function(o){var q={local:'lo cancelaste vos',cliente:'el cliente',sin_piloto:'no hubo piloto'}[o.canceladoPor]||'alguien';return '<div style="font-size:12.5px;margin-top:4px">'+({comida:'🍔',viaje:'🛺',repuesto:'🔧'}[o.tipo]||'')+' '+o.id+' — '+q+'</div>'}).join('')+'<div class="mini" style="margin-top:6px">Si el cliente canceló con el piloto ya en camino, la comida probablemente ya estaba lista.</div>';var st2=document.getElementById('stats');if(st2&&st2.parentNode)st2.parentNode.insertBefore(cnb,st2);}
   document.getElementById('stats').textContent='Pedidos entregados por DragoExpres: '+j.totalEntregados+(j.ventasSemana!==undefined?' · Ventas de esta semana: Q'+j.ventasSemana+' ('+(j.entregasSemana||0)+' pedidos)':'');
+  /* Aclaración de comisión (regla Juan): el local cobra en EFECTIVO al momento, y el 10% se lo
+     descuenta el piloto al recoger (después de los 90 días de gracia). Nadie deposita nada. */
+  var stEl=document.getElementById('l-comision');
+  if(!stEl){stEl=document.createElement('p');stEl.id='l-comision';stEl.className='mini';stEl.style.cssText='margin:6px 0;color:#a9d6a3';
+    var stats2=document.getElementById('stats');stats2.parentNode.insertBefore(stEl,stats2.nextSibling)}
+  stEl.textContent='💵 Cobrás SIEMPRE en efectivo al momento (el cliente paga al piloto y el piloto te entrega tu plata al recoger). Pasados los 90 días de gracia de tu zona, la comisión DragoExpres es 10% de la compra: el piloto te entrega compra+servicio−10% directo (nadie deposita nada, no esperás pagos virtuales como en otras apps).';
 }
 async function tick(){
   if(DEMO)return
