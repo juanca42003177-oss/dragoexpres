@@ -654,9 +654,20 @@ function abrirCat(tipo){
   function cmpD(a,b){var da=(DM&&DM[a.tel]!==undefined)?DM[a.tel]:null,db=(DM&&DM[b.tel]!==undefined)?DM[b.tel]:null;return ((da===null)-(db===null))||((da!==null&&db!==null)?da-db:0)}
   if(DM){propios.sort(cmpD);otros.sort(cmpD)}
   var loc=propios.concat(otros);
+  /* RADIO DE ENTREGA estilo PedidosYa (regla Juan 2026-10-26): solo se muestran los locales
+     a los que llega el envío en ~45 minutos (15 km). Los de la Gomera estando en Villa Nueva
+     NO aparecen, como en las grandes. Sin GPS del local se conserva el filtro por zona.
+     El pedido lejano sigue siendo posible por viajes/negociacion, pero no se ofrece solo. */
+  var R_MAX_KM=15;
+  loc=loc.filter(function(l){
+    if(DM&&DM[l.tel]!==undefined)return DM[l.tel]<=R_MAX_KM;
+    if(DM&&l.gps)return false;      /* el cliente tiene GPS, el local tiene punto: fuera de radio fuera de lista */
+    if(DM&&!l.gps)return u.zona&&l.zona&&l.zona===u.zona; /* local sin punto GPS: solo si es de tu misma zona */
+    return true;                    /* sin GPS del cliente: lista por zona como siempre */
+  });
   var h='';
   if(!loc.length){
-    h='<div class="empty">'+(tipo==='comida'?'Todavía no hay restaurantes registrados.<br><b>¡Sé el primero! Invitá tu favorito</b> y comé con envío a Q15':'Todavía no hay talleres de repuestos registrados.<br><b>Invitá tu taller de confianza</b> y pedí a Q20')+'<br><br><button class="btn bA" style="width:auto;padding:11px 18px;display:inline-block" onclick="cerrarCat();invitarLocalSheet()">🏪 Invitar un local</button> <button class="btn bA" style="width:auto;padding:11px 18px;display:inline-block;background:#1a1a22;color:#f0b90b;border:1px solid #f0b90b" onclick="cerrarCat();mostrarQR()">📲 QR al instante</button></div>';
+    h='<div class="empty">'+(tipo==='comida'?(DM?'No hay restaurantes a menos de 45 minutos de tu ubicación por ahora.<br><b>Invitá tu favorito de la zona</b> y cae solo':'Todavía no hay restaurantes registrados.<br><b>¡Sé el primero! Invitá tu favorito</b> y comé con envío a Q15'):'Todavía no hay talleres de repuestos registrados.<br><b>Invitá tu taller de confianza</b> y pedí a Q20')+'<br><br><button class="btn bA" style="width:auto;padding:11px 18px;display:inline-block" onclick="cerrarCat();invitarLocalSheet()">🏪 Invitar un local</button> <button class="btn bA" style="width:auto;padding:11px 18px;display:inline-block;background:#1a1a22;color:#f0b90b;border:1px solid #f0b90b" onclick="cerrarCat();mostrarQR()">📲 QR al instante</button></div>';
   }
   loc.forEach(function(l){
     var idx=LOCALES.indexOf(l);
