@@ -1151,15 +1151,16 @@ function pintarTotal(){
   var b=document.getElementById('totBox');if(!b)return;
   var c=document.getElementById('f-compra');
   var compra=Math.max(0,parseFloat((c&&c.value)||0)||0);
+  var serv=SERV?(+SERV.precio||0):0; // 🔧 servicio mecánico: el cliente también lo paga al recibir
   var env=window.PROMO_FIEL?0:(TIPO==='viaje'?(parseFloat((document.getElementById('f-viaje-tarifa')||{}).value)||TARIFA.viaje):(TARIFA[TIPO]||15));
   var rec=window.PROMO_FIEL?0:(esNocheGT()?5:0);
-  var t=compra+env+rec+PROPINA;
+  var t=compra+serv+env+rec+PROPINA;
   var vb='';
   if(BILLETE>0){var vu=BILLETE-t;
     if(vu>=0)vb='<br><span style="font-size:12px;opacity:.85">Entregás un billete de Q'+BILLETE+' → el piloto te devuelve <b>Q'+vu+'</b> de vuelto</span>';
     else vb='<br><span style="font-size:12px;color:#c1121f">Con Q'+BILLETE+' no alcanza el total (Q'+t+')</span>';
   }
-  b.innerHTML='💵 <b>TOTAL A PAGAR AL RECIBIR: Q'+t+'</b><br><span style="font-size:12px;opacity:.85">Es lo que le entregás al piloto: Compra Q'+compra+(window.PROMO_FIEL?' + 🎁 ENVÍO GRATIS (premio cliente fiel)':' + Envío Q'+(env+rec)+(rec?' (incluye Q5 nocturno)':''))+' + Propina Q'+PROPINA+'</span>'+vb;
+  b.innerHTML='💵 <b>TOTAL A PAGAR AL RECIBIR: Q'+t+'</b><br><span style="font-size:12px;opacity:.85">Es lo que le entregás al piloto: Compra Q'+compra+(serv?' + 🔧 Servicio '+SERV.nombre+' Q'+serv:'')+(window.PROMO_FIEL?' + 🎁 ENVÍO GRATIS (premio cliente fiel)':' + Envío Q'+(env+rec)+(rec?' (incluye Q5 nocturno)':''))+' + Propina Q'+PROPINA+'</span>'+vb;
 }
 
 async function enviar(){
@@ -1321,7 +1322,7 @@ async function actualizar(){
   if(o.estado==='asignado'){e.className='st sAsig';e.textContent='Piloto asignado';i.textContent=o.piloto.nombre+' va a aceptar tu pedido'}
   if(o.estado==='aceptado'){e.className='st sAce';e.textContent='Aceptado ✅';i.textContent=o.piloto.nombre+' aceptó tu pedido'}
   if(['buscando','asignado','aceptado'].includes(o.estado)&&o.etaMin){i.textContent=i.textContent+' · ⏱️ llega en ~'+o.etaMin+' min'}
-  if(o.estado==='en_camino'){e.className='st sCam';e.textContent='En camino 🛺';i.textContent=o.piloto.nombre+' va en camino. Tenés el efectivo listo: Q'+o.compra+' (compra) + Q'+o.envio+' (envío)'+((o.propina||0)>0?' + Q'+o.propina+' propina':'')}
+  if(o.estado==='en_camino'){e.className='st sCam';e.textContent='En camino 🛺';i.textContent=o.piloto.nombre+' va en camino. Tenés el efectivo listo: Q'+(+o.compra+(o.servicio?+o.servicio.precio:0))+' (compra'+(o.servicio?' + servicio 🔧':'')+') + Q'+o.envio+' (envío)'+((o.propina||0)>0?' + Q'+o.propina+' propina':'')}
   if(o.estado==='entregado'){e.className='st sEnt';e.textContent='Entregado ✅';i.textContent='¡Listo! El dragón entregó tu pedido'}
   if(o.prep&&['asignado','aceptado','en_camino'].includes(o.estado)){i.textContent=i.textContent+' — El local confirmó: listo en ~'+o.prep.min+' min ⏱️'}
   else if(o.local&&!o.prep&&['asignado','aceptado'].includes(o.estado)){i.textContent=i.textContent+' — Esperando que '+o.local.nombre+' confirme tu orden…'}
