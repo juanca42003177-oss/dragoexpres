@@ -551,6 +551,21 @@ module.exports = wrap(async (req, res) => {
   }
 
   // locales aprobados para el listado del consumidor (pantalla Inicio)
+  // CLIENTE: pegar su ubicación a un pedido activo (para el mapa del piloto).
+  // Sirve para pedidos creados antes de la función o cuando el GPS llegó tarde.
+  if (action === 'cliGps') {
+    const tel = String(b.tel || '').replace(/\D/g, ''), id = String(b.id || '').trim();
+    const lat = +b.lat, lng = +b.lng;
+    if (!tel || !id || !isFinite(lat) || !isFinite(lng)) return res.status(200).json({ ok: false });
+    const fpd = await ghGet('pedidos.json'); const peds = fpd ? fpd.data : [];
+    const o = peds.find(x => x.id === id);
+    if (!o) return res.status(200).json({ ok: false });
+    if (String(o.cliente.tel).replace(/\D/g, '') !== tel) return res.status(200).json({ ok: false, error: 'No es tu pedido.' });
+    if (['entregado', 'cancelado'].includes(o.estado)) return res.status(200).json({ ok: false });
+    o.cliente.gps = { lat, lng };
+    await ghPut('pedidos.json', fpd ? fpd.sha : null, peds, 'cliente activo ubicacion ' + id);
+    return res.status(200).json({ ok: true });
+  }
   // LOCAL: marcar su ubicacion exacta en el mapa (para que el cliente lo visite)
   if (action === 'localGps') {
     const tel = String(b.tel || '').trim();

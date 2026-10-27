@@ -149,13 +149,80 @@ async function rapida(q){if(DEMO)return;
   try{await fetch(api('orders'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'msg',id:AID,de:'piloto',tel:PILOTO.tel,texto:q})});}catch(e){}
   tick();}
 function distKmP(a,b){var R=6371,d=Math.PI/180,dl=(b.lat-a.lat)*d,dg=(b.lng-a.lng)*d,x=Math.sin(dl/2)*Math.sin(dl/2)+Math.cos(a.lat*d)*Math.cos(b.lat*d)*Math.sin(dg/2)*Math.sin(dg/2);return R*2*Math.atan2(Math.sqrt(x),Math.sqrt(1-x))}
+/* ============ MAPA GRANDE DE NAVEGACIÓN (estilo las grandes) ============ */
+function abrirMapaGrande(){
+  var o=window.PM_ORDEN; var dest=(o&&o.cliente&&o.cliente.gps)||null;
+  if(!dest){alert('El cliente no activó su ubicación al pedir.');return}
+  if(!window.MYGPS){alert('Activá tu GPS (permiso de ubicación) para el mapa grande.');return}
+  var ov=document.getElementById('pmBig');
+  if(!ov){ov=document.createElement('div');ov.id='pmBig';
+    ov.style.cssText='position:fixed;inset:0;z-index:300;background:#0a0a0f;display:none;flex-direction:column';
+    ov.innerHTML='<div style="display:flex;align-items:center;gap:8px;padding:10px 12px;background:#14151c">'
+      +'<button onclick="cerrarMapaGrande()" style="background:none;border:0;color:#f0b90b;font-size:24px;cursor:pointer">✕</button>'
+      +'<div style="flex:1"><b style="color:#fff" id="pmBigTit">Tu ruta al destino</b><div class="mini" id="pmBigSub" style="color:#ffd479"></div></div>'
+      +'<a id="pmWaze" target="_blank" rel="noopener" style="background:#33b1ff;color:#012a4a;font-weight:900;border-radius:10px;padding:9px 12px;text-decoration:none">🔊 Waze</a>'
+      +'<a id="pmGmaps" target="_blank" rel="noopener" style="background:#34a853;color:#fff;font-weight:900;border-radius:10px;padding:9px 12px;text-decoration:none">🔊 Google Maps</a></div>'
+      +'<div id="pmBigMap" style="flex:1"></div>'
+      +'<div id="pmBigAviso" style="padding:10px 14px;background:#14151c;color:#ffd479;font-weight:900;text-align:center"></div>';
+    document.body.appendChild(ov)}
+  ov.style.display='flex';
+  document.getElementById('pmWaze').href='https://waze.com/ul?ll='+dest.lat+','+dest.lng+'&navigate=yes';
+  document.getElementById('pmGmaps').href='https://www.google.com/maps/dir/?api=1&destination='+dest.lat+','+dest.lng+'&travelmode=driving';
+  if(window.PBIG){window.PBIG.remove();window.PBIG=null}
+  window.PBIG=L.map('pmBigMap').setView([window.MYGPS.lat,window.MYGPS.lng],16);
+  L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'© OpenStreetMap'}).addTo(window.PBIG);
+  var vic=(o.vehiculo==='carro')?'🚗':(o.vehiculo==='bicicleta')?'🚲':'🏍️';
+  window.PBIGM=L.marker([window.MYGPS.lat,window.MYGPS.lng],{icon:L.divIcon({className:'',html:'<div style="font-size:34px;filter:drop-shadow(0 2px 4px rgba(0,0,0,.5))">'+vic+'</div>',iconSize:[38,38],iconAnchor:[19,19]})}).addTo(window.PBIG);
+  L.marker([dest.lat,dest.lng],{icon:L.divIcon({className:'',html:'<div style="font-size:34px">📍</div>',iconSize:[38,38],iconAnchor:[19,19]})}).addTo(window.PBIG).bindPopup('Tu destino');
+  trazarRotaPiloto(dest,true);
+  if(window.PBIG_T)clearInterval(window.PBIG_T);
+  window.PBIG_T=setInterval(function(){ /* mientras andás: te sigue, recalcula si te desviás */
+    if(document.getElementById('pmBig').style.display==='none'){clearInterval(window.PBIG_T);window.PBIG_T=null;return}
+    if(!navigator.geolocation)return;
+    navigator.geolocation.getCurrentPosition(function(p){
+      window.MYGPS={lat:p.coords.latitude,lng:p.coords.longitude,acc:p.coords.accuracy};
+      window.PBIGM.setLatLng([p.coords.latitude,p.coords.longitude]);
+      window.PBIG.setView([p.coords.latitude,p.coords.longitude]);
+      trazarRotaPiloto(dest,false);
+    },function(){},{enableHighAccuracy:true,timeout:9000,maximumAge:0});
+  },10000);
+}
+function cerrarMapaGrande(){var ov=document.getElementById('pmBig');if(ov)ov.style.display='none';if(window.PBIG_T){clearInterval(window.PBIG_T);window.PBIG_T=null}}
+async function trazarRotaPiloto(dest,primera){
+  var yo=window.MYGPS; if(!yo)return;
+  var vel=(window.PM_ORDEN&&window.PM_ORDEN.vehiculo==='bicicleta')?10:(window.PM_ORDEN&&window.PM_ORDEN.vehiculo==='carro')?20:22;
+  var sub=document.getElementById('pmBigSub'),av=document.getElementById('pmBigAviso');
+  /* ¿se desvió de la ruta? (>120 m de la línea) => RECALCULAR como Waze */
+  var fuera=true;
+  if(window.PBIG_R&&window.PBIG_R.length){fuera=false;
+    for(var i=0;i<window.PBIG_R.length;i+=2){var dkm=distKmP({lat:yo.lat,lng:yo.lng},{lat:window.PBIG_R[i+1],lng:window.PBIG_R[i]});if(dkm<0.12){fuera=false;break}}}
+  if(!primera&&!fuera&&window.PBIG_R&&window.PBIG_R.length){ /* sigue en ruta: solo actualizar eta */ }
+  else{
+    try{
+      var r=await fetch('https://router.project-osrm.org/route/v1/driving/'+yo.lng+','+yo.lat+';'+dest.lng+','+dest.lat+'?overview=full&geometries=geojson');
+      var j=await r.json();
+      var coords=(j.routes&&j.routes[0]&&j.routes[0].geometry&&j.routes[0].geometry.coordinates)||null;
+      if(coords&&coords.length){
+        var flat=[];coords.forEach(function(c){flat.push(c[0],c[1])});window.PBIG_R=flat;
+        if(window.PBIG_LINE){window.PBIG.removeLayer(window.PBIG_LINE)}
+        window.PBIG_LINE=L.polyline(coords.map(function(c){return[c[1],c[0]]}),{color:'#f0b90b',weight:6,opacity:.85}).addTo(window.PBIG);
+        if(primera)window.PBIG.fitBounds(coords.map(function(c){return[c[1],c[0]]}),{padding:[30,30]});
+      }else{window.PBIG_R=null}
+    }catch(e){window.PBIG_R=null}
+  }
+  var dk=distKmP(yo,dest),min=Math.max(1,Math.round(dk/vel*60+1));
+  if(sub)sub.textContent='Faltan '+(dk<1?Math.round(dk*1000)+' m':dk.toFixed(1)+' km')+' — llegás en ~'+min+' min';
+  if(av)av.textContent=(dk*1000<150)?'📍 Ya estás llegando: buscá el número de puerta.':(fuera?'🔄 Ruta recalculada por donde vas.':'Seguí la línea dorada — te aviso si te pasás de largo.');
+}
 function pintarMapaPiloto(o){
+  try{window.TARIFAPROP=window.TARIFAPROP||{};if(o){window.TARIFAPROP[o.id]=!!o.tarifaPropuesta}}catch(e){}
+  try{window.PM_ORDEN=o}catch(e){}
   try{window.TARIFAPROP=window.TARIFAPROP||{};if(o){window.TARIFAPROP[o.id]=!!o.tarifaPropuesta}}catch(e){}
   var mp=document.getElementById('pmMap'),ir=document.getElementById('pmIr'),hi=document.getElementById('pmHint');
   if(!mp||!o||['entregado','cancelado'].includes(o.estado)){if(mp)mp.style.display='none';if(hi)hi.textContent='';if(ir)ir.style.display='none';if(window.PMM){window.PMM.remove();window.PMM=null}return}
   var yo=window.MYGPS||null, dest=(o.cliente&&o.cliente.gps)||null;
   hi.textContent='';ir.style.display='none';
-  if(!dest){mp.style.display='none';hi.textContent='📍 El cliente no activó su ubicación al pedir: pedíla por el chat o usá su dirección.';return}
+  if(!dest){mp.style.display='none';hi.textContent='📍 El cliente pidió sin ubicación. Cuando abra su pantalla de seguimiento, su punto cae acá solo. También podés pedírsela por el chat.';return}
   if(!yo){mp.style.display='none';hi.textContent='📍 Activá tu GPS (permiso de ubicación del navegador) y acá ves el mapa del viaje con la distancia y tu avance.';return}
   var vel=o.vehiculo==='bicicleta'?10:(o.vehiculo==='carro'?20:22);
   var dk=distKmP(yo,dest),min=Math.max(1,Math.round(dk/vel*60+1));
@@ -170,6 +237,7 @@ function pintarMapaPiloto(o){
   hi.textContent='📍 Faltan '+(dk<1?Math.round(dk*1000)+' m':dk.toFixed(1)+' km')+' — llegás en ~'+min+' min. El punto 📍 es tu destino.';
   ir.style.display='block';
   ir.href='https://www.google.com/maps/dir/?api=1&destination='+dest.lat+','+dest.lng;
+  var gr=document.getElementById('pmGrande');if(gr){gr.style.display='block';gr.textContent='🗺️ MAPA GRANDE DE RUTA'}
 }
 async function noResponde(){if(DEMO)return;if(!confirm('¿El cliente no responde? Le avisamos que tiene 10 minutos.'))return;try{var r=await fetch(api('orders'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'noResponde',id:AID,tel:PILOTO.tel})});var j=await r.json();if(!j.ok){alert(j.error||'No se pudo.');return}}catch(e){}alert('Avisado. Esperá 10 minutos; si responde el chat, se cancela solo.');tick();}
 async function cerrarNR(){if(DEMO)return;if(!confirm('¿Ya pasaron los 10 minutos? El pedido cierra y cobrás tu envío completo.'))return;try{var r=await fetch(api('orders'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'cerrarNoResponde',id:AID,tel:PILOTO.tel})});var j=await r.json();if(!j.ok){alert(j.error||'No se pudo cerrar.');return}}catch(e){}tick();}
@@ -317,7 +385,10 @@ function pedidoHTML(o){
   '<div class="dato">⏱️ '+(o.prep?('El local confirmó: listo en ~'+o.prep.min+' min'):(o.local?'Esperando confirmación del local…':''))+'</div>'+
   '<a class="wa" href="'+wa+'" target="_blank">💬 Escribille al cliente</a>'+
   '<div id="pmMap" style="height:190px;border-radius:12px;margin-top:10px;display:none"></div>'+
- '<a id="pmIr" target="_blank" rel="noopener" style="display:none;margin-top:6px;background:#f0b90b;color:#111;font-weight:900;border-radius:10px;padding:10px;text-align:center;text-decoration:none">🧭 Cómo llegar (Google Maps)</a>'+
+ '<div style="display:flex;gap:6px;margin-top:6px">'+
+ '<button class="bMini" id="pmGrande" style="display:none;flex:1;background:#f0b90b;color:#111;font-weight:900" onclick="abrirMapaGrande()">🗺️ MAPA GRANDE</button>'+
+ '<a id="pmIr" target="_blank" rel="noopener" style="display:none;flex:1;background:#2b6cb0;color:#fff;font-weight:900;border-radius:10px;padding:10px;text-align:center;text-decoration:none">🧭 Cómo llegar</a>'+
+ '</div>'+
  '<div id="pmHint" class="mini" style="margin-top:6px;color:#ffd479"></div>'+
  '<div style="margin-top:10px;border-top:1px solid #2a2b38;padding-top:8px"><div class="mini">💬 CHAT DEL PEDIDO (cliente y local)</div><div id="chat-list" style="max-height:140px;overflow-y:auto">'+chatHTML(o)+'</div>'+
  '<div style="display:flex;gap:6px;margin:6px 0;flex-wrap:wrap">'+

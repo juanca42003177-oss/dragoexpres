@@ -1340,6 +1340,14 @@ async function actualizar(){
     cbn.onclick=clienteCancela;
     var trk2=document.getElementById('trk');if(trk2)trk2.appendChild(cbn);
   }
+  /* AUTO-CURACIÓN: si este pedido nació sin mi ubicación, la pego ahora para el mapa del piloto */
+  try{
+    var uC=LS();
+    if(uC.gps&&uC.gps.lat&&PID&&(!window.CG_OK||window.CG_OK!==PID)&&(o.cliente&&!o.cliente.gps)&&!['entregado','cancelado'].includes(o.estado)){
+      window.CG_OK=PID;
+      fetch(api('orders'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'cliGps',id:PID,tel:(uC.tel||''),lat:uC.gps.lat,lng:uC.gps.lng})}).catch(function(){window.CG_OK=null});
+    }
+  }catch(e){}
   var mapa=document.getElementById('mapa');
   var eta=document.getElementById('etaVivo');if(!eta){eta=document.createElement('div');eta.id='etaVivo';eta.style.cssText='background:#fdeeee;border:2px solid #c1121f;border-radius:12px;padding:10px;margin:8px 0;font-weight:900;color:#7a0c15';mapa.parentNode.insertBefore(eta,mapa.nextSibling)}
   function distKm(a,b){var R=6371,d=Math.PI/180,dl=(b.lat-a.lat)*d,dg=(b.lng-a.lng)*d,x=Math.sin(dl/2)*Math.sin(dl/2)+Math.cos(a.lat*d)*Math.cos(b.lat*d)*Math.sin(dg/2)*Math.sin(dg/2);return R*2*Math.atan2(Math.sqrt(x),Math.sqrt(1-x))}
