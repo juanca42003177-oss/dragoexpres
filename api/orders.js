@@ -792,7 +792,7 @@ module.exports = wrap(async (req, res) => {
     return res.status(200).json({ ok: true, pedido: o });
   }
 
-  if (['aceptar', 'rechazar', 'avanzar'].includes(action)) {
+  if (['aceptar', 'rechazar', 'avanzar', 'recoger'].includes(action)) {
     const tel = String(b.tel || '').trim(), id = String(b.id || '').trim();
     const fpd = await ghGet('pedidos.json'); const peds = fpd ? fpd.data : [];
     const o = peds.find(x => x.id === id);
