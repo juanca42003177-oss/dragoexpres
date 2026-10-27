@@ -37,6 +37,8 @@ label{font-size:12px;color:#9aa3b5;display:block;margin-top:10px}
 *{-webkit-user-select:none;-webkit-touch-callout:none;user-select:none}
 input,textarea,select{-webkit-user-select:text;user-select:text}
 </style>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 </head>
 <body>
 <div id="oferta" style="display:none;position:fixed;inset:0;background:rgba(6,6,10,.96);z-index:90;padding:22px;overflow-y:auto">
@@ -139,7 +141,35 @@ function api(fn){return (location.hostname.includes('vercel.app')?'/api':'https:
 function chatHTML(o){return (o.chat||[]).map(function(m){
  var qui=m.de==='piloto'?'Vos 🏍️':m.de==='local'?'🏪 '+(o.local?o.local.nombre.split(' ')[0]:'Local'):'🧑 '+o.cliente.nombre.split(' ')[0];
  return '<div style="margin:4px 0;font-size:13px"><b>'+qui+':</b> '+m.texto+'</div>'}).join('')||'<div class="mini">Escribile a tu cliente o al local acá (les llega al instante)</div>'}
-async function rapida(q){if(DEMO)return;try{await fetch(api('orders'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'msg',id:AID,de:'piloto',tel:PILOTO.tel,texto:q})});}catch(e){}tick();}
+async function rapida(q){if(DEMO)return;
+  /* FIX 2026-10-27: antes el mensaje aparecía solo cuando volvía el tick (hasta 5s).
+     Ahora se pinta AL INSTANTE y el tick refresca el resto en segundo plano. */
+  var cl=document.getElementById('chat-list');
+  if(cl){cl.insertAdjacentHTML('beforeend','<div style="margin:4px 0;font-size:13px"><b>🛺 Vos:</b> '+q+'</div>');cl.scrollTop=cl.scrollHeight}
+  try{await fetch(api('orders'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'msg',id:AID,de:'piloto',tel:PILOTO.tel,texto:q})});}catch(e){}
+  tick();}
+function distKmP(a,b){var R=6371,d=Math.PI/180,dl=(b.lat-a.lat)*d,dg=(b.lng-a.lng)*d,x=Math.sin(dl/2)*Math.sin(dl/2)+Math.cos(a.lat*d)*Math.cos(b.lat*d)*Math.sin(dg/2)*Math.sin(dg/2);return R*2*Math.atan2(Math.sqrt(x),Math.sqrt(1-x))}
+function pintarMapaPiloto(o){
+  var mp=document.getElementById('pmMap'),ir=document.getElementById('pmIr'),hi=document.getElementById('pmHint');
+  if(!mp||!o||['entregado','cancelado'].includes(o.estado)){if(mp)mp.style.display='none';if(hi)hi.textContent='';if(ir)ir.style.display='none';if(window.PMM){window.PMM.remove();window.PMM=null}return}
+  var yo=window.MYGPS||null, dest=(o.cliente&&o.cliente.gps)||null;
+  hi.textContent='';ir.style.display='none';
+  if(!dest){mp.style.display='none';hi.textContent='📍 El cliente no activó su ubicación al pedir: pedíla por el chat o usá su dirección.';return}
+  if(!yo){mp.style.display='none';hi.textContent='📍 Activá tu GPS (permiso de ubicación del navegador) y acá ves el mapa del viaje con la distancia y tu avance.';return}
+  var vel=o.vehiculo==='bicicleta'?10:(o.vehiculo==='carro'?20:22);
+  var dk=distKmP(yo,dest),min=Math.max(1,Math.round(dk/vel*60+1));
+  mp.style.display='block';
+  if(window.PMM){window.PMM.remove();window.PMM=null}
+  window.PMM=L.map('pmMap').setView([(yo.lat+dest.lat)/2,(yo.lng+dest.lng)/2],13);
+  L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'© OpenStreetMap'}).addTo(window.PMM);
+  L.marker([yo.lat,yo.lng],{icon:L.divIcon({className:'',html:'<div style="font-size:24px;filter:drop-shadow(0 2px 3px rgba(0,0,0,.4))">'+(o.vehiculo==='carro'?'🚗':(o.vehiculo==='bicicleta'?'🚲':'🏍️'))+'</div>',iconSize:[28,28],iconAnchor:[14,14]})}).addTo(window.PMM).bindPopup('Vos');
+  L.marker([dest.lat,dest.lng],{icon:L.divIcon({className:'',html:'<div style="font-size:24px">📍</div>',iconSize:[28,28],iconAnchor:[14,14]})}).addTo(window.PMM).bindPopup('Tu destino');
+  L.polyline([[yo.lat,yo.lng],[dest.lat,dest.lng]],{color:'#f0b90b',weight:3,dashArray:'6,8'}).addTo(window.PMM);
+  window.PMM.fitBounds([[yo.lat,yo.lng],[dest.lat,dest.lng]],{padding:[18,18]});
+  hi.textContent='📍 Faltan '+(dk<1?Math.round(dk*1000)+' m':dk.toFixed(1)+' km')+' — llegás en ~'+min+' min. El punto 📍 es tu destino.';
+  ir.style.display='block';
+  ir.href='https://www.google.com/maps/dir/?api=1&destination='+dest.lat+','+dest.lng;
+}
 async function noResponde(){if(DEMO)return;if(!confirm('¿El cliente no responde? Le avisamos que tiene 10 minutos.'))return;try{var r=await fetch(api('orders'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'noResponde',id:AID,tel:PILOTO.tel})});var j=await r.json();if(!j.ok){alert(j.error||'No se pudo.');return}}catch(e){}alert('Avisado. Esperá 10 minutos; si responde el chat, se cancela solo.');tick();}
 async function cerrarNR(){if(DEMO)return;if(!confirm('¿Ya pasaron los 10 minutos? El pedido cierra y cobrás tu envío completo.'))return;try{var r=await fetch(api('orders'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'cerrarNoResponde',id:AID,tel:PILOTO.tel})});var j=await r.json();if(!j.ok){alert(j.error||'No se pudo cerrar.');return}}catch(e){}tick();}
 async function enviarMsg(){
@@ -261,7 +291,7 @@ function pintar(j){
   if(j.activo&&AID&&j.activo.id!==AID){alert('Tu pedido '+AID+' fue cancelado. No es tu culpa: tu racha sigue viva ');AID=j.activo.id;}
   if(!j.activo&&AID){alert('Tu pedido '+AID+' fue cancelado. Si ya ibas en camino, te acreditamos Q5 de gasolina (se te abona en tu próxima liquidación, cada 72h). ');AID=null;}
   if(j.activo){if(j.activo.estado==='asignado'){if(!OF||OF.id!==j.activo.id){mostrarOferta(j.activo)}}else{cerrarOferta()}
-  sin.style.display='none';act.style.display='block';var ci0=document.getElementById('chat-in');var cv0=ci0?ci0.value:'';var foc0=!!ci0&&document.activeElement===ci0;AID=j.activo.id;act.innerHTML=pedidoHTML(j.activo);var ci1=document.getElementById('chat-in');if(ci1){ci1.value=cv0;if(foc0)ci1.focus();}}
+  sin.style.display='none';act.style.display='block';if(j.activo.id!==window.PM_LAST_ID){window.PM_LAST_ID=j.activo.id;ULT_GPS=0;/* GPS INMEDIATO al tomar el pedido: el cliente ve el mapa ya */}var ci0=document.getElementById('chat-in');var cv0=ci0?ci0.value:'';var foc0=!!ci0&&document.activeElement===ci0;AID=j.activo.id;act.innerHTML=pedidoHTML(j.activo);pintarMapaPiloto(j.activo);var ci1=document.getElementById('chat-in');if(ci1){ci1.value=cv0;if(foc0)ci1.focus();}}
   else if(PCALIF){cerrarOferta();act.style.display='block';sin.style.display='none';act.innerHTML='<div class="pedido"><h3>¿Cómo estuvo el cliente? ⭐</h3><div class="mini">'+PCALIF.cliente+'</div><div id="cest" style="margin:10px 0">'+[1,2,3,4,5].map(function(n){return '<span style="font-size:30px;cursor:pointer;padding:2px" onclick="calificarCliente('+n+')">⭐</span>'}).join('')+'</div></div>';}
   else{cerrarOferta();act.style.display='none';sin.style.display='block';
     var zb=j.zonaBuscando||[];
@@ -285,7 +315,10 @@ function pedidoHTML(o){
   (o.promoFiel?'<div class="dato">Tu envío: <b style="color:#f0b90b">Q'+((o.promoTarifa||0)+(o.promoBonus||0))+'</b> 🎁 <b>CASHBACK PROMO cliente fiel</b> (el cliente no paga envío; se te acredita completo en tu liquidación de 72h)':'<div class="dato">Tu envío: <b style="color:#f0b90b">Q'+o.envio+'</b>'+(o.tarifaPropuesta?' <span style="color:#ffd479">(tarifa propuesta por el cliente)</span>':'')+' (menos Q'+o.comision+' de comisión = <b>Q'+(o.envio-o.comision)+'</b> para vos)')+((o.propina||0)>0?' · <b style="color:#f0b90b">+ Q'+o.propina+' de propina</b>':'')+'</div>'+
   '<div class="dato">⏱️ '+(o.prep?('El local confirmó: listo en ~'+o.prep.min+' min'):(o.local?'Esperando confirmación del local…':''))+'</div>'+
   '<a class="wa" href="'+wa+'" target="_blank">💬 Escribille al cliente</a>'+
-  '<div style="margin-top:10px;border-top:1px solid #2a2b38;padding-top:8px"><div class="mini">💬 CHAT DEL PEDIDO (cliente y local)</div><div id="chat-list" style="max-height:140px;overflow-y:auto">'+chatHTML(o)+'</div>'+
+  '<div id="pmMap" style="height:190px;border-radius:12px;margin-top:10px;display:none"></div>'+
+ '<a id="pmIr" target="_blank" rel="noopener" style="display:none;margin-top:6px;background:#f0b90b;color:#111;font-weight:900;border-radius:10px;padding:10px;text-align:center;text-decoration:none">🧭 Cómo llegar (Google Maps)</a>'+
+ '<div id="pmHint" class="mini" style="margin-top:6px;color:#ffd479"></div>'+
+ '<div style="margin-top:10px;border-top:1px solid #2a2b38;padding-top:8px"><div class="mini">💬 CHAT DEL PEDIDO (cliente y local)</div><div id="chat-list" style="max-height:140px;overflow-y:auto">'+chatHTML(o)+'</div>'+
  '<div style="display:flex;gap:6px;margin:6px 0;flex-wrap:wrap">'+
  ['📍 Estoy afuera','🛺 Ya voy en camino','⏱️ Demora en el local, ya salgo','💰 Llevá el efectivo exacto','🧭 Voy directo a tu dirección','🙏 ¡Pedido entregado, gracias!'].map(function(q){return '<button class="bMini" onclick="rapida(\''+q+'\')">'+q+'</button>'}).join('')+
  '</div>'+
@@ -352,6 +385,7 @@ function gpsLoop(){
   if(!dis||Date.now()-ULT_GPS<30000)return;
   navigator.geolocation.getCurrentPosition(function(pos){
     ULT_GPS=Date.now();
+    try{window.MYGPS={lat:pos.coords.latitude,lng:pos.coords.longitude,acc:pos.coords.accuracy}}catch(e){} /* para mi mapa del viaje */
     fetch(api('orders'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'gps',tel:PILOTO.tel,lat:pos.coords.latitude,lng:pos.coords.longitude})}).catch(function(){});
   },function(){ULT_GPS=Date.now();if(!GPS_WARN){GPS_WARN=true;var d=document.createElement('div');d.style.cssText='background:#241a05;border:1px solid #f0b90b;color:#ffe08a;font-size:12px;padding:8px 10px;border-radius:10px;margin:6px 0';d.textContent='📍 Activá tu GPS: sin él el cliente no te ve en el mapa. Revisá el permiso de ubicación del navegador.';var app=document.getElementById('app');if(app)app.insertBefore(d,app.firstChild);}},{enableHighAccuracy:true,timeout:10000});
 }

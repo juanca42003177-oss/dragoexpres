@@ -1179,7 +1179,7 @@ async function enviar(){
     }
   }catch(e){}
   var telCli=v('f-tel')||u.tel;MI_TEL=telCli;
-  var d={action:'crear',tipo:TIPO,local:(LOCAL_TEL?{nombre:LOCAL_PRE,tel:LOCAL_TEL}:undefined),nombre:v('f-nombre')||u.nombre,tel:telCli,zona:zonaValor(),direccion:v('f-dir'),referencia:v('f-ref'),detalle:v('f-det'),compra:v('f-compra')||0,servicio:SERV?SERV.id:undefined,envio:TARIFA[TIPO]||15,propina:PROPINA,avisoWa:(LS().avisoWa!==false)};
+  var d={action:'crear',tipo:TIPO,local:(LOCAL_TEL?{nombre:LOCAL_PRE,tel:LOCAL_TEL}:undefined),nombre:v('f-nombre')||u.nombre,tel:telCli,zona:zonaValor(),direccion:v('f-dir'),referencia:v('f-ref'),detalle:v('f-det'),compra:v('f-compra')||0,servicio:SERV?SERV.id:undefined,envio:TARIFA[TIPO]||15,propina:PROPINA,avisoWa:(LS().avisoWa!==false),gps:((LS().gps&&LS().gps.lat)?{lat:LS().gps.lat,lng:LS().gps.lng}:undefined)};
   if(window._CART_PED&&d.local&&window._CART_PED.tel===d.local.tel){d.items=window._CART_PED.items.map(function(x){return{nombre:x.nombre,precio:x.precio,qty:x.qty,nota:x.nota||''}})}
   var _tarViaje=TIPO==='viaje'?(parseFloat(v('f-viaje-tarifa'))||TARIFA.viaje):(TARIFA[TIPO]||15);
   if(TIPO==='viaje'&&!isNaN(_tarViaje)&&_tarViaje<1){alert('Tu oferta de viaje tiene que ser mayor a cero.');return}
@@ -1286,6 +1286,7 @@ function pedirGps(){
 }
 async function enviarMsg(){
   var inp=document.getElementById('chat-in');if(!inp)return;var t=inp.value.trim();if(!t||!PID)return;
+  var cl3=document.getElementById('chat-list');if(cl3){cl3.insertAdjacentHTML('beforeend','<div style="margin:4px 0;font-size:13px"><b>🧑 Vos:</b> '+t+'</div>');cl3.scrollTop=cl3.scrollHeight}
   try{await fetch(api('orders'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'msg',id:PID,de:'cliente',tel:ULT_TEL,texto:t})});inp.value='';actualizar();}catch(e){}
 }
 async function contraResp(ok){
@@ -1342,9 +1343,15 @@ async function actualizar(){
   var mapa=document.getElementById('mapa');
   var eta=document.getElementById('etaVivo');if(!eta){eta=document.createElement('div');eta.id='etaVivo';eta.style.cssText='background:#fdeeee;border:2px solid #c1121f;border-radius:12px;padding:10px;margin:8px 0;font-weight:900;color:#7a0c15';mapa.parentNode.insertBefore(eta,mapa.nextSibling)}
   function distKm(a,b){var R=6371,d=Math.PI/180,dl=(b.lat-a.lat)*d,dg=(b.lng-a.lng)*d,x=Math.sin(dl/2)*Math.sin(dl/2)+Math.cos(a.lat*d)*Math.cos(b.lat*d)*Math.sin(dg/2)*Math.sin(dg/2);return R*2*Math.atan2(Math.sqrt(x),Math.sqrt(1-x))}
+  var vic=(o.piloto&&o.piloto.vehiculo==='carro')?'🚗':(o.piloto&&o.piloto.vehiculo==='bicicleta')?'🚲':'🏍️';
+  if(!window.UGPS_T){window.UGPS_T=setInterval(function(){ /* mi punto se mueve si me muevo, quieto si estoy quieto */
+    if(!PID||!navigator.geolocation)return;
+    navigator.geolocation.getCurrentPosition(function(p){var u2=LS();u2.gps={lat:p.coords.latitude,lng:p.coords.longitude};SS(u2);if(window.LMC){window.LMC.setLatLng([p.coords.latitude,p.coords.longitude])}},function(){},{enableHighAccuracy:true,timeout:8000,maximumAge:20000})
+  },30000)}
   if(j.gps&&j.gps.lat){
     mapa.style.display='block';
-    if(!window.LMAP){window.LMAP=L.map('mapa').setView([j.gps.lat,j.gps.lng],15);L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'© OpenStreetMap'}).addTo(window.LMAP);window.LMK=L.circleMarker([j.gps.lat,j.gps.lng],{radius:10,color:'#d1121f',fillColor:'#f0b90b',fillOpacity:.9}).addTo(window.LMAP).bindPopup('Tu piloto DragoExpres')}
+    var mkIcon=L.divIcon({className:'',html:'<div style="font-size:26px;filter:drop-shadow(0 2px 3px rgba(0,0,0,.45))">'+vic+'</div>',iconSize:[30,30],iconAnchor:[15,15]});
+    if(!window.LMAP){window.LMAP=L.map('mapa').setView([j.gps.lat,j.gps.lng],15);L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'© OpenStreetMap'}).addTo(window.LMAP);window.LMK=L.marker([j.gps.lat,j.gps.lng],{icon:mkIcon}).addTo(window.LMAP).bindPopup('Tu piloto DragoExpres viene en '+vic)}
     else{window.LMK.setLatLng([j.gps.lat,j.gps.lng]);window.LMAP.setView([j.gps.lat,j.gps.lng])}
     var uE=LS();
     if(uE.gps&&uE.gps.lat){
@@ -1363,7 +1370,14 @@ async function actualizar(){
       eta.style.display='block';
       eta.innerHTML='⏱️ Activá tu ubicación y te decimos CUÁNTO falta en tiempo real, actualizándose conforme avanza tu piloto. <button onclick="pedirGps()" style="font-weight:900;border:0;border-radius:8px;padding:6px 10px;background:#7a0c15;color:#fff;cursor:pointer">📍 Activar mi ubicación</button>';
     }
-  }else{mapa.style.display='none';eta.style.display='none'}
+  }else{
+    mapa.style.display='none';
+    if(['asignado','aceptado','en_camino'].includes(o.estado)){
+      eta.style.display='block';
+      eta.style.background='#fdeeee';eta.style.borderColor='#c1121f';eta.style.color='#7a0c15';
+      eta.innerHTML='📍 Esperando el GPS de tu piloto — apenas salga con la ubicación prendida, acá cae el mapa con su avance y tu tiempo de llegada en vivo.';
+    }else{eta.style.display='none'}
+  }
   var cf=document.getElementById('calif');
   if(o.estado==='entregado'&&!o.califCliente){
     cf.style.display='block';
@@ -1418,9 +1432,11 @@ async function calificar(n){
 function motivoCalif(t){var e=document.getElementById('califInput');if(e)e.value=t;}
 async function enviarCalifTxt(n){var e=document.getElementById('califInput');await enviarCalif(n,e?e.value:'');}
 async function rapidaCliente(q){
+  /* FIX 2026-10-27: el mensaje se pinta AL INSTANTE (antes tardaba hasta 5s esperando el refresco). */
+  var cl2=document.getElementById('chat-list');
+  if(cl2){cl2.insertAdjacentHTML('beforeend','<div style="margin:4px 0;font-size:13px"><b>🧑 Vos:</b> '+q+'</div>');cl2.scrollTop=cl2.scrollHeight}
   try{await fetch(api('orders'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'msg',id:PID,de:'cliente',tel:ULT_TEL,texto:q})});}catch(e){}
-  var li=document.getElementById('chat-in');if(li)li.value='';
-  tick();
+  actualizar();
 }
 async function enviarCalif(n,txt){
   try{await fetch(api('orders'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'calificar',id:PID,quien:'cliente',tel:ULT_TEL,estrellas:n,texto:(txt||'').trim()})});}catch(e){}
