@@ -12,3 +12,5 @@ Activación de servicio: por área, al llegar a 25 pilotos + 25 locales verifica
 <!-- redespliegue final: llave Supabase corregida por Juan (2026-10-26T23:45) -->
 
 <!-- redespliegue: llave Supabase pegada desde Supabase (2026-10-26T23:57) -->
+
+<!-- trigger 17:33: forzar despliegue completo de api/orders con recoger -->
