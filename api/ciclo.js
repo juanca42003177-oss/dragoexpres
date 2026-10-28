@@ -66,11 +66,19 @@ async function resumenDiario(now) {
   const fecha = new Date(now - TZ).toISOString().slice(0, 10).split('-').reverse().join('/');
   const cab = 'DRAGOEXPRES - Resumen de hoy (' + fecha + ')';
 
+  // CANDADO (Juan 2026-10-28): el cron externo pega a /api/ciclo cada 10 min y el resumen
+  // salia 6 veces por hora. Ahora: UNO por dia, solo desde las 20:00 GT, con registro en pozo.json.
+  if (dGT.getUTCHours() < 20) return 'temprano';
+  const fpzR = await ghGet('pozo.json');
+  const pzR = fpzR ? fpzR.data : {};
+  if (pzR.resumenDia === fecha) return 'ya-enviado';
+  const marco = async () => { try { pzR.resumenDia = fecha; await ghPut('pozo.json', fpzR ? fpzR.sha : null, pzR, 'resumen diario ' + fecha); } catch (e) {} };
+
   if (!hoy.length && !nuevos.length) {
     let txt = cab + '\nSin movimiento hoy: ni pedidos ni registros nuevos.\nPilotos conectados ahora: ' + conectados;
     if (pendientes) txt += '\nPendientes de tu revision en el panel: ' + pendientes;
-    await aviso(txt);
-    return;
+    await aviso(txt); await marco();
+    return 'enviado';
   }
   let t = cab + '\n';
   t += 'Pedidos: ' + hoy.length + ' (' + porTipo.comida + ' comida, ' + porTipo.repuesto + ' repuesto, ' + porTipo.viaje + ' viaje)\n';
@@ -81,7 +89,7 @@ async function resumenDiario(now) {
   t += 'Esperando tu revision en el panel: ' + pendientes + '\n';
   t += 'Pilotos conectados ahora: ' + conectados + '\n\n';
   t += 'El detalle de cada pedido esta en el panel admin. La liquidacion de comisiones te cae aparte cada 72h.';
-  await aviso(t);
+  await aviso(t); await marco();
 }
 
 module.exports = wrap(async (req, res) => {
