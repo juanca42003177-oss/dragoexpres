@@ -38,6 +38,52 @@ async function aviso(texto) {
   } catch (e) { }
 }
 
+
+// ===== RESUMEN DIARIO (Juan 2026-10-28) =====
+// UN solo mensaje al día con el pulso de DragoExpres: pedidos, efectivo movido,
+// comisiones suyas y lo que espera en su panel. Reemplaza el aviso por cada pedido.
+async function resumenDiario(now) {
+  const dGT = new Date(now - TZ);
+  const hoyIni = Date.UTC(dGT.getUTCFullYear(), dGT.getUTCMonth(), dGT.getUTCDate()) + TZ;
+  const fpd = await ghGet('pedidos.json'); const peds = fpd ? fpd.data : [];
+  const hoy = peds.filter(o => (o.ts || 0) >= hoyIni);
+  const ent = hoy.filter(o => o.estado === 'entregado');
+  const can = hoy.filter(o => o.estado === 'cancelado');
+  const porTipo = { comida: 0, repuesto: 0, viaje: 0 };
+  hoy.forEach(o => { if (porTipo[o.tipo] !== undefined) porTipo[o.tipo]++; });
+  const suma = (arr, f) => arr.reduce((a, o) => a + (+f(o) || 0), 0);
+  const compra = suma(ent, o => o.compra), envios = suma(ent, o => o.envio), propinas = suma(ent, o => o.propina);
+  const comis = suma(ent, o => (o.comision || 0) + (o.comisionLocal || 0));
+  const comisEnv = suma(ent, o => o.comision || 0), comisLoc = suma(ent, o => o.comisionLocal || 0);
+  const sinPiloto = peds.filter(o => o.estado === 'buscando').length;
+  const fr = await ghGet('registros.json'); const regs = fr ? fr.data : [];
+  const nuevos = regs.filter(r => (r.ts || 0) >= hoyIni);
+  const cuenta = (t) => nuevos.filter(r => r.tipo === t).length;
+  const pendientes = regs.filter(r => r.estado === 'pendiente_verificacion' || r.estado === 'rechazado_falta_dpi').length;
+  let conectados = 0;
+  try { const fp = await ghGet('pilots.json'); conectados = ((fp ? fp.data : []).filter(x => x.disponible).length); } catch (e) {}
+  const Q = (n) => 'Q' + (Math.round(n * 100) / 100);
+  const fecha = new Date(now - TZ).toISOString().slice(0, 10).split('-').reverse().join('/');
+  const cab = 'DRAGOEXPRES - Resumen de hoy (' + fecha + ')';
+
+  if (!hoy.length && !nuevos.length) {
+    let txt = cab + '\nSin movimiento hoy: ni pedidos ni registros nuevos.\nPilotos conectados ahora: ' + conectados;
+    if (pendientes) txt += '\nPendientes de tu revision en el panel: ' + pendientes;
+    await aviso(txt);
+    return;
+  }
+  let t = cab + '\n';
+  t += 'Pedidos: ' + hoy.length + ' (' + porTipo.comida + ' comida, ' + porTipo.repuesto + ' repuesto, ' + porTipo.viaje + ' viaje)\n';
+  t += 'Entregados: ' + ent.length + ' | Cancelados: ' + can.length + (sinPiloto ? ' | Sin piloto ahora: ' + sinPiloto : '') + '\n';
+  t += 'Efectivo que se movio: ' + Q(compra + envios + propinas) + ' (compra ' + Q(compra) + ', envios ' + Q(envios) + ', propinas ' + Q(propinas) + ')\n';
+  t += 'TUS comisiones de hoy: ' + Q(comis) + (comis ? ' (' + Q(comisEnv) + ' de envios + ' + Q(comisLoc) + ' de locales)' : '') + '\n';
+  t += 'Nuevos: ' + cuenta('piloto') + ' piloto(s), ' + cuenta('local') + ' local(es), ' + cuenta('usuario') + ' usuario(s)\n';
+  t += 'Esperando tu revision en el panel: ' + pendientes + '\n';
+  t += 'Pilotos conectados ahora: ' + conectados + '\n\n';
+  t += 'El detalle de cada pedido esta en el panel admin. La liquidacion de comisiones te cae aparte cada 72h.';
+  await aviso(t);
+}
+
 module.exports = wrap(async (req, res) => {
   const q = req.query || {};
   const b = req.body || {};
@@ -54,6 +100,7 @@ module.exports = wrap(async (req, res) => {
 
   // GET del cron diario (21:00 GT) o ejecución manual
   if (action === 'ejecutar' || (!action && req.method === 'GET')) {
+    try { await resumenDiario(now); } catch (e) {}
     const fpz = await ghGet('pozo.json');
     const pozo = fpz ? fpz.data : {};
     const ultimo = pozo.tsUltimoCiclo || 0;

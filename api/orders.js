@@ -54,6 +54,13 @@ async function ghPut(path, sha, data, msg) {
   });
   if (!r.ok) throw new Error('guardar ' + path + ' HTTP ' + r.status);
 }
+
+// POLITICA DE AVISOS (Juan 2026-10-28): a Telegram solo cae DINERO, EMERGENCIAS y lo que
+// necesita su decision. El detalle de cada pedido vive en el panel admin.
+// DX_AVISOS=todo restaura el comportamiento viejo (un aviso por cada movimiento).
+const AVISOS_TODO = String(process.env.DX_AVISOS || '').toLowerCase() === 'todo';
+async function avisoPedido(texto) { if (AVISOS_TODO) { try { await aviso(texto); } catch (e) {} } }
+
 async function pushATel(telD, obj) {
   try {
     const f = await ghGet('pushsubs.json'); const all = (f ? f.data : []).filter(s => s && s.endpoint && s.keys);
@@ -363,7 +370,7 @@ module.exports = wrap(async (req, res) => {
     peds.push(pedido);
     await ghPut('pedidos.json', fpd ? fpd.sha : null, peds, 'pedido nuevo ' + id);
     const ic = { comida: '🍔', viaje: '🛺', repuesto: '🔧' }[tipo];
-    await aviso(`🚀 DRAGOEXPRES — PEDIDO NUEVO ${ic}\n${id} · ${tipo.toUpperCase()} · ${zona || '(sin zona)'}\nCliente: ${nombre} (${tel})\n${pedido.local ? 'Local: ' + pedido.local.nombre + ' · ' : ''}Detalle: ${String(b.detalle).slice(0, 120)}${servicio ? '\n🔧 Servicio mecánico: ' + servicio.nombre + ' Q' + servicio.precio + ' (mecánico: ' + servicio.mecanico + ', llega en ' + servicio.veh + ' ' + servicio.color + ' ' + servicio.marca + ', placa ' + servicio.placa + ')' : ''}\nEnvío: Q${envio} (${tipo === 'viaje' ? (tarifaPropuesta ? 'TARIFA PROPUESTA por el cliente' : 'tarifa normal de viajes') : 'tarifa fija'})${recargo ? ' · 🌙 Incluye recargo nocturno Q' + recargo + ' (100% piloto, sin comisión)' : ''}${propina ? ' · Propina voluntaria: Q' + propina + ' (100% piloto)' : ''} · Comisión DragoExpres: Q${pedido.comision}${pedido.comisionLocal ? ' · 10% al local (zona operativa >90 días): Q' + pedido.comisionLocal : ''}\n${pago === 'transferencia' ? '💳 Pago: TRANSFERENCIA al Banco Industrial' + (referencia ? ' · Ref: ' + referencia : ' · (sin referencia, verificar)') : '💵 Pago: EFECTIVO al piloto'}${promoFiel ? '\n🎁 ENVÍO GRATIS — PROMO CLIENTE FIEL: pedido n.º ' + (entFiel + 1) + ' del cliente (promo cliente fiel LIMITADA: 30 pedidos entregados = su envío gratis, UNA SOLA VEZ por usuario). El piloto cobra su envío COMPLETO (Q' + envioTarifa + ') como cashback en la liquidación de 72h. Lo pagan las comisiones que este cliente ya generó: NO sale de tu bolsa.' : ''}\n${pedido.piloto ? '→ Asignado AUTOMÁTICAMENTE a: ' + pedido.piloto.nombre + ' (' + pedido.piloto.tel + ')' : '→ SIN piloto disponible ahora, queda BUSCANDO'}`);
+    await avisoPedido(`🚀 DRAGOEXPRES — PEDIDO NUEVO ${ic}\n${id} · ${tipo.toUpperCase()} · ${zona || '(sin zona)'}\nCliente: ${nombre} (${tel})\n${pedido.local ? 'Local: ' + pedido.local.nombre + ' · ' : ''}Detalle: ${String(b.detalle).slice(0, 120)}${servicio ? '\n🔧 Servicio mecánico: ' + servicio.nombre + ' Q' + servicio.precio + ' (mecánico: ' + servicio.mecanico + ', llega en ' + servicio.veh + ' ' + servicio.color + ' ' + servicio.marca + ', placa ' + servicio.placa + ')' : ''}\nEnvío: Q${envio} (${tipo === 'viaje' ? (tarifaPropuesta ? 'TARIFA PROPUESTA por el cliente' : 'tarifa normal de viajes') : 'tarifa fija'})${recargo ? ' · 🌙 Incluye recargo nocturno Q' + recargo + ' (100% piloto, sin comisión)' : ''}${propina ? ' · Propina voluntaria: Q' + propina + ' (100% piloto)' : ''} · Comisión DragoExpres: Q${pedido.comision}${pedido.comisionLocal ? ' · 10% al local (zona operativa >90 días): Q' + pedido.comisionLocal : ''}\n${pago === 'transferencia' ? '💳 Pago: TRANSFERENCIA al Banco Industrial' + (referencia ? ' · Ref: ' + referencia : ' · (sin referencia, verificar)') : '💵 Pago: EFECTIVO al piloto'}${promoFiel ? '\n🎁 ENVÍO GRATIS — PROMO CLIENTE FIEL: pedido n.º ' + (entFiel + 1) + ' del cliente (promo cliente fiel LIMITADA: 30 pedidos entregados = su envío gratis, UNA SOLA VEZ por usuario). El piloto cobra su envío COMPLETO (Q' + envioTarifa + ') como cashback en la liquidación de 72h. Lo pagan las comisiones que este cliente ya generó: NO sale de tu bolsa.' : ''}\n${pedido.piloto ? '→ Asignado AUTOMÁTICAMENTE a: ' + pedido.piloto.nombre + ' (' + pedido.piloto.tel + ')' : '→ SIN piloto disponible ahora, queda BUSCANDO'}`);
     return res.status(200).json({ ok: true, pedido });
   }
 
@@ -752,7 +759,7 @@ module.exports = wrap(async (req, res) => {
     await ghPut('pedidos.json', fpd.sha, peds, 'contraoferta ' + id);
     // PUSH al cliente: sin esto solo se enteraba si tenía abierta la pantalla de seguimiento (bug Juan 2026-10-27)
     try { await pushATel(o.cliente.tel, { title: tipoContra === 'propina' ? '🙏 Tu piloto pide propina de Q' + monto : '🛺 Tu piloto pide Q' + monto + ' por el viaje', body: 'Tenés ' + segundos + ' segundos para decidir. Abrí la app AHORA para aceptar o rechazar.', tag: 'dx-' + id, url: 'https://dragoexpres.vercel.app/pedir.html' }); } catch (e) { }
-    await aviso(`🚀 DRAGOEXPRES — ${o.tipo.toUpperCase()} ${id}\n${tipoContra === 'propina' ? '🙏 ' + p.datos.nombre + ' PIDE PROPINA EXTRA: Q' + monto + ' (envío fijo Q' + o.envio + ', opcional para el cliente por distancia)' : '🛺 ' + p.datos.nombre + ' PIDE MÁS: Q' + monto + (o.tarifaPropuesta ? ' (el cliente OFRECÍA Q' + o.envio + ' como propuesta)' : ' (tarifa fija Q' + o.envio + ')')}\n⏱️ El cliente tiene ${segundos}s para aceptar${pocos ? ' (60s porque hay POCOS PILOTOS cerca)' : ''}\nCliente: ${o.cliente.nombre} (${o.cliente.tel})`);
+    await avisoPedido(`🚀 DRAGOEXPRES — ${o.tipo.toUpperCase()} ${id}\n${tipoContra === 'propina' ? '🙏 ' + p.datos.nombre + ' PIDE PROPINA EXTRA: Q' + monto + ' (envío fijo Q' + o.envio + ', opcional para el cliente por distancia)' : '🛺 ' + p.datos.nombre + ' PIDE MÁS: Q' + monto + (o.tarifaPropuesta ? ' (el cliente OFRECÍA Q' + o.envio + ' como propuesta)' : ' (tarifa fija Q' + o.envio + ')')}\n⏱️ El cliente tiene ${segundos}s para aceptar${pocos ? ' (60s porque hay POCOS PILOTOS cerca)' : ''}\nCliente: ${o.cliente.nombre} (${o.cliente.tel})`);
     return res.status(200).json({ ok: true, pedido: o });
   }
 
@@ -774,7 +781,7 @@ module.exports = wrap(async (req, res) => {
       o.contra = null;
       o.estado = 'aceptado'; o.tsAceptado = now; o.contraAceptado = now;
       await ghPut('pedidos.json', fpd.sha, peds, 'cliente acepto aumento ' + id);
-      await aviso(`🚀 DRAGOEXPRES — ${o.tipo.toUpperCase()} ${id}\n✅ ${o.cliente.nombre} ACEPTÓ ${o.tipo === 'viaje' ? 'el aumento del piloto: ahora el envío es Q' + o.envio : 'la propina extra de Q' + (o.propina || 0) + ' (envío fijo Q' + o.envio + ')'}\n🛺 Piloto: ${o.piloto.nombre} · Tu comisión: Q${o.comision}`);
+      await avisoPedido(`🚀 DRAGOEXPRES — ${o.tipo.toUpperCase()} ${id}\n✅ ${o.cliente.nombre} ACEPTÓ ${o.tipo === 'viaje' ? 'el aumento del piloto: ahora el envío es Q' + o.envio : 'la propina extra de Q' + (o.propina || 0) + ' (envío fijo Q' + o.envio + ')'}\n🛺 Piloto: ${o.piloto.nombre} · Tu comisión: Q${o.comision}`);
       return res.status(200).json({ ok: true, pedido: o });
     }
     if (o.contra.tipo === 'propina') {
@@ -783,12 +790,12 @@ module.exports = wrap(async (req, res) => {
       o.contraRechazos = (o.contraRechazos || []).concat([o.piloto.tel]);
       o.contra = null; o.estado = 'asignado'; o.tsAsignado = now; // ventana fresca de 30s para aceptar o rechazar
       await ghPut('pedidos.json', fpd.sha, peds, 'cliente no dio propina ' + id);
-      await aviso(`🚀 DRAGOEXPRES — ${o.tipo.toUpperCase()} ${id}\n❌ ${o.cliente.nombre} NO dio la propina extra (opcional). El pedido le queda a ${o.piloto.nombre}: es su decision si lo hace sin propina o lo rechaza. Cero cobro obligatorio.`);
+      await avisoPedido(`🚀 DRAGOEXPRES — ${o.tipo.toUpperCase()} ${id}\n❌ ${o.cliente.nombre} NO dio la propina extra (opcional). El pedido le queda a ${o.piloto.nombre}: es su decision si lo hace sin propina o lo rechaza. Cero cobro obligatorio.`);
       return res.status(200).json({ ok: true, pedido: o });
     }
     o.contraRechazos = (o.contraRechazos || []).concat([o.piloto.tel]);
     await redispatchViaje(o, peds, fpd.sha);
-    await aviso(`🚀 DRAGOEXPRES — VIAJE ${id}\n❌ ${o.cliente.nombre} RECHAZÓ el aumento de ${o.piloto.nombre}. El viaje volvió a búsqueda con tarifa fija Q${o.envio}.`);
+    await avisoPedido(`🚀 DRAGOEXPRES — VIAJE ${id}\n❌ ${o.cliente.nombre} RECHAZÓ el aumento de ${o.piloto.nombre}. El viaje volvió a búsqueda con tarifa fija Q${o.envio}.`);
     return res.status(200).json({ ok: true, pedido: o });
   }
 
@@ -817,7 +824,7 @@ module.exports = wrap(async (req, res) => {
          los viera en su lista (bug del test de Juan, 2026-10-27). Ya no existe. */
       o.estado = 'aceptado'; o.piloto = Object.assign({ tel, nombre: p.datos.nombre }, vehInfo(p.datos)); o.tsAceptado = now;
       await ghPut('pedidos.json', fpd.sha, peds, 'aceptado ' + id);
-      await aviso(`🚀 DRAGOEXPRES — Pedido ${id}\n✅ ${p.datos.nombre} ACEPTÓ el pedido (${o.tipo})\nCliente: ${o.cliente.nombre}\n→ El piloto va en camino. Estado: ACEPTADO`);
+      await avisoPedido(`🚀 DRAGOEXPRES — Pedido ${id}\n✅ ${p.datos.nombre} ACEPTÓ el pedido (${o.tipo})\nCliente: ${o.cliente.nombre}\n→ El piloto va en camino. Estado: ACEPTADO`);
       try { await pushATel(o.cliente.tel, { title: '🛺 ¡Tu pedido ' + id + ' ya tiene piloto!', body: String(p.datos.nombre) + ' lo va a buscar ahora. Abrí la app para seguirlo en vivo.', tag: 'dx-' + id, url: 'https://dragoexpres.vercel.app/pedir.html' }); } catch (e) { }
       return res.status(200).json({ ok: true, pedido: o });
     }
@@ -837,7 +844,7 @@ module.exports = wrap(async (req, res) => {
       o.estado = 'buscando'; o.piloto = null;
       try { const fp2 = await ghGet('pilots.json'); const a2 = fp2 ? fp2.data : []; const sr = a2.find(x => x.tel === tel); if (sr && sr.racha) { sr.racha = 0; await ghPut('pilots.json', fp2 ? fp2.sha : null, a2, 'racha rota ' + tel); } } catch (e) {}
       await ghPut('pedidos.json', fpd.sha, peds, 'rechazado ' + id);
-      await aviso(`🚀 DRAGOEXPRES — Pedido ${id}\n⚠️ Un piloto rechazó → volvió a BUSCANDO, se lo ofrecemos a otro piloto de la zona.`);
+      await avisoPedido(`🚀 DRAGOEXPRES — Pedido ${id}\n⚠️ Un piloto rechazó → volvió a BUSCANDO, se lo ofrecemos a otro piloto de la zona.`);
       return res.status(200).json({ ok: true, pedido: o });
     }
     if (action === 'recoger') { // VIAJE estilo las grandes: pasajero A BORDO → fase de DESTINO
@@ -846,7 +853,7 @@ module.exports = wrap(async (req, res) => {
       o.estado = 'recogido'; o.tsRecogido = now;
       await ghPut('pedidos.json', fpd.sha, peds, 'recogido ' + id);
       try { await pushATel(o.cliente.tel, { title: '🛺 ¡Tu piloto te recogió!', body: 'Vamos a tu destino. Abrí la app: la ruta y el tiempo en vivo ya están en el mapa.', tag: 'dx-' + id, url: 'https://dragoexpres.vercel.app/pedir.html' }); } catch (e) { }
-      await aviso(`🚀 DRAGOEXPRES — VIAJE ${id}\n🧍 ${o.piloto.nombre} RECOGIÓ a ${o.cliente.nombre}. Fase de DESTINO.`);
+      await avisoPedido(`🚀 DRAGOEXPRES — VIAJE ${id}\n🧍 ${o.piloto.nombre} RECOGIÓ a ${o.cliente.nombre}. Fase de DESTINO.`);
       return res.status(200).json({ ok: true, pedido: o });
     }
     if (action === 'avanzar') {
@@ -899,7 +906,7 @@ module.exports = wrap(async (req, res) => {
             st = st2; gananciaPiloto = gp;
           } catch (e) { /* 409: reintenta con datos frescos */ }
         }
-        await aviso(`🚀 DRAGOEXPRES — Pedido ${id} ENTREGADO ✅\n${o.piloto.nombre} completó ${o.tipo}\nEnvío Q${o.envio}${o.propina ? ' + propina Q' + o.propina : ''} → piloto gana Q${gananciaPiloto} · Comisión DragoExpres: Q${dinero(o.comision + (o.comisionLocal || 0))}${o.comisionLocal ? ' (envío Q' + o.comision + ' + local Q' + o.comisionLocal + ')' : ''}${flotaTxt}\nCliente: ${o.cliente.nombre}${bonoTxt}${promoTxt}`);
+        await avisoPedido(`🚀 DRAGOEXPRES — Pedido ${id} ENTREGADO ✅\n${o.piloto.nombre} completó ${o.tipo}\nEnvío Q${o.envio}${o.propina ? ' + propina Q' + o.propina : ''} → piloto gana Q${gananciaPiloto} · Comisión DragoExpres: Q${dinero(o.comision + (o.comisionLocal || 0))}${o.comisionLocal ? ' (envío Q' + o.comision + ' + local Q' + o.comisionLocal + ')' : ''}${flotaTxt}\nCliente: ${o.cliente.nombre}${bonoTxt}${promoTxt}`);
         try { await pushATel(o.cliente.tel, { title: '✅ ¡Tu pedido ' + id + ' fue entregado!', body: 'Gracias por pedir con el dragón 🐉 Calificá a tu piloto en la app.', tag: 'dx-' + id, url: 'https://dragoexpres.vercel.app/pedir.html' }); } catch (e) { }
         if (!st) return res.status(200).json({ ok: false, error: 'Tu entrega quedó registrada pero no pudimos acreditar tu pago justo ahora. Avisale al administrador por WhatsApp para acreditarlo a mano.' });
         return res.status(200).json({ ok: true, pedido: o, ganadoHoy: st.ganadoHoy, ganadoSemana: st.ganadoSemana });
