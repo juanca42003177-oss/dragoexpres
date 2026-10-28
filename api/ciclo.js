@@ -69,6 +69,11 @@ async function resumenDiario(now) {
   // CANDADO (Juan 2026-10-28): el cron externo pega a /api/ciclo cada 10 min y el resumen
   // salia 6 veces por hora. Ahora: UNO por dia, solo desde las 20:00 GT, con registro en pozo.json.
   if (dGT.getUTCHours() < 20) return 'temprano';
+  // Solo el cron de Vercel o una peticion manual explicita pueden disparar el resumen.
+  // Cualquier monitor externo que llame /api/ciclo NO manda mensajes (Juan 2026-10-28).
+  const esCronVercel = !!(req.headers && (req.headers['x-vercel-cron'] || req.headers['x-vercel-cron-auth-token']));
+  const pideManual = String((req.query && req.query.resumen) || '') === '1';
+  if (!esCronVercel && !pideManual) return 'sin-permiso';
   const fpzR = await ghGet('pozo.json');
   const pzR = fpzR ? fpzR.data : {};
   if (pzR.resumenDia === fecha) return 'ya-enviado';
@@ -108,6 +113,12 @@ module.exports = wrap(async (req, res) => {
 
   // GET del cron diario (21:00 GT) o ejecución manual
   if (action === 'ejecutar' || (!action && req.method === 'GET')) {
+    // TELEMETRIA (Juan 2026-10-28): quien esta llamando a /api/ciclo cada 10 min
+    try {
+      const fT = await ghGet('pozo.json'); const pzT = fT ? fT.data : {};
+      pzT.llamadas = (pzT.llamadas || []).concat([{ ts: now, ua: String((req.headers && req.headers['user-agent']) || '').slice(0, 90), ip: String((req.headers && (req.headers['x-forwarded-for'] || req.headers['x-real-ip'])) || '').slice(0, 40), cron: !!(req.headers && req.headers['x-vercel-cron']) }]).slice(-8);
+      await ghPut('pozo.json', fT ? fT.sha : null, pzT, 'telemetria ciclo');
+    } catch (e) {}
     try { await resumenDiario(now); } catch (e) {}
     const fpz = await ghGet('pozo.json');
     const pozo = fpz ? fpz.data : {};
