@@ -994,8 +994,18 @@ function abrirCart(){
       +'<button style="width:32px;height:32px;border-radius:9px;border:2px solid #f0b90b;background:#1a1a22;color:#f0b90b;font-size:17px;font-weight:900;cursor:pointer" onclick="cartQty('+i+',1)">+</button>'
       +'<button style="width:32px;height:32px;border-radius:9px;border:2px solid #a33;background:#2a1214;color:#f88;font-weight:900;cursor:pointer" onclick="cartDel('+i+')">✕</button></div></div>';
   });
-  h+='<div class="card" style="display:flex;justify-content:space-between;padding:10px 12px"><b>TOTAL DE COMPRA</b><b style="color:var(--rojo)">Q'+cartTotal(c)+'</b></div>'
-    +'<p class="mini">El envío (tarifa fija) y la propina se suman en el paso final. Todo se paga en efectivo al recibir.</p>'
+  var _lc=(LOCALES[c.idx]||{});
+  var _rub=String(_lc.rubro||'').toLowerCase();
+  var _esRep=(_rub.indexOf('repuesto')>=0||_rub.indexOf('taller')>=0);
+  var _envio=_esRep?(TARIFA.repuesto||20):(TARIFA.comida||15);
+  var _sub=cartTotal(c);
+  var _total=_sub+_envio;
+  h+='<div class="card" style="padding:12px">'
+    +'<div style="display:flex;justify-content:space-between;font-size:14px"><span>🛍 Productos ('+c.items.reduce(function(s2,x){return s2+x.qty},0)+')</span><b>Q'+_sub+'</b></div>'
+    +'<div style="display:flex;justify-content:space-between;font-size:14px;margin-top:7px"><span>🛵 Envío DragoExpres</span><b>Q'+_envio+'</b></div>'
+    +'<div style="display:flex;justify-content:space-between;margin-top:11px;padding-top:11px;border-top:1px solid #2a2b38;font-size:17px"><b>TOTAL EN EFECTIVO</b><b style="color:#38d66a">Q'+_total+'</b></div>'
+    +'</div>'
+    +'<p class="mini">Pagás en efectivo al recibir. Al local le entregás el valor de los productos (Q'+_sub+'); el envío (Q'+_envio+') es del piloto. La propina es opcional y la elegís en el paso final.</p>'
     +'<button class="btn bA" onclick="verMenu('+c.idx+')" style="background:#333;color:#fff;box-shadow:none">+ Agregar más productos</button>';
   document.getElementById('cartBody').innerHTML=h;
   document.getElementById('veil').style.display='block';
