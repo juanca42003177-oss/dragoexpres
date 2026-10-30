@@ -959,7 +959,7 @@ function cartAdd(idx,id){
   if(c&&tel&&c.tel!==tel)c=null; // cambiaste de local: carrito nuevo
   if(!c)c={tel:tel,nombre:l.nombre||LOCAL_PRE||'',idx:idx,items:[]};
   var ex=nota?null:c.items.find(function(x){return x.id===id});
-  if(ex)ex.qty+=QTY;else c.items.push({id:id,nombre:it.nombre,precio:it.precio,qty:QTY,nota:nota});
+  if(ex)ex.qty+=QTY;else c.items.push({id:id,nombre:it.nombre,precio:it.precio,qty:QTY,nota:nota,foto:it.foto||''});
   cartSave(c);
   document.getElementById('prodSheet').style.display='none';
   document.getElementById('menuSheet').style.display='block';
@@ -1191,7 +1191,7 @@ async function enviar(){
   }catch(e){}
   var telCli=v('f-tel')||u.tel;MI_TEL=telCli;
   var d={action:'crear',tipo:TIPO,local:(LOCAL_TEL?{nombre:LOCAL_PRE,tel:LOCAL_TEL}:undefined),nombre:v('f-nombre')||u.nombre,tel:telCli,zona:zonaValor(),direccion:v('f-dir'),referencia:v('f-ref'),detalle:v('f-det'),compra:v('f-compra')||0,servicio:SERV?SERV.id:undefined,envio:TARIFA[TIPO]||15,propina:PROPINA,avisoWa:(LS().avisoWa!==false),gps:((LS().gps&&LS().gps.lat)?{lat:LS().gps.lat,lng:LS().gps.lng}:undefined),destinoGPS:(TIPO==='viaje'&&window.DEST_GPS)?window.DEST_GPS:undefined};
-  if(window._CART_PED&&d.local&&window._CART_PED.tel===d.local.tel){d.items=window._CART_PED.items.map(function(x){return{nombre:x.nombre,precio:x.precio,qty:x.qty,nota:x.nota||''}})}
+  if(window._CART_PED&&d.local&&window._CART_PED.tel===d.local.tel){d.items=window._CART_PED.items.map(function(x){return{nombre:x.nombre,precio:x.precio,qty:x.qty,nota:x.nota||'',foto:x.foto||''}})}
   var _tarViaje=TIPO==='viaje'?(parseFloat(v('f-viaje-tarifa'))||TARIFA.viaje):(TARIFA[TIPO]||15);
   if(TIPO==='viaje'&&!isNaN(_tarViaje)&&_tarViaje<1){alert('Tu oferta de viaje tiene que ser mayor a cero.');return}
   if(TIPO==='viaje')d.tarifa=_tarViaje;

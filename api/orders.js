@@ -337,7 +337,7 @@ module.exports = wrap(async (req, res) => {
       id, tipo, zona,
       cliente: { nombre, tel, direccion: String(b.direccion).slice(0, 500), referencia: String(b.referencia || '').slice(0, 500), gps: (b.gps && isFinite(+b.gps.lat) && isFinite(+b.gps.lng)) ? { lat: +b.gps.lat, lng: +b.gps.lng } : undefined },
       detalle: String(b.detalle).slice(0, 800),
-      items: Array.isArray(b.items) ? b.items.slice(0, 30).map(x => ({ nombre: String(x.nombre || '').slice(0, 60), qty: Math.max(1, Math.min(50, +x.qty || 1)), precio: dinero(x.precio || 0), nota: String(x.nota || '').slice(0, 120) })) : undefined,
+      items: Array.isArray(b.items) ? b.items.slice(0, 30).map(x => ({ nombre: String(x.nombre || '').slice(0, 60), qty: Math.max(1, Math.min(50, +x.qty || 1)), precio: dinero(x.precio || 0), nota: String(x.nota || '').slice(0, 120), foto: /^https?:\/\//.test(String(x.foto || '')) ? String(x.foto).slice(0, 300) : undefined })) : undefined,
       compra: dinero(b.compra || 0), servicio: servicio || undefined, envio, tarifaPropuesta: tarifaPropuesta || undefined, destinoGPS: (b.destinoGPS && isFinite(+b.destinoGPS.lat) && isFinite(+b.destinoGPS.lng)) ? { lat: +b.destinoGPS.lat, lng: +b.destinoGPS.lng } : undefined, promoFiel: promoFiel || undefined, promoTarifa: promoFiel ? envioTarifa : undefined, propina, comision: promoFiel ? 0 : comisionDe(tipo, envioTarifa - recargo), comisionLocal, nocturno, recargo,
       estado: 'buscando', piloto: null, ts: now, pago, referencia, local: localObj || undefined, avisoWa: b.avisoWa !== false
     };
