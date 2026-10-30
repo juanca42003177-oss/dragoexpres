@@ -208,9 +208,60 @@ function bld(on){return [27,69,on?1:0]}
 function nl(){return [10]}
 function feed(n){var a=[];for(var i=0;i<n;i++)a.push(10);return a}
 function cut(){return [29,86,66,0]}
-function epTicket(o){
+function logoUrlEP(o){
+  var r=String((o&&o._rubro)||'').toLowerCase()||String((o&&o.tipo)||'comida').toLowerCase();
+  if(r.indexOf('repuesto')>=0||r.indexOf('taller')>=0)return 'https://dragoexpres.vercel.app/img/repuestos.png';
+  if(r.indexOf('tienda')>=0)return 'https://dragoexpres.vercel.app/img/dragon-paquete.webp';
+  return 'https://dragoexpres.vercel.app/img/dragon-local.png';
+}
+function cargarLogoEP(url){
+  return new Promise(function(res){
+    try{
+      var im=new Image();
+      im.onload=function(){res(im)};
+      im.onerror=function(){res(null)};
+      setTimeout(function(){res(null)},2500);
+      im.src=url;
+    }catch(e){res(null)}
+  });
+}
+function imgABytes(img,ancho){
+  try{
+    var W=ancho||384;
+    var h=Math.round(img.height*(W/img.width));
+    if(h>260)h=260;
+    if(h<8)return [];
+    var cv=document.createElement('canvas');cv.width=W;cv.height=h;
+    var cx=cv.getContext('2d');
+    cx.fillStyle='#fff';cx.fillRect(0,0,W,h);
+    cx.drawImage(img,0,0,W,h);
+    var d=cx.getImageData(0,0,W,h).data;
+    var bytes=[];
+    for(var y=0;y<h;y++){
+      for(var xb=0;xb<W;xb+=8){
+        var b=0;
+        for(var bit=0;bit<8;bit++){
+          var i4=((y*W)+(xb+bit))*4;
+          var lum=0.299*d[i4]+0.587*d[i4+1]+0.114*d[i4+2];
+          if(lum<128)b|=(0x80>>bit);
+        }
+        bytes.push(b);
+      }
+    }
+    var xL=(W/8)&255,xH=((W/8)>>8)&255,yL=h&255,yH=(h>>8)&255;
+    return [0x1D,0x76,0x30,0x00,xL,xH,yL,yH].concat(bytes);
+  }catch(e){return []}
+}
+async function logoEP(o){
+  try{
+    var im=await cargarLogoEP(logoUrlEP(o));
+    if(!im)return [];
+    return imgABytes(im,384);
+  }catch(e){return []}
+}
+function epTicket(o,logo){
   var W=30;
-  var out=[].concat(escInit(),ctr(1),bld(1),txb('DRAGOEXPRES'),nl(),bld(0),txb('PEDIDO '+o.id),nl(),txb(new Date(o.ts||Date.now()).toLocaleString('es-GT')),nl(),ctr(0),feed(2));
+  var out=[].concat(escInit(),(logo&&logo.length)?ctr(1).concat(logo,nl(),feed(1)):[],ctr(1),bld(1),txb('DRAGOEXPRES'),nl(),bld(0),txb('PEDIDO '+o.id),nl(),txb(new Date(o.ts||Date.now()).toLocaleString('es-GT')),nl(),ctr(0),feed(2));
   out=out.concat(bld(1),txb('CLIENTE'),bld(0),nl());
   out=out.concat(wrp(((o.cliente&&o.cliente.nombre)||'')+' '+((o.cliente&&o.cliente.direccion)||''),W).map(function(x){return txb(x).concat(nl())}));
   if(o.cliente&&o.cliente.referencia)out=out.concat(wrp('REF: '+o.cliente.referencia,W).map(function(x){return txb(x).concat(nl())}));
@@ -235,7 +286,7 @@ async function btImprimir(){
     try{ch=await (await g.getPrimaryService('000018f0-0000-1000-8000-00805f9b34fb')).getCharacteristic('00002af1-0000-1000-8000-00805f9b34fb')}catch(e){
       try{ch=await (await g.getPrimaryService('0000ff00-0000-1000-8000-00805f9b34fb')).getCharacteristic('0000ff02-0000-1000-8000-00805f9b34fb')}catch(e2){}}
     if(!ch){alert('No se encontro el canal de impresion. Proba con el boton de opciones del sistema.');return}
-    var o=JSON.parse(b64d(D64));var data=epTicket(o);
+    var o=JSON.parse(b64d(D64));var _lg=[];try{_lg=await logoEP(o)}catch(e){}var data=epTicket(o,_lg);
     for(var i=0;i<data.length;i+=180){await ch.writeValue(data.slice(i,i+180));await new Promise(function(r){setTimeout(r,40)})}
     st.textContent=' Ticket enviado a la impresora';
     setTimeout(function(){try{g.disconnect()}catch(e){}},1500);
@@ -249,11 +300,12 @@ function ticket(o){
   var filas=(o.detalle||'').replace(/</g,'&lt;').replace(/\n/g,'<br>');
   var cli=(o.cliente&&o.cliente.nombre)||'';var dir=(o.cliente&&(o.cliente.direccion||''))||'';
   var ref=(o.cliente&&(o.cliente.referencia||''))||'';
+  try{o._rubro=(typeof RUBRO!=='undefined'?RUBRO:'')}catch(e){}
   var D64=btoa(unescape(encodeURIComponent(JSON.stringify(o))));
-  var RUB_TK=String((o&&o.tipo)||((typeof RUBRO!=='undefined')?RUBRO:'')||'comida').toLowerCase();
-  var LOGO_TK=(RUB_TK.indexOf('repuesto')>=0||RUB_TK.indexOf('taller')>=0)?'https://dragoexpres.vercel.app/img/repuestos.png':'https://dragoexpres.vercel.app/img/dragon-local.png';
+  var RUB_TK=String(((typeof RUBRO!=='undefined'&&RUBRO)?RUBRO:'')||(o&&o.tipo)||'comida').toLowerCase();
+  var LOGO_TK=(RUB_TK.indexOf('repuesto')>=0||RUB_TK.indexOf('taller')>=0)?'https://dragoexpres.vercel.app/img/repuestos.png':((RUB_TK.indexOf('tienda')>=0)?'https://dragoexpres.vercel.app/img/dragon-paquete.webp':'https://dragoexpres.vercel.app/img/dragon-local.png');
   w.document.write('<!DOCTYPE html><html><head><title>Ticket '+o.id+'</title><meta name="viewport" content="width=device-width,initial-scale=1"><script>var D64="'+D64+'";'+BTJS+'<\/script><style>body{font-family:monospace;font-size:13px;margin:12px;max-width:320px}.c{text-align:center}hr{border:0;border-top:1px dashed #000;margin:6px 0}b{font-size:15px}button{font-family:sans-serif;font-size:14px;font-weight:700;border:0;border-radius:10px;padding:12px;margin:5px;width:100%;cursor:pointer}#btStatus{font-size:12px}</style></head><body>'
-   +'<div class="c"><img src="'+LOGO_TK+'" style="height:56px;border-radius:8px"><br><b>DRAGOEXPRES</b></div><hr>'
+   +'<div class="c"><img src="'+LOGO_TK+'" style="height:72px;border-radius:8px"><br><b>DRAGOEXPRES</b></div><hr>'
    +'<div class="c">Pedido <b>'+o.id+'</b></div><div class="c">'+fecha.toLocaleString('es-GT')+'</div><hr>'
    +'<b>CLIENTE:</b> '+cli+'<br><b>DIRECCIÓN:</b> '+dir+(ref?'<br><b>REF:</b> '+ref:'')+'<hr>'
    +'<b>PEDIDO:</b><br>'+filas+'<hr>'
