@@ -133,6 +133,14 @@ input,textarea,select{-webkit-user-select:text;user-select:text}
       <button class="btn bA" onclick="servAdd()">🔧 ACTIVAR SERVICIO</button>
     </div>
     </div>
+    <h3 style="color:#f0b90b;margin:16px 0 4px;font-size:15px">🖨️ Mi impresora</h3>
+    <div class="card" style="padding:12px 14px;margin:0 0 10px">
+      <label style="display:flex;align-items:center;gap:10px;cursor:pointer;margin:0">
+        <input type="checkbox" id="cfg-logo-termica" onchange="guardarLogoTermica()" style="width:22px;height:22px;accent-color:#f0b90b;flex:none">
+        <span style="font-size:14px"><b>Imprimir el logo del dragón en el ticket</b><br>
+        <span class="mini">Sale en blanco y negro arriba de DRAGOEXPRES. Quitalo cuando haya muchos pedidos seguidos: sin logo el ticket sale más rápido.</span></span>
+      </label>
+    </div>
     <h3 style="color:#f0b90b;margin:16px 0 4px;font-size:15px">Pedidos de tu local</h3>
     <div id="pedidos"></div>
     <div class="card"><b>📊 Tu local</b><div class="mini" id="stats"></div></div>
@@ -286,13 +294,23 @@ async function btImprimir(){
     try{ch=await (await g.getPrimaryService('000018f0-0000-1000-8000-00805f9b34fb')).getCharacteristic('00002af1-0000-1000-8000-00805f9b34fb')}catch(e){
       try{ch=await (await g.getPrimaryService('0000ff00-0000-1000-8000-00805f9b34fb')).getCharacteristic('0000ff02-0000-1000-8000-00805f9b34fb')}catch(e2){}}
     if(!ch){alert('No se encontro el canal de impresion. Proba con el boton de opciones del sistema.');return}
-    var o=JSON.parse(b64d(D64));var _lg=[];try{_lg=await logoEP(o)}catch(e){}var data=epTicket(o,_lg);
+    var o=JSON.parse(b64d(D64));var _lg=[];try{if(o._logoTerm!==false)_lg=await logoEP(o)}catch(e){}var data=epTicket(o,_lg);
     for(var i=0;i<data.length;i+=180){await ch.writeValue(data.slice(i,i+180));await new Promise(function(r){setTimeout(r,40)})}
     st.textContent=' Ticket enviado a la impresora';
     setTimeout(function(){try{g.disconnect()}catch(e){}},1500);
   }catch(e){st.textContent='No se pudo: '+(e.message||e)}
 }
 `;
+function logoTermicaOn(){ try { return localStorage.getItem('dx_logo_termica') !== '0'; } catch(e){ return true; } }
+function guardarLogoTermica(){
+  try {
+    var on = document.getElementById('cfg-logo-termica').checked;
+    localStorage.setItem('dx_logo_termica', on ? '1' : '0');
+  } catch(e){}
+}
+function pintarCasillaLogo(){
+  try { var cb = document.getElementById('cfg-logo-termica'); if (cb) cb.checked = logoTermicaOn(); } catch(e){}
+}
 function ticket(o){
   var w=window.open('','_blank','width=380,height=600');
   if(!w){alert('Permití las ventanas emergentes para imprimir el ticket.');return}
@@ -301,6 +319,8 @@ function ticket(o){
   var cli=(o.cliente&&o.cliente.nombre)||'';var dir=(o.cliente&&(o.cliente.direccion||''))||'';
   var ref=(o.cliente&&(o.cliente.referencia||''))||'';
   try{o._rubro=(typeof RUBRO!=='undefined'?RUBRO:'')}catch(e){}
+  try { o._rubro=(typeof RUBRO!=='undefined'?RUBRO:''); } catch(e){}
+  try { o._logoTerm = logoTermicaOn(); } catch(e){ o._logoTerm = true; }
   var D64=btoa(unescape(encodeURIComponent(JSON.stringify(o))));
   var RUB_TK=String(((typeof RUBRO!=='undefined'&&RUBRO)?RUBRO:'')||(o&&o.tipo)||'comida').toLowerCase();
   var LOGO_TK=(RUB_TK.indexOf('repuesto')>=0||RUB_TK.indexOf('taller')>=0)?'https://dragoexpres.vercel.app/img/repuestos.png':((RUB_TK.indexOf('tienda')>=0)?'https://dragoexpres.vercel.app/img/dragon-paquete.webp':'https://dragoexpres.vercel.app/img/dragon-local.png');
@@ -356,6 +376,7 @@ function itemRow(it){
   '<button class="bMini bX" onclick="menuDel(\''+it.id+'\')">✕</button></div></div>';
 }
 function pintarMenu(){
+  try { pintarCasillaLogo(); } catch(e) {}
   var h='';
   if(!MENU.length){h=esRep()?'<div style="background:linear-gradient(145deg,#12182a,#101017);border:1px dashed #2a3a4a;border-radius:16px;padding:22px;text-align:center;margin:8px 0"><img src="img/repuestos.png" style="width:58px;height:58px;object-fit:contain"><div class="mini" style="margin-top:10px">Tu catálogo está vacío.<br><b style="color:#ffe08a">Agregá tu primer repuesto abajo</b> y los clientes lo van a ver con foto, precio y stock — como en las apps grandes.</div></div>':'<div class="mini" style="padding:8px 2px">Tu menú está vacío. Agregá tu primer producto abajo para que los clientes lo vean con foto y precio.</div>';}
   else{
