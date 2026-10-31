@@ -164,7 +164,8 @@ module.exports = wrap(async (req, res) => {
   }
   if (d.tipo === 'usuario') {
     const selfOk = Array.isArray(d.docs) && d.docs.some(y => y.tipo === 'selfie');
-    checks.push({ k: 'SELFIE', ok: selfOk, txt: selfOk ? 'Selfie de verificación recibida' : 'Sin selfie' });
+    // Los clientes NO necesitan selfie (decision Juan 2026-10-31): pedirla era friccion sin filtro real.
+    if (selfOk) checks.push({ k: 'SELFIE', ok: true, txt: 'Selfie recibida (opcional)' });
   }
   // AUTO-APROBACION estilo apps grandes: si TODO pasa la verificacion automatica, entra ya.
   // Solo cae al admin lo raro: licencia en tramite (pide su OK) o checks fallidos.

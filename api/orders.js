@@ -449,7 +449,7 @@ module.exports = wrap(async (req, res) => {
     if (!tel) return res.status(200).json({ ok: false, error: 'Decinos de qué local el menú.' });
     const fm = await ghGet('menus.json');
     const m = (fm ? fm.data : []).find(x => x.tel === tel);
-    return res.status(200).json({ ok: true, items: (m && m.items) || [], promos: (m && m.promos) || [], servicios: (m && m.servicios) || [] });
+    return res.status(200).json({ ok: true, items: (m && m.items) || [], promos: (m && m.promos) || [], servicios: (m && m.servicios) || [], dpiOk: !!(m && m.dpiDueno && m.dpiDueno.dpi), dpiNombre: (m && m.dpiDueno && m.dpiDueno.dpi) || '' });
   }
   if (['menuAdd', 'menuEdit', 'menuDel'].includes(action)) {
     const tel = String(b.tel || '').replace(/\D/g, '');
@@ -460,7 +460,20 @@ module.exports = wrap(async (req, res) => {
     const arr = fm ? fm.data : [];
     let m = arr.find(x => x.tel === tel);
     if (!m) { m = { tel, items: [] }; arr.push(m); }
+    if (action === 'menuDpi') {
+      const dpi = String(b.dpi || '').replace(/\D/g, '');
+      const foto = String(b.foto || '');
+      if (dpi.length !== 13) return res.status(200).json({ ok: false, error: 'El DPI del dueño debe tener 13 dígitos.' });
+      if (!foto) return res.status(200).json({ ok: false, error: 'Falta la foto del DPI del dueño.' });
+      m.dpiDueno = { dpi, foto, ts: now };
+      await ghPut('menus.json', fm ? fm.sha : null, arr, 'dpi dueno local ' + tel);
+      return res.status(200).json({ ok: true, dpiOk: true });
+    }
     if (action === 'menuAdd') {
+      // Antes del PRIMER producto se pide el DPI del dueño del local (decision Juan 2026-10-31).
+      if (!m.dpiDueno && (!m.items || m.items.length === 0)) {
+        return res.status(200).json({ ok: false, error: 'Antes de tu primer producto necesitamos el DPI del dueño del local (número y foto). Está arriba, en Mi menú.' });
+      }
       if (m.items.length >= 40) return res.status(200).json({ ok: false, error: 'Máximo 40 productos. Borrale alguno primero.' });
       const CATS = ['Platos fuertes', 'Combos', 'Entradas', 'Bebidas', 'Postres', 'Repuestos de moto', 'Repuestos de carro', 'Aceites y líquidos', 'Llantas y ruedas', 'Baterías', 'Accesorios', 'Herramientas', 'Productos', 'Abarrotería', 'Snacks', 'Higiene y limpieza', 'Repuestos', 'Otros'];
       const categoria = CATS.includes(b.categoria) ? b.categoria : 'Otros';

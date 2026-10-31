@@ -74,6 +74,16 @@ input,textarea,select{-webkit-user-select:text;user-select:text}
     <button class="btn bR" id="pausaBtn" onclick="pausar(30)">⏸️ Cocina saturada: pausar 30 min</button>
     <h3 style="color:#f0b90b;margin:16px 0 4px;font-size:15px" id="h-menu">📋 Mi menú</h3>
     <p class="mini" style="margin:4px 0 8px">Cargá tus productos con foto y precio. Si algo se te acaba, marcá AGOTADO con un toque: el cliente lo ve gris y no lo puede pedir. Sin foto también funciona.</p>
+    <div id="dpiDuenoBox" class="card" style="display:none;padding:12px 14px;margin:0 0 12px;border:2px solid #f5b942">
+      <b style="color:#ffe08a;font-size:14px">🪪 DPI del dueño (solo la primera vez)</b>
+      <p class="mini" style="margin:6px 0 10px">Antes de cargar tu primer producto necesitamos el DPI del dueño del local. Queda en tu expediente privado: los clientes nunca lo ven.</p>
+      <label>No. de DPI (13 dígitos)</label>
+      <input id="ldpi-num" inputmode="numeric" placeholder="Ej: 1234 56789 0101" style="width:100%;box-sizing:border-box;padding:11px;border:1.5px solid #ccc;border-radius:10px;font-size:16px">
+      <label style="margin-top:10px">Foto del DPI 🪪</label>
+      <input type="file" accept="image/*" capture="environment" id="ldpi-foto" style="padding:8px">
+      <div id="ldpi-prev" class="mini" style="margin-top:6px"></div>
+      <button class="btn bA" onclick="guardarDpiDueno()" style="margin-top:10px">💾 GUARDAR DPI DEL DUEÑO</button>
+    </div>
     <div id="menuBox"></div>
     <div class="card">
       <b style="font-size:14px">Agregar producto</b>
@@ -377,6 +387,7 @@ function itemRow(it){
 }
 function pintarMenu(){
   try { pintarCasillaLogo(); } catch(e) {}
+  try { pintarDpiBox(); engancharDpiLocal(); } catch(e) {}
   var h='';
   if(!MENU.length){h=esRep()?'<div style="background:linear-gradient(145deg,#12182a,#101017);border:1px dashed #2a3a4a;border-radius:16px;padding:22px;text-align:center;margin:8px 0"><img src="img/repuestos.png" style="width:58px;height:58px;object-fit:contain"><div class="mini" style="margin-top:10px">Tu catálogo está vacío.<br><b style="color:#ffe08a">Agregá tu primer repuesto abajo</b> y los clientes lo van a ver con foto, precio y stock — como en las apps grandes.</div></div>':'<div class="mini" style="padding:8px 2px">Tu menú está vacío. Agregá tu primer producto abajo para que los clientes lo vean con foto y precio.</div>';}
   else{
@@ -475,7 +486,7 @@ async function promoDel(id){
 }
 async function cargarMenu(){
   try{var r=await fetch(api('orders'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'menu',tel:TEL})});
-  var j=await r.json();if(j.ok){MENU=j.items;pintarMenu();}}catch(e){}
+  var j=await r.json();if(j.ok){MENU=j.items;DPI_OK=!!j.dpiOk;pintarMenu();}}catch(e){}
 }
 function comprimirFoto(file,cb,prevId){
   var rd=new FileReader();
@@ -494,9 +505,58 @@ function comprimirFoto(file,cb,prevId){
   };
   rd.readAsDataURL(file);
 }
+var DPI_OK=false, LDPI_B64='';
+function pintarDpiBox(){
+  var b=document.getElementById('dpiDuenoBox');
+  if(!b) return;
+  b.style.display = (!DPI_OK && (!MENU || MENU.length===0)) ? 'block' : 'none';
+}
+function engancharDpiLocal(){
+  var f=document.getElementById('ldpi-foto');
+  if(!f || f.dataset.dx) return;
+  f.dataset.dx='1';
+  f.addEventListener('change', function(){
+    var file=f.files && f.files[0];
+    if(!file) return;
+    comprimirFoto(file, function(b64){
+      LDPI_B64=b64||'';
+      var p=document.getElementById('ldpi-prev');
+      if(p) p.innerHTML='<span style="color:#7ee2a8">✅ Foto lista para guardar</span>';
+    });
+  });
+}
+async function guardarDpiDueno(){
+  var inp=document.getElementById('ldpi-num');
+  var n=String((inp&&inp.value)||'').replace(/\D/g,'');
+  if(n.length!==13){ alert('El DPI del dueño debe tener 13 dígitos.'); return; }
+  if(!LDPI_B64){ alert('Subí la foto del DPI del dueño.'); return; }
+  var btn=document.querySelector('#dpiDuenoBox .btn');
+  if(btn){ btn.disabled=true; btn.textContent='Guardando...'; }
+  try{
+    var r=await fetch(api('upload'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({docTipo:'dpiDueno',nombre:(window.LOCAL_NOMBRE||'local'),tel:TEL,b64:LDPI_B64})});
+    var j=await r.json();
+    if(!j||!j.ok){ alert((j&&j.error)||'No se pudo guardar la foto del DPI.'); if(btn){btn.disabled=false;btn.textContent='💾 GUARDAR DPI DEL DUEÑO';} return; }
+    var r2=await fetch(api('orders'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'menuDpi',tel:TEL,dpi:n,foto:j.archivo})});
+    var j2=await r2.json();
+    if(!j2||!j2.ok){ alert((j2&&j2.error)||'No se pudo guardar el DPI.'); if(btn){btn.disabled=false;btn.textContent='💾 GUARDAR DPI DEL DUEÑO';} return; }
+    DPI_OK=true;
+    pintarDpiBox();
+    alert('✅ DPI del dueño guardado. Ya podés cargar tus productos.');
+  }catch(e){
+    alert('Falló la conexión. Probá otra vez.');
+  }
+  if(btn){ btn.disabled=false; btn.textContent='💾 GUARDAR DPI DEL DUEÑO'; }
+}
 async function menuAdd(){
   var n=document.getElementById('m-nombre').value.trim(),p=parseFloat(document.getElementById('m-precio').value);var cat=document.getElementById('m-cat').value,ds=document.getElementById('m-desc').value.trim();
   if(!n||!p){alert('Poné el nombre y el precio del producto.');return}
+  if(!DPI_OK && (!MENU || MENU.length===0)){
+    pintarDpiBox();
+    var bx=document.getElementById('dpiDuenoBox');
+    if(bx) bx.scrollIntoView({behavior:'smooth',block:'center'});
+    alert('Antes de tu primer producto cargá el DPI del dueño del local: el número y la foto, arriba en Mi menú.');
+    return;
+  }
   var b=document.getElementById('m-add');b.disabled=true;b.textContent='Guardando...';
   var foto='';
   if(FOTOB64){
