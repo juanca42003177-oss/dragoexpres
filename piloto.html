@@ -151,8 +151,10 @@ async function rapida(q){if(DEMO)return;
 function distKmP(a,b){var R=6371,d=Math.PI/180,dl=(b.lat-a.lat)*d,dg=(b.lng-a.lng)*d,x=Math.sin(dl/2)*Math.sin(dl/2)+Math.cos(a.lat*d)*Math.cos(b.lat*d)*Math.sin(dg/2)*Math.sin(dg/2);return R*2*Math.atan2(Math.sqrt(x),Math.sqrt(1-x))}
 /* ============ MAPA GRANDE DE NAVEGACIÓN (estilo las grandes) ============ */
 function abrirMapaGrande(){
-  var o=window.PM_ORDEN; var dest=(o&&o.cliente&&o.cliente.gps)||null;
-  if(!dest){alert('El cliente no activó su ubicación al pedir.');return}
+  var o=window.PM_ORDEN;
+  var objetivoP=puntoActualP(o);
+  var dest = objetivoP ? ((objetivoP.lat!=null)?{lat:objetivoP.lat,lng:objetivoP.lng}:null) : null;
+  if(!objetivoP){alert('Este pedido no tiene punto de recogida ni destino marcado. Pedile la ubicación al cliente.');return}
   if(!window.MYGPS){alert('Activá tu GPS (permiso de ubicación) para el mapa grande.');return}
   var ov=document.getElementById('pmBig');
   if(!ov){ov=document.createElement('div');ov.id='pmBig';
@@ -166,8 +168,9 @@ function abrirMapaGrande(){
       +'<div id="pmBigAviso" style="padding:10px 14px;background:#14151c;color:#ffd479;font-weight:900;text-align:center"></div>';
     document.body.appendChild(ov)}
   ov.style.display='flex';
-  document.getElementById('pmWaze').href='https://waze.com/ul?ll='+dest.lat+','+dest.lng+'&navigate=yes';
-  document.getElementById('pmGmaps').href='https://www.google.com/maps/dir/?api=1&destination='+dest.lat+','+dest.lng+'&travelmode=driving';
+  document.getElementById('pmWaze').href=linkWazeP(objetivoP);
+  document.getElementById('pmGmaps').href=linkMapsP(objetivoP);
+  try{ var _tit=document.getElementById('pmBigTit'); if(_tit) _tit.textContent=(o.estado==='recogido')?'Llevá al pasajero al DESTINO':'Andá a RECOGER al pasajero'; }catch(e){}
   if(window.PBIG){window.PBIG.remove();window.PBIG=null}
   window.PBIG=L.map('pmBigMap').setView([window.MYGPS.lat,window.MYGPS.lng],16);
   L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'© OpenStreetMap'}).addTo(window.PBIG);
@@ -214,13 +217,38 @@ async function trazarRotaPiloto(dest,primera){
   if(sub)sub.textContent='Faltan '+(dk<1?Math.round(dk*1000)+' m':dk.toFixed(1)+' km')+' — llegás en ~'+min+' min';
   if(av)av.textContent=(dk*1000<150)?'📍 Ya estás llegando: buscá el número de puerta.':(fuera?'🔄 Ruta recalculada por donde vas.':'Seguí la línea dorada — te aviso si te pasás de largo.');
 }
+function puntoRecogidaP(o){
+  if(o && o.recogidaGPS && isFinite(o.recogidaGPS.lat)) return {lat:+o.recogidaGPS.lat, lng:+o.recogidaGPS.lng, tipo:'gps'};
+  if(o && o.direccion) return {texto:String(o.direccion), tipo:'texto'};
+  if(o && o.cliente && o.cliente.gps) return {lat:o.cliente.gps.lat, lng:o.cliente.gps.lng, tipo:'gps'};
+  return null;
+}
+function puntoDestinoP(o){
+  if(o && o.destinoGPS && isFinite(o.destinoGPS.lat)) return {lat:+o.destinoGPS.lat, lng:+o.destinoGPS.lng, tipo:'gps'};
+  return null;
+}
+function linkMapsP(pt){
+  if(!pt) return '';
+  if(pt.lat!=null) return 'https://www.google.com/maps/dir/?api=1&destination='+pt.lat+','+pt.lng+'&travelmode=driving';
+  return 'https://www.google.com/maps/dir/?api=1&destination='+encodeURIComponent(pt.texto||'')+'&travelmode=driving';
+}
+function linkWazeP(pt){
+  if(!pt) return '';
+  if(pt.lat!=null) return 'https://waze.com/ul?ll='+pt.lat+','+pt.lng+'&navigate=yes';
+  return 'https://waze.com/ul?q='+encodeURIComponent(pt.texto||'')+'&navigate=yes';
+}
+function puntoActualP(o){ return (o && o.estado==='recogido') ? puntoDestinoP(o) : puntoRecogidaP(o); }
 function pintarMapaPiloto(o){
   try{window.TARIFAPROP=window.TARIFAPROP||{};if(o){window.TARIFAPROP[o.id]=!!o.tarifaPropuesta}}catch(e){}
   try{window.PM_ORDEN=o}catch(e){}
   try{window.TARIFAPROP=window.TARIFAPROP||{};if(o){window.TARIFAPROP[o.id]=!!o.tarifaPropuesta}}catch(e){}
   var mp=document.getElementById('pmMap'),ir=document.getElementById('pmIr'),hi=document.getElementById('pmHint');
   if(!mp||!o||['entregado','cancelado'].includes(o.estado)){if(mp)mp.style.display='none';if(hi)hi.textContent='';if(ir)ir.style.display='none';if(window.PMM){window.PMM.remove();window.PMM=null}return}
-  var yo=window.MYGPS||null, dest=(o.estado==='recogido'&&o.destinoGPS)?o.destinoGPS:((o.cliente&&o.cliente.gps)||null);
+  var yo=window.MYGPS||null;
+  var recP=puntoRecogidaP(o), destP=puntoDestinoP(o);
+  var objetivo=puntoActualP(o);
+  var dest = objetivo ? ((objetivo.lat!=null)?{lat:objetivo.lat,lng:objetivo.lng}:null) : null;
+  if(!dest && recP && recP.lat!=null) dest={lat:recP.lat,lng:recP.lng};
   hi.textContent='';ir.style.display='none';
   if(!dest){mp.style.display='none';hi.textContent='📍 El cliente pidió sin ubicación. Cuando abra su pantalla de seguimiento, su punto cae acá solo. También podés pedírsela por el chat.';return}
   if(!yo){mp.style.display='none';hi.textContent='📍 Activá tu GPS (permiso de ubicación del navegador) y acá ves el mapa del viaje con la distancia y tu avance.';return}
@@ -236,7 +264,7 @@ function pintarMapaPiloto(o){
   window.PMM.fitBounds([[yo.lat,yo.lng],[dest.lat,dest.lng]],{padding:[18,18]});
   hi.textContent=(o.estado==='recogido'?'🏁 Pasajero a bordo — te faltan ':'📍 Faltan '+(dk<1?Math.round(dk*1000)+' m':dk.toFixed(1)+' km')+' — llegás en ~'+min+' min. El punto 📍 es tu destino.');
   ir.style.display='block';
-  ir.href='https://www.google.com/maps/dir/?api=1&destination='+dest.lat+','+dest.lng;
+  ir.href=linkMapsP(objetivo||dest);
   var gr=document.getElementById('pmGrande');if(gr){gr.style.display='block';gr.textContent='🗺️ MAPA GRANDE DE RUTA'}
 }
 async function noResponde(){if(DEMO)return;if(!confirm('¿El cliente no responde? Le avisamos que tiene 10 minutos.'))return;try{var r=await fetch(api('orders'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'noResponde',id:AID,tel:PILOTO.tel})});var j=await r.json();if(!j.ok){alert(j.error||'No se pudo.');return}}catch(e){}alert('Avisado. Esperá 10 minutos; si responde el chat, se cancela solo.');tick();}
