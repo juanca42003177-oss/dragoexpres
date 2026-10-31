@@ -137,6 +137,26 @@ module.exports = wrap(async (req, res) => {
     const dup = data.some(r2 => r2.tipo === 'piloto' && (limpiar((r2.datos || {}).tel) === limpiar(d.tel) || (d.placa && String((r2.datos || {}).placa || '').toUpperCase() === String(d.placa).toUpperCase())));
     checks.push({ k: 'ÚNICO', ok: !dup, txt: dup ? 'WhatsApp o placa ya registrados' : 'Sin duplicados' });
   }
+  // ===== ETAPA 1 (Juan 2026-10-31): OCR del DPI y anti-duplicado por huella =====
+  if (d.tipo === 'piloto' || d.tipo === 'flota') {
+    const leido = String(d.dpiLeido || '').replace(/\D/g, '');
+    const escr = String(d.dpi || '').replace(/\D/g, '');
+    if (leido && escr) {
+      const okTxt = (leido === escr);
+      checks.push({ k: 'DPI-TEXTO', ok: okTxt, txt: okTxt ? ('DPI leído ' + leido + ' coincide con el escrito') : ('⚠️ NO COINCIDE: la foto dice ' + leido + ' y escribió ' + escr) });
+    } else if (leido && !escr) {
+      checks.push({ k: 'DPI-TEXTO', ok: true, txt: 'DPI leído por OCR: ' + leido + ' (no escribió número)' });
+    } else {
+      checks.push({ k: 'DPI-TEXTO', ok: true, txt: 'OCR no disponible: se revisa la foto a mano' });
+    }
+    const hash = String(d.dpiHash || '').toLowerCase();
+    if (hash) {
+      const dupH = data.some(r2 => String(((r2.datos || {}).dpiHash) || '').toLowerCase() === hash && String((r2.datos || {}).tel || '').replace(/\D/g, '') !== String(d.tel || '').replace(/\D/g, ''));
+      checks.push({ k: 'DPI-ÚNICO', ok: !dupH, txt: dupH ? '⚠️ ESTA MISMA FOTO DE DPI YA SE REGISTRÓ ANTES (posible cuenta duplicada)' : 'Huella del DPI sin duplicados' });
+    } else {
+      checks.push({ k: 'DPI-ÚNICO', ok: true, txt: 'Sin huella automática (se revisa a mano)' });
+    }
+  }
   if (d.tipo === 'flota') {
     const selfOk = Array.isArray(d.docs) && d.docs.some(y => y.tipo === 'selfie');
     const dpiOk = Array.isArray(d.docs) && d.docs.some(y => y.tipo === 'dpi');
