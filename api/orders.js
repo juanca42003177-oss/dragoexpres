@@ -451,7 +451,7 @@ module.exports = wrap(async (req, res) => {
     const m = (fm ? fm.data : []).find(x => x.tel === tel);
     return res.status(200).json({ ok: true, items: (m && m.items) || [], promos: (m && m.promos) || [], servicios: (m && m.servicios) || [], dpiOk: !!(m && m.dpiDueno && m.dpiDueno.dpi), dpiNombre: (m && m.dpiDueno && m.dpiDueno.dpi) || '' });
   }
-  if (['menuAdd', 'menuEdit', 'menuDel'].includes(action)) {
+  if (['menuAdd', 'menuEdit', 'menuDel', 'menuDpi'].includes(action)) {
     const tel = String(b.tel || '').replace(/\D/g, '');
     const freg = await ghGet('registros.json');
     const rl = (freg ? freg.data : []).find(x => x.tipo === 'local' && x.estado === 'aprobado' && String(x.datos.whatsapp || x.datos.tel || '').replace(/\D/g, '') === tel);
