@@ -527,7 +527,21 @@ module.exports = wrap(async (req, res) => {
     try { const pz2 = await ghGet('pozo.json'); const pg = pz2 ? pz2.data : {}; metaEfe = Math.min(st.metaP || 20, pg.metaGlobal || 20); } catch (e) { }
     const historial = mios.slice(-15).reverse().map(x => ({ id: x.id, tipo: x.tipo, ganado: dinero((x.promoFiel ? (x.promoTarifa || 0) + (x.promoBonus || 0) : x.envio) - x.comision + (x.propina || 0)), envio: x.promoFiel ? 0 : x.envio, propina: x.propina || 0, ts: x.tsEntregado || x.ts }));
     const resenas = califs.slice(-10).reverse().map(x => ({ id: x.id, estrellas: x.califCliente, texto: String(x.califClienteTxt || ''), ts: x.tsEntregado || x.ts }));
-    return res.status(200).json({ ok: true, entregas: mios.length, resenas, ganado, comisiones: dinero(comisiones - (st.bonosAplicados || 0)), calif, bonosPend: dinero(st.bonosPend || 0), bonoBienvenida: st.bonoBienvenida || null, pendiente: st.pendiente || null, saldoChico: st.saldoChico || 0, pendienteActivo: !!(st.pendiente && !st.pendiente.pagado), retraso: !!st.retraso, meta: { hechas: semana, faltan: Math.max(0, metaEfe - semana), meta: metaEfe }, historial });
+    // ==== LO QUE DEBE DEPOSITAR DEL CICLO ACTUAL (Juan 2026-10-31) ====
+    // Comisiones de entregas posteriores a la ultima liquidacion de 72h. Se recalcula
+    // en cada consulta, asi el panel nunca queda congelado en Q0.
+    let porDepositar = 0, limiteCiclo = 0, vencido = false, diasRestantes = 0;
+    try {
+      const fpz2 = await ghGet('pozo.json'); const pz2 = fpz2 ? fpz2.data : {};
+      const desdeCiclo = pz2.tsUltimoCiclo || 0;
+      const delCiclo = mios.filter(x => (x.tsEntregado || x.ts || 0) > desdeCiclo);
+      const bruto = dinero(delCiclo.reduce((s2, x) => s2 + (x.comision || 0) + (x.comisionLocal || 0), 0));
+      porDepositar = Math.max(0, dinero(bruto - (st.bonosAplicados || 0)));
+      limiteCiclo = desdeCiclo ? (desdeCiclo + 72 * 3600 * 1000) : 0;
+      vencido = !!(limiteCiclo && now > limiteCiclo && porDepositar >= 50);
+      diasRestantes = limiteCiclo ? Math.max(0, Math.ceil((limiteCiclo - now) / 86400000)) : 0;
+    } catch (e) { }
+    return res.status(200).json({ ok: true, porDepositar, limiteCiclo, vencido, diasRestantes, entregas: mios.length, resenas, ganado, comisiones: dinero(comisiones - (st.bonosAplicados || 0)), calif, bonosPend: dinero(st.bonosPend || 0), bonoBienvenida: st.bonoBienvenida || null, pendiente: st.pendiente || null, saldoChico: st.saldoChico || 0, pendienteActivo: !!(st.pendiente && !st.pendiente.pagado), retraso: !!st.retraso, meta: { hechas: semana, faltan: Math.max(0, metaEfe - semana), meta: metaEfe }, historial });
   }
 
   // ---- consultar estado (usuario o pantalla) ----
