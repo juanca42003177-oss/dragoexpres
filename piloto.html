@@ -218,6 +218,7 @@ async function trazarRotaPiloto(dest,primera){
   if(av)av.textContent=(dk*1000<150)?'📍 Ya estás llegando: buscá el número de puerta.':(fuera?'🔄 Ruta recalculada por donde vas.':'Seguí la línea dorada — te aviso si te pasás de largo.');
 }
 function puntoRecogidaP(o){
+  if(o && o.origenGPS && isFinite(o.origenGPS.lat)) return {lat:+o.origenGPS.lat, lng:+o.origenGPS.lng, tipo:'local'};
   if(o && o.recogidaGPS && isFinite(o.recogidaGPS.lat)) return {lat:+o.recogidaGPS.lat, lng:+o.recogidaGPS.lng, tipo:'gps'};
   if(o && o.direccion) return {texto:String(o.direccion), tipo:'texto'};
   if(o && o.cliente && o.cliente.gps) return {lat:o.cliente.gps.lat, lng:o.cliente.gps.lng, tipo:'gps'};

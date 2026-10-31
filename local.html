@@ -106,6 +106,12 @@ input,textarea,select{-webkit-user-select:text;user-select:text}
     <label>Foto del frente del local</label>
     <input id="loc-foto" type="file" accept="image/*" capture="environment" style="background:#0d0e14">
     <button class="btn bA" id="locFotoBtn" style="margin-top:8px" onclick="guardarFotoLocal()">📸 GUARDAR FOTO DEL LOCAL</button>
+    <h3 style="color:#f0b90b;margin:16px 0 4px;font-size:15px">📍 Dónde está mi local</h3>
+    <p class="mini" style="margin:4px 0 8px">Marcá tu local en el mapa: el piloto va EXACTAMENTE a ese punto a recoger. Sin este punto, los pilotos pueden ir a otro lado.</p>
+    <div id="locGpsEstado" class="mini" style="margin:4px 0 8px"></div>
+    <button class="btn" id="locGpsBtn" style="background:#2b6cb0;color:#fff;margin-bottom:8px" onclick="abrirMapaLocal()">📍 MARCAR MI LOCAL EN EL MAPA</button>
+    <div id="locMap" style="height:220px;border-radius:12px;display:none;margin-bottom:8px"></div>
+    <button class="btn bA" id="locGpsSave" style="display:none" onclick="guardarGpsLocal()">💾 GUARDAR UBICACIÓN</button>
 <div id="secPromos">
     <h3 style="color:#f0b90b;margin:16px 0 4px;font-size:15px">🎉 Mis promos (si querés)</h3>
     <p class="mini" style="margin:4px 0 8px">Promos 100% opcionales: DragoExpres <b>jamás te obliga a dar ofertas</b> — cada local decide las suyas o ninguna. Si querés destacar una (2x1, descuento, lo que sea), la creás acá, aparece arriba de tu menú y la quitás cuando querés. Hasta 5 activas.</p>
@@ -546,6 +552,45 @@ async function guardarDpiDueno(){
     alert('Falló la conexión. Probá otra vez.');
   }
   if(btn){ btn.disabled=false; btn.textContent='💾 GUARDAR DPI DEL DUEÑO'; }
+}
+var LOCGPS=null, LOCMAP=null, LOCMARK=null;
+function cargarLeaflet(cb){
+  if(window.L){cb();return}
+  var lk=document.createElement('link');lk.rel='stylesheet';lk.href='https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';document.head.appendChild(lk);
+  var sc=document.createElement('script');sc.src='https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';sc.onload=function(){cb()};document.head.appendChild(sc);
+}
+function abrirMapaLocal(){
+  var d=document.getElementById('locMap');
+  if(!d)return;
+  if(d.style.display==='block'){d.style.display='none';return}
+  d.style.display='block';
+  cargarLeaflet(function(){
+    if(!LOCMAP){
+      LOCMAP=L.map('locMap').setView([14.6284,-90.5154],13);
+      L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'© OpenStreetMap'}).addTo(LOCMAP);
+      LOCMAP.on('click',function(ev){
+        LOCGPS={lat:ev.latlng.lat,lng:ev.latlng.lng};
+        if(LOCMARK){LOCMARK.setLatLng(ev.latlng)}else{LOCMARK=L.marker(ev.latlng).addTo(LOCMAP)}
+        var e=document.getElementById('locGpsEstado'); if(e)e.textContent='✅ Ubicación marcada. Tocá de nuevo el punto si querés moverlo, y después guardá.';
+        var b=document.getElementById('locGpsSave'); if(b)b.style.display='block';
+      });
+    }
+    setTimeout(function(){try{LOCMAP.invalidateSize()}catch(e){}},250);
+  });
+}
+async function guardarGpsLocal(){
+  if(!LOCGPS){alert('Tocá el mapa en el punto exacto de tu local.');return}
+  var b=document.getElementById('locGpsSave'); b.disabled=true; b.textContent='Guardando...';
+  try{
+    var r=await fetch(api('orders'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'localGps',tel:TEL,lat:LOCGPS.lat,lng:LOCGPS.lng})});
+    var j=await r.json();
+    if(!j.ok){alert(j.error||'No se pudo guardar la ubicación.');b.disabled=false;b.textContent='💾 GUARDAR UBICACIÓN';return}
+    var e=document.getElementById('locGpsEstado'); if(e)e.textContent='✅ Local ubicado. Los pilotos ya van directo a tu puerta.';
+    document.getElementById('locMap').style.display='none';
+    b.style.display='none';
+    alert('✅ Ubicación del local guardada. Los pilotos ahora llegan exacto.');
+  }catch(e){alert('Falló la conexión. Probá de nuevo.')}
+  b.disabled=false; b.textContent='💾 GUARDAR UBICACIÓN';
 }
 async function menuAdd(){
   var n=document.getElementById('m-nombre').value.trim(),p=parseFloat(document.getElementById('m-precio').value);var cat=document.getElementById('m-cat').value,ds=document.getElementById('m-desc').value.trim();

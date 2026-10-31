@@ -338,7 +338,7 @@ module.exports = wrap(async (req, res) => {
       cliente: { nombre, tel, direccion: String(b.direccion).slice(0, 500), referencia: String(b.referencia || '').slice(0, 500), gps: (b.gps && isFinite(+b.gps.lat) && isFinite(+b.gps.lng)) ? { lat: +b.gps.lat, lng: +b.gps.lng } : undefined },
       detalle: String(b.detalle).slice(0, 800),
       items: Array.isArray(b.items) ? b.items.slice(0, 30).map(x => ({ nombre: String(x.nombre || '').slice(0, 60), qty: Math.max(1, Math.min(50, +x.qty || 1)), precio: dinero(x.precio || 0), nota: String(x.nota || '').slice(0, 120), foto: /^https?:\/\//.test(String(x.foto || '')) ? String(x.foto).slice(0, 300) : undefined })) : undefined,
-      compra: dinero(b.compra || 0), servicio: servicio || undefined, envio, tarifaPropuesta: tarifaPropuesta || undefined, destinoGPS: (b.destinoGPS && isFinite(+b.destinoGPS.lat) && isFinite(+b.destinoGPS.lng)) ? { lat: +b.destinoGPS.lat, lng: +b.destinoGPS.lng } : undefined, recogidaGPS: (b.recogidaGPS && isFinite(+b.recogidaGPS.lat) && isFinite(+b.recogidaGPS.lng)) ? { lat: +b.recogidaGPS.lat, lng: +b.recogidaGPS.lng } : undefined, promoFiel: promoFiel || undefined, promoTarifa: promoFiel ? envioTarifa : undefined, propina, comision: promoFiel ? 0 : comisionDe(tipo, envioTarifa - recargo), comisionLocal, nocturno, recargo,
+      compra: dinero(b.compra || 0), servicio: servicio || undefined, envio, tarifaPropuesta: tarifaPropuesta || undefined, destinoGPS: (b.destinoGPS && isFinite(+b.destinoGPS.lat) && isFinite(+b.destinoGPS.lng)) ? { lat: +b.destinoGPS.lat, lng: +b.destinoGPS.lng } : undefined, origenGPS: (b.origenGPS && isFinite(+b.origenGPS.lat) && isFinite(+b.origenGPS.lng)) ? { lat: +b.origenGPS.lat, lng: +b.origenGPS.lng } : undefined, recogidaGPS: (b.recogidaGPS && isFinite(+b.recogidaGPS.lat) && isFinite(+b.recogidaGPS.lng)) ? { lat: +b.recogidaGPS.lat, lng: +b.recogidaGPS.lng } : undefined, promoFiel: promoFiel || undefined, promoTarifa: promoFiel ? envioTarifa : undefined, propina, comision: promoFiel ? 0 : comisionDe(tipo, envioTarifa - recargo), comisionLocal, nocturno, recargo,
       estado: 'buscando', piloto: null, ts: now, pago, referencia, local: localObj || undefined, avisoWa: b.avisoWa !== false
     };
     // dispatch: primer piloto disponible de la zona
@@ -661,6 +661,20 @@ module.exports = wrap(async (req, res) => {
 
 
   // ---- CANCELACIONES ----
+  // ---- UBICACION REAL DEL LOCAL (pin en el mapa) ----
+  if (action === 'localGps') {
+    const tel = String(b.tel || '').replace(/\D/g, '');
+    const lat = +b.lat, lng = +b.lng;
+    if (!tel || !isFinite(lat) || !isFinite(lng)) return res.status(200).json({ ok: false, error: 'Faltan las coordenadas del local.' });
+    const freg = await ghGet('registros.json');
+    const regs = freg ? freg.data : [];
+    const rl = regs.find(x => x.tipo === 'local' && x.estado === 'aprobado' && String(x.datos.whatsapp || x.datos.tel || '').replace(/\D/g, '') === tel);
+    if (!rl) return res.status(200).json({ ok: false, error: 'No encontramos un local aprobado con ese WhatsApp.' });
+    rl.datos.gps = { lat: lat, lng: lng };
+    await ghPut('registros.json', freg ? freg.sha : null, regs, 'ubicacion del local ' + tel);
+    return res.status(200).json({ ok: true, gps: { lat: lat, lng: lng } });
+  }
+
   if (action === 'localFoto') {
     const tel = String(b.tel || '').replace(/\D/g, '');
     const foto = String(b.foto || '').slice(0, 300);
