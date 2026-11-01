@@ -94,6 +94,20 @@ module.exports = wrap(async (req, res) => {
     const g = new Date(Date.now() - TZ);
     if (!action && g.getUTCDay() !== 0) return res.status(200).json({ ok: true, skip: 'hoy no es domingo' });
     const s = await estado();
+    /* GUARDIA ANTI-DUPLICADO (2026-11-01): el cron quedo disparando cada 10 minutos
+       y cada ejecucion volvia a acreditar bonos, reseteaba rachas y mandaba aviso.
+       Ahora: solo reparte DOMINGO y UNA vez por semana. Con ?force=1 se puede repetir a mano. */
+    const _semanaKey = 'S' + Math.floor((Date.now() - 6 * 3600 * 1000) / (7 * 864e5));
+    const _forzar = String((req.query && req.query.force) || '') === '1';
+    const _hoyGT = new Date(Date.now() - 6 * 3600 * 1000).getUTCDay();
+    const _pzGuard = await ghGet('pozo.json');
+    const _pzData = (_pzGuard && !Array.isArray(_pzGuard.data)) ? _pzGuard.data : {};
+    if (!_forzar && _pzData.ultimaSemanaRepartida === _semanaKey) {
+      return res.status(200).json({ ok: true, skip: true, motivo: 'Ya se repartio esta semana (' + _semanaKey + '). No se acredita dos veces ni se manda otro aviso.' });
+    }
+    if (!_forzar && _hoyGT !== 0) {
+      return res.status(200).json({ ok: true, skip: true, motivo: 'Hoy no es domingo. El reparto corre solo los domingos (usa ?force=1 para forzar a mano).' });
+    }
     const pz = await ghGet('pozo.json');
     const pozo = pz && !Array.isArray(pz.data) ? pz.data : {};
     pozo.acumuladoPor = pozo.acumuladoPor || {};
@@ -158,6 +172,8 @@ module.exports = wrap(async (req, res) => {
       pozo.metaGlobal = nueva;
       ajuste = { anterior, nueva, demanda, activos: activos.length };
     }
+    pozo.ultimaSemanaRepartida = _semanaKey;
+    pozo.ultimoRepartoTs = Date.now();
     pozo.historial.push({ domingo: g.toISOString().slice(0, 10), reparto, acumulan, modo: 'individual', metaGlobal: pozo.metaGlobal || META_BASE, ajuste });
     await ghPut('pozo.json', pz ? pz.sha : null, pozo, 'recompensas dominicales individuales');
 
