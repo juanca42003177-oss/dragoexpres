@@ -41,7 +41,7 @@ const dig = (t) => { const d = String(t || '').replace(/\D/g, ''); return d.leng
    hacian hasta 4 viajes seguidos. Con 4s de cache, las lecturas repetidas son
    instantaneas y el panel se siente vivo. Se invalida al escribir (ghPut). */
 const _LECT = new Map();
-const _LECT_TTL = 4000;
+const _LECT_TTL = 8000;
 async function ghGet(path) {
   const hit = _LECT.get(path);
   if (hit && (Date.now() - hit.ts) < _LECT_TTL) return hit.val;
@@ -533,7 +533,7 @@ module.exports = wrap(async (req, res) => {
   // ---- BILLETERA del piloto: todo su historial ----
   if (action === 'billetera') {
     const tel = String(b.tel || '').replace(/\D/g, '');
-    const fpd = await ghGet('pedidos.json');
+    const [fpd, fpB] = await Promise.all([ghGet('pedidos.json'), ghGet('pilots.json')]);
     const peds = fpd ? fpd.data : [];
     const mios = peds.filter(x => x.piloto && String(x.piloto.tel).replace(/\D/g, '') === tel && x.estado === 'entregado');
     const ganado = dinero(mios.reduce((s, x) => s + (x.envio - x.comision + (x.propina || 0)), 0));
@@ -547,7 +547,7 @@ module.exports = wrap(async (req, res) => {
     lunes.setUTCHours(0, 0, 0, 0);
     const iniSem = lunes.getTime() + 21600000;
     const semana = mios.filter(x => (x.tsEntregado || x.ts) >= iniSem).length;
-    const fp = await ghGet('pilots.json');
+    const fp = fpB;
     const st = (fp ? fp.data : []).find(x => String(x.tel).replace(/\D/g, '') === tel) || {};
     let metaEfe = st.metaP || 20;
     try { const pz2 = await ghGet('pozo.json'); const pg = pz2 ? pz2.data : {}; metaEfe = Math.min(st.metaP || 20, pg.metaGlobal || 20); } catch (e) { }
