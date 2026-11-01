@@ -139,7 +139,7 @@ label{font-size:11.5px;color:var(--gris);display:block;margin-top:10px;font-weig
 .trk .th .x{margin-left:auto;font-size:20px;cursor:pointer;background:rgba(255,255,255,.2);width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center}
 .big{font-size:24px;font-weight:900;color:var(--rojo);text-align:center}
 .wa{background:#0d2015;color:#128c4b;text-align:center;text-decoration:none;display:block;padding:12px;border-radius:12px;font-weight:800;margin-top:12px;border:1px solid #bfe8cf}
-#mapa{height:230px;border-radius:14px;margin-top:12px;display:none;border:1px solid var(--linea)}
+#mapa{height:320px;border-radius:16px;margin-top:12px;display:block;border:1px solid var(--linea);background:#0f1016}
 /* nav inferior */
 nav{position:fixed;left:0;right:0;bottom:0;background:#fff;border-top:1px solid var(--linea);display:flex;z-index:30;padding:6px 0 max(6px,env(safe-area-inset-bottom))}
 nav div{flex:1;text-align:center;font-size:10.5px;color:#9a9aa8;font-weight:700;cursor:pointer}
@@ -364,6 +364,9 @@ input,textarea,select{-webkit-user-select:text;user-select:text}
       <div id="servBox" style="display:none;text-align:left;background:#eef4ff;border:1px solid #bcd4f5;border-radius:12px;padding:11px 13px;margin-top:12px"></div>
       <div id="vehBox" style="display:none;text-align:left;background:#fff8e1;border:1px solid #f0d98a;border-radius:12px;padding:11px 13px;margin-top:12px"></div>
       <a class="wa" id="owa" style="display:none" href="#" target="_blank">💬 Escribille al piloto por WhatsApp</a>
+      <a id="ollamar" style="display:none;margin-top:8px;background:#0f7a3d;color:#fff;font-weight:900;border-radius:12px;padding:11px;text-align:center;text-decoration:none" href="#">📞 Llamar al piloto</a>
+      <div id="oeta" style="display:none;margin-top:10px;background:#fff8e1;border:1px solid #f0d98a;border-radius:12px;padding:10px 12px;font-weight:800;color:#7a5b00"></div>
+      <div id="oespera" style="display:none;margin-top:10px;background:#eef4ff;border:1px solid #bcd4f5;border-radius:12px;padding:10px 12px;font-size:12px;color:#1a3a6b">⏳ Esperando la ubicación del piloto… el mapa se actualiza solo.</div>
       <div id="chatBox" style="display:none;text-align:left;margin-top:12px">
         <p class="mini" style="margin:0 0 6px;font-weight:800">💬 CHAT CON TU PILOTO</p>
         <div id="chat-list" style="max-height:190px;overflow-y:auto;background:#fff;border:1px solid var(--linea);border-radius:12px;padding:9px"></div>
@@ -1245,7 +1248,7 @@ function cerrarTrk(){document.getElementById('trk').style.display='none';if(PID)
 function seguir(id){PID=id;try{var _u=LS();if(_u&&_u.tel)MI_TEL=_u.tel}catch(e){}
   /* FIX 2026-10-27: al entrar al seguimiento desde la pestaña Pedidos, MI_TEL quedaba vacío
      y el botón de cancelar decía "No es tu pedido" aunque el pedido fuera del cliente. */
-  actualizar();window.TINT=setInterval(actualizar,12012)}
+  actualizar();window.TINT=setInterval(actualizar,5000)}
 function distKm2(a,b){var R=6371,d=Math.PI/180,dl=(b.lat-a.lat)*d,dg=(b.lng-a.lng)*d,x=Math.sin(dl/2)*Math.sin(dl/2)+Math.cos(a.lat*d)*Math.cos(b.lat*d)*Math.sin(dg/2)*Math.sin(dg/2);return R*2*Math.atan2(Math.sqrt(x),Math.sqrt(1-x))}
 async function cargarPromos(){
   var ab=document.getElementById('prAbiertos'),of=document.getElementById('prOfertas');
@@ -1373,7 +1376,7 @@ async function actualizar(){
     mapa.style.display='block';
     var mkIcon=L.divIcon({className:'',html:'<div style="font-size:26px;filter:drop-shadow(0 2px 3px rgba(0,0,0,.45))">'+vic+'</div>',iconSize:[30,30],iconAnchor:[15,15]});
     if(!window.LMAP){window.LMAP=L.map('mapa').setView([j.gps.lat,j.gps.lng],15);L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'© OpenStreetMap'}).addTo(window.LMAP);window.LMK=L.marker([j.gps.lat,j.gps.lng],{icon:mkIcon}).addTo(window.LMAP).bindPopup('Tu piloto DragoExpres viene en '+vic)}
-    else{window.LMK.setLatLng([j.gps.lat,j.gps.lng]);window.LMAP.setView([j.gps.lat,j.gps.lng])}
+    else{window.LMK.setLatLng([j.gps.lat,j.gps.lng]);try{window.LMAP.panTo([j.gps.lat,j.gps.lng],{animate:true,duration:0.6})}catch(e){window.LMAP.setView([j.gps.lat,j.gps.lng])}}
     var uE=LS();
     if(uE.gps&&uE.gps.lat){
       // ETA VIVO: se recalcula solo cada vez que el piloto avanza (poll de 12s)
@@ -1419,6 +1422,21 @@ async function actualizar(){
     vb.innerHTML='<div style="font-size:11px;font-weight:800;color:#9a7b00;margin-bottom:4px">TU PILOTO VIENE EN</div><div style="font-size:15px;font-weight:900;color:#1a1a22">'+tv+(o.piloto.marca?' '+o.piloto.marca:'')+(o.piloto.color?' · '+o.piloto.color:'')+'</div>'+(o.piloto.placa?'<div style="display:inline-block;margin-top:6px;background:#fff;border:2px solid #1a1a22;border-radius:6px;padding:2px 12px;font-weight:900;letter-spacing:2px;font-size:15px">'+String(o.piloto.placa).toUpperCase()+'</div>':'')+(o.tipo==='comida'?'<div style="margin-top:6px;font-size:12.5px;color:#188038;font-weight:800">📦 Tu piloto lleva caja térmica: tu comida llega calentita</div>':'');
   }else{vb.style.display='none'}
   var wa=document.getElementById('owa');
+  var _tl=document.getElementById('ollamar');
+  if(o.piloto&&_tl){_tl.style.display='block';_tl.href='tel:'+String(o.piloto.tel||'').replace(/\D/g,'');_tl.textContent='📞 Llamar a '+(o.piloto.nombre||'tu piloto');}
+  try{
+    var _eta=document.getElementById('oeta'),_esp=document.getElementById('oespera');
+    var _tgt=(o.estado==='recogido'&&o.destinoGPS)?o.destinoGPS:((o.origenGPS||(o.cliente&&o.cliente.gps))||null);
+    if(o.piloto&&o.piloto.gps&&_tgt&&_tgt.lat){
+      var _km=distKm2(o.piloto.gps,_tgt);
+      var _min=Math.max(1,Math.round(_km/22*60));
+      if(_eta){_eta.style.display='block';_eta.innerHTML='🛵 '+(o.piloto.nombre||'Tu piloto')+' llega en <b>~'+_min+' min</b> · '+_km.toFixed(1)+' km'+(o.estado==='recogido'?' al destino':' a recoger');}
+      if(_esp)_esp.style.display='none';
+    }else{
+      if(_eta)_eta.style.display='none';
+      if(_esp)_esp.style.display=(o.piloto?'block':'none');
+    }
+  }catch(e){}
   if(o.piloto){var uW=LS();wa.style.display='block';wa.href='https://wa.me/'+waTel(o.piloto.tel,uW)+'?text='+encodeURIComponent('Hola '+o.piloto.nombre+', soy '+o.cliente.nombre+', del pedido '+o.id+' de DragoExpres.')}
   var cb=document.getElementById('chatBox');
   if(o.piloto&&!['entregado','cancelado'].includes(o.estado)){

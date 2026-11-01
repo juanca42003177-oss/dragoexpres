@@ -504,6 +504,19 @@ function gpsLoop(){
   },function(){ULT_GPS=Date.now();if(!GPS_WARN){GPS_WARN=true;var d=document.createElement('div');d.style.cssText='background:#241a05;border:1px solid #f0b90b;color:#ffe08a;font-size:12px;padding:8px 10px;border-radius:10px;margin:6px 0';d.textContent='📍 Activá tu GPS: sin él el cliente no te ve en el mapa. Revisá el permiso de ubicación del navegador.';var app=document.getElementById('app');if(app)app.insertBefore(d,app.firstChild);}},{enableHighAccuracy:true,timeout:10000});
 }
 setInterval(gpsLoop,15000);
+/* GPS RÁPIDO (2026-11-01, pedido de Juan): seguimiento continuo y envío cada 4s,
+   así el mapa del cliente muestra la moto moviéndose en vez de esperar 30s. */
+(function(){
+  if(!navigator.geolocation||!navigator.geolocation.watchPosition) return;
+  var ultimo=0;
+  navigator.geolocation.watchPosition(function(pos){
+    try{window.MYGPS={lat:pos.coords.latitude,lng:pos.coords.longitude,acc:pos.coords.accuracy}}catch(e){}
+    ULT_GPS=Date.now();
+    if(Date.now()-ultimo<4000) return;
+    ultimo=Date.now();
+    try{fetch(api('orders'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'gps',tel:PILOTO.tel,lat:pos.coords.latitude,lng:pos.coords.longitude})}).catch(function(){});}catch(e){}
+  },function(){},{enableHighAccuracy:true,maximumAge:3000,timeout:15000});
+})();
 async function cambiarDis(){
   if(DEMO){alert('Vista previa: el switch real funciona igual, pero acá no se guarda.');return}
   var val=!document.getElementById('sw').className.includes('on');
