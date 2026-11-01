@@ -105,8 +105,9 @@ module.exports = wrap(async (req, res) => {
     if (!_forzar && _pzData.ultimaSemanaRepartida === _semanaKey) {
       return res.status(200).json({ ok: true, skip: true, motivo: 'Ya se repartio esta semana (' + _semanaKey + '). No se acredita dos veces ni se manda otro aviso.' });
     }
-    if (!_forzar && _hoyGT !== 0) {
-      return res.status(200).json({ ok: true, skip: true, motivo: 'Hoy no es domingo. El reparto corre solo los domingos (usa ?force=1 para forzar a mano).' });
+    const _horaGT = new Date(Date.now() - 6 * 3600 * 1000).getUTCHours();
+    if (!_forzar && (_hoyGT !== 0 || _horaGT < 19)) {
+      return res.status(200).json({ ok: true, skip: true, motivo: 'Fuera de ventana: el reparto corre los DOMINGOS desde las 19:00 (hora Guatemala). Asi el cron puede estar cada 10 min sin duplicar nada.' });
     }
     const pz = await ghGet('pozo.json');
     const pozo = pz && !Array.isArray(pz.data) ? pz.data : {};
@@ -172,8 +173,7 @@ module.exports = wrap(async (req, res) => {
       pozo.metaGlobal = nueva;
       ajuste = { anterior, nueva, demanda, activos: activos.length };
     }
-    pozo.ultimaSemanaRepartida = _semanaKey;
-    pozo.ultimoRepartoTs = Date.now();
+    if (reparto.length) { pozo.ultimaSemanaRepartida = _semanaKey; pozo.ultimoRepartoTs = Date.now(); }
     pozo.historial.push({ domingo: g.toISOString().slice(0, 10), reparto, acumulan, modo: 'individual', metaGlobal: pozo.metaGlobal || META_BASE, ajuste });
     await ghPut('pozo.json', pz ? pz.sha : null, pozo, 'recompensas dominicales individuales');
 
