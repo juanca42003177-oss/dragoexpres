@@ -649,7 +649,7 @@ async function login(){
   localStorage.setItem('dxLocal',TEL);
   pintar(j);
   document.getElementById('login').style.display='none';document.getElementById('app').style.display='block';
-  if(POLL)clearInterval(POLL);POLL=setInterval(tick,15000);cargarMenu();
+  if(POLL)clearInterval(POLL);POLL=setInterval(tick,6000);cargarMenu();
 }
 function pintar(j){
   HORARIO={abre:j.local.abre!==undefined&&j.local.abre!==null?j.local.abre:null,cierra:j.local.cierra!==undefined&&j.local.cierra!==null?j.local.cierra:null};pintarHorario();

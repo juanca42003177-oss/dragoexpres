@@ -37,7 +37,19 @@ const semana = () => 'S' + Math.floor((Date.now() - TZ) / (7 * 864e5));
 const dinero = (q) => { const n = Number(q); return (isNaN(n) || !isFinite(n) || n < 0) ? 0 : Math.round(n * 100) / 100; };
 const dig = (t) => { const d = String(t || '').replace(/\D/g, ''); return d.length > 8 ? d.slice(-8) : d; };
 
+/* CACHE DE LECTURA (2026-11-01): cada consulta iba a la base y algunas acciones
+   hacian hasta 4 viajes seguidos. Con 4s de cache, las lecturas repetidas son
+   instantaneas y el panel se siente vivo. Se invalida al escribir (ghPut). */
+const _LECT = new Map();
+const _LECT_TTL = 4000;
 async function ghGet(path) {
+  const hit = _LECT.get(path);
+  if (hit && (Date.now() - hit.ts) < _LECT_TTL) return hit.val;
+  const res = await ghGetReal(path);
+  if (res) _LECT.set(path, { ts: Date.now(), val: res });
+  return res;
+}
+async function ghGetReal(path) {
   if (usaDb) return dbGet(path);
   await ensureBranch();
   const r = await fetch(`https://api.github.com/repos/${REPO}/contents/${path}?ref=${BRANCH}`, { headers: H() });
@@ -46,6 +58,7 @@ async function ghGet(path) {
   return { sha: j.sha, data: JSON.parse(Buffer.from(j.content, 'base64').toString('utf8') || '[]') };
 }
 async function ghPut(path, sha, data, msg) {
+  try { _LECT.delete(path); } catch (e) {}
   if (usaDb) return dbPut(path, sha, data, msg);
   const r = await fetch(`https://api.github.com/repos/${REPO}/contents/${path}`, {
     method: 'PUT',
@@ -614,8 +627,9 @@ module.exports = wrap(async (req, res) => {
     return res.status(200).json({ ok: true, gps: loc.datos.gps });
   }
   if (action === 'locales') {
-    const fr = await ghGet('registros.json'); const regs = fr ? fr.data : [];
-    const fl = await ghGet('locales.json'); const lrows = fl ? fl.data : [];
+    const [fr, fl] = await Promise.all([ghGet('registros.json'), ghGet('locales.json')]);
+    const regs = fr ? fr.data : [];
+    const lrows = fl ? fl.data : [];
     const horaGT = new Date(Date.now() - TZ).getUTCHours();
     const loc = regs.filter(r => r.tipo === 'local' && r.estado === 'aprobado').map(r => {
       const tel = String((r.datos && (r.datos.whatsapp || r.datos.tel)) || '').replace(/\D/g, '');

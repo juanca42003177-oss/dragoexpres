@@ -372,7 +372,7 @@ async function login(){
   PILOTO={tel:tel};localStorage.setItem('dxPiloto',JSON.stringify({tel:tel,placa:placa}));
   pintar(j);
   document.getElementById('login').style.display='none';document.getElementById('app').style.display='block';
-  if(POLL)clearInterval(POLL);POLL=setInterval(tick,12000);
+  if(POLL)clearInterval(POLL);POLL=setInterval(tick,5000);
 }
 function pintar(j){
   var p=j.piloto;
