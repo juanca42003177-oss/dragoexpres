@@ -102,12 +102,12 @@ module.exports = wrap(async (req, res) => {
     const _hoyGT = new Date(Date.now() - 6 * 3600 * 1000).getUTCDay();
     const _pzGuard = await ghGet('pozo.json');
     const _pzData = (_pzGuard && !Array.isArray(_pzGuard.data)) ? _pzGuard.data : {};
-    if (!_forzar && _pzData.ultimaSemanaRepartida === _semanaKey) {
-      return res.status(200).json({ ok: true, skip: true, motivo: 'Ya se repartio esta semana (' + _semanaKey + '). No se acredita dos veces ni se manda otro aviso.' });
+    if (!_forzar && (_pzData.ultimaSemanaProcesada === _semanaKey)) {
+      return res.status(200).json({ ok: true, skip: true, motivo: 'Esta semana ya se proceso (' + _semanaKey + '). No se acredita dos veces, no se resetean rachas y no se manda otro aviso.' });
     }
     const _horaGT = new Date(Date.now() - 6 * 3600 * 1000).getUTCHours();
-    if (!_forzar && (_hoyGT !== 0 || _horaGT < 19)) {
-      return res.status(200).json({ ok: true, skip: true, motivo: 'Fuera de ventana: el reparto corre los DOMINGOS desde las 19:00 (hora Guatemala). Asi el cron puede estar cada 10 min sin duplicar nada.' });
+    if (!_forzar && (_hoyGT !== 0 || _horaGT < 20)) {
+      return res.status(200).json({ ok: true, skip: true, motivo: 'Fuera de ventana: el reparto corre los DOMINGOS desde las 20:00 (hora Guatemala). Asi el cron puede estar cada 10 min sin duplicar nada.' });
     }
     const pz = await ghGet('pozo.json');
     const pozo = pz && !Array.isArray(pz.data) ? pz.data : {};
@@ -173,6 +173,8 @@ module.exports = wrap(async (req, res) => {
       pozo.metaGlobal = nueva;
       ajuste = { anterior, nueva, demanda, activos: activos.length };
     }
+    pozo.ultimaSemanaProcesada = _semanaKey;
+    pozo.ultimoProcesoTs = Date.now();
     if (reparto.length) { pozo.ultimaSemanaRepartida = _semanaKey; pozo.ultimoRepartoTs = Date.now(); }
     pozo.historial.push({ domingo: g.toISOString().slice(0, 10), reparto, acumulan, modo: 'individual', metaGlobal: pozo.metaGlobal || META_BASE, ajuste });
     await ghPut('pozo.json', pz ? pz.sha : null, pozo, 'recompensas dominicales individuales');
