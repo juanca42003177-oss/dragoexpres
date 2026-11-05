@@ -180,6 +180,15 @@ function abrirMapaGrande(){
   document.getElementById('pmWaze').href=linkWazeP(objetivoP);
   document.getElementById('pmGmaps').href=linkMapsP(objetivoP);
   try{ var _tit=document.getElementById('pmBigTit'); if(_tit) _tit.textContent=(o.estado==='recogido')?'Llevá al pasajero al DESTINO':'Andá a RECOGER al pasajero'; }catch(e){}
+  if(!dest && objetivoP.texto){
+    /* resolver la direccion escrita a coordenadas y reintentar el mapa */
+    try{ var _a3=document.getElementById('pmBigAviso'); if(_a3) _a3.textContent='📡 Ubicando la dirección: '+objetivoP.texto+'…'; }catch(e){}
+    geoTexto(objetivoP.texto,function(c){
+      if(c){ GEO_TXT[String(objetivoP.texto).trim()]=c; setTimeout(abrirMapaGrande,80); }
+      else { try{ alert('No pude ubicar esa dirección en el mapa. Tocá GOOGLE MAPS: te lleva igual.'); }catch(e){} }
+    });
+    return;
+  }
   if(!dest){
     try{ var _a2=document.getElementById('pmBigAviso'); if(_a2) _a2.textContent='🗺️ Sin pin: usá el botón GOOGLE MAPS (arriba) para ir a '+(objetivoP.texto||'la dirección'); }catch(e){}
     return;
@@ -230,6 +239,27 @@ async function trazarRotaPiloto(dest,primera){
   if(sub)sub.textContent='Faltan '+(dk<1?Math.round(dk*1000)+' m':dk.toFixed(1)+' km')+' — llegás en ~'+min+' min';
   if(av)av.textContent=(dk*1000<150)?'📍 Ya estás llegando: buscá el número de puerta.':(fuera?'🔄 Ruta recalculada por donde vas.':'Seguí la línea dorada — te aviso si te pasás de largo.');
 }
+/* GEOCODIFICACION EN EL PILOTO (2026-11-05): los pedidos viejos se crearon sin pin.
+   Antes el piloto se quedaba sin mapa; ahora la direccion escrita se convierte en
+   coordenadas y la ruta se dibuja igual. */
+var GEO_TXT={};
+try{ GEO_TXT=JSON.parse(sessionStorage.getItem('dx_geo')||'{}')||{}; }catch(e){ GEO_TXT={}; }
+function geoGuardar(k,v){ GEO_TXT[k]=v; try{sessionStorage.setItem('dx_geo',JSON.stringify(GEO_TXT))}catch(e){} }
+function geoTexto(txt,cb){
+  var k=String(txt||'').trim();
+  if(!k){cb(null);return}
+  if(GEO_TXT[k]){cb(GEO_TXT[k]);return}
+  var q=k+(/,guatemala/i.test(k)?'':', Guatemala');
+  fetch('https://nominatim.openstreetmap.org/search?format=json&limit=1&countrycodes=gt&q='+encodeURIComponent(q),{headers:{'Accept':'application/json'}})
+    .then(function(r){return r.json()})
+    .then(function(j){
+      if(Array.isArray(j)&&j.length){
+        var c={lat:parseFloat(j[0].lat),lng:parseFloat(j[0].lon)};
+        if(isFinite(c.lat)&&isFinite(c.lng)){geoGuardar(k,c);cb(c);return}
+      }
+      cb(null);
+    }).catch(function(){cb(null)});
+}
 function vehiculoP(o){
   var v=(o&&o.vehiculo)||(o&&o.piloto&&o.piloto.vehiculo)||'moto';
   v=String(v).toLowerCase();
@@ -242,14 +272,14 @@ function puntoRecogidaP(o){
   if(o && o.origenGPS && isFinite(o.origenGPS.lat)) return {lat:+o.origenGPS.lat, lng:+o.origenGPS.lng, tipo:'local'};
   if(o && o.recogidaGPS && isFinite(o.recogidaGPS.lat)) return {lat:+o.recogidaGPS.lat, lng:+o.recogidaGPS.lng, tipo:'gps'};
   var _dir=(o&&o.direccion)||(o&&o.cliente&&o.cliente.direccion)||'';
-  if(_dir) return {texto:String(_dir), tipo:'texto'};
+  if(_dir){ var _k=String(_dir).trim(); if(GEO_TXT[_k]) return {lat:GEO_TXT[_k].lat,lng:GEO_TXT[_k].lng,tipo:'geo'}; return {texto:_k, tipo:'texto'}; }
   if(o && o.cliente && o.cliente.gps) return {lat:o.cliente.gps.lat, lng:o.cliente.gps.lng, tipo:'gps'};
   return null;
 }
 function puntoDestinoP(o){
   if(o && o.destinoGPS && isFinite(o.destinoGPS.lat)) return {lat:+o.destinoGPS.lat, lng:+o.destinoGPS.lng, tipo:'gps'};
   var txt=(o&&o.tipo==='viaje')?((o&&o.detalle)||'').trim():'';
-  if(txt) return {texto:txt, tipo:'texto'};
+  if(txt){ if(GEO_TXT[txt]) return {lat:GEO_TXT[txt].lat,lng:GEO_TXT[txt].lng,tipo:'geo'}; return {texto:txt, tipo:'texto'}; }
   return null;
 }
 function linkMapsP(pt){
@@ -275,6 +305,16 @@ function pintarMapaPiloto(o){
   var dest = objetivo ? ((objetivo.lat!=null)?{lat:objetivo.lat,lng:objetivo.lng}:null) : null;
   if(!dest && recP && recP.lat!=null) dest={lat:recP.lat,lng:recP.lng};
   hi.textContent='';ir.style.display='none';
+  if(!dest && objetivo && objetivo.texto && !window._GEO_TRY){
+    window._GEO_TRY=String(objetivo.texto);
+    try{ hi.textContent='📡 Ubicando '+objetivo.texto+' en el mapa…'; }catch(e){}
+    geoTexto(objetivo.texto,function(c){
+      window._GEO_TRY=null;
+      if(c){ GEO_TXT[String(objetivo.texto).trim()]=c; try{ pintarMapaPiloto(o); }catch(e){} }
+      else { try{ hi.textContent='📍 No encontré esa dirección. Tocá CÓMO LLEGAR y Google Maps te lleva igual.'; }catch(e){} }
+    });
+    return;
+  }
   if(!dest){
     mp.style.display='none';
     var _dirtxt=(objetivo&&objetivo.texto)?objetivo.texto:'';

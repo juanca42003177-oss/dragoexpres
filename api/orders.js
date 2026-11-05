@@ -42,6 +42,29 @@ const dig = (t) => { const d = String(t || '').replace(/\D/g, ''); return d.leng
    instantaneas y el panel se siente vivo. Se invalida al escribir (ghPut). */
 const _LECT = new Map();
 const _LECT_TTL = 8000;
+/* GEOCODIFICACION (2026-11-05): si el cliente no marca pin, la direccion escrita se
+   convierte en coordenadas para que el mapa del piloto SIEMPRE pueda dibujar la ruta.
+   Antes, un viaje sin pin dejaba al piloto sin mapa y sin destino. */
+const _GEO = new Map();
+async function geoDireccion(txt) {
+  const q = String(txt || '').trim();
+  if (!q || q.length < 3) return null;
+  if (_GEO.has(q)) return _GEO.get(q);
+  try {
+    const url = 'https://nominatim.openstreetmap.org/search?format=json&limit=1&countrycodes=gt&q=' +
+      encodeURIComponent(q + (/,guatemala/i.test(q) ? '' : ', Guatemala'));
+    const r = await fetch(url, { headers: { 'User-Agent': 'DragoExpres/1.0 (soporte dragoexpres)' } });
+    if (!r.ok) return null;
+    const j = await r.json();
+    if (!Array.isArray(j) || !j.length) return null;
+    const lat = +j[0].lat, lng = +j[0].lon;
+    if (!isFinite(lat) || !isFinite(lng)) return null;
+    const out = { lat, lng };
+    _GEO.set(q, out);
+    return out;
+  } catch (e) { return null; }
+}
+
 async function ghGet(path) {
   const hit = _LECT.get(path);
   if (hit && (Date.now() - hit.ts) < _LECT_TTL) return hit.val;
@@ -346,12 +369,17 @@ module.exports = wrap(async (req, res) => {
       const primera = prev.length ? Math.min(...prev.map(x => x.ts)) : now;
       if (now - primera >= GRACIA_LOCAL_MS) comisionLocal = dinero(baseLocal * PCT_LOCAL);
     }
+    // si no vino pin, intentamos convertir la direccion escrita en coordenadas
+    let _gpsCli = (b.gps && isFinite(+b.gps.lat) && isFinite(+b.gps.lng)) ? { lat: +b.gps.lat, lng: +b.gps.lng } : null;
+    if (!_gpsCli && b.direccion) { const _g1 = await geoDireccion(b.direccion); if (_g1) _gpsCli = _g1; }
+    let _destGPS = (b.destinoGPS && isFinite(+b.destinoGPS.lat) && isFinite(+b.destinoGPS.lng)) ? { lat: +b.destinoGPS.lat, lng: +b.destinoGPS.lng } : null;
+    if (!_destGPS && tipo === 'viaje' && b.detalle) { const _g2 = await geoDireccion(b.detalle); if (_g2) _destGPS = _g2; }
     const pedido = {
       id, tipo, zona,
-      cliente: { nombre, tel, direccion: String(b.direccion).slice(0, 500), referencia: String(b.referencia || '').slice(0, 500), gps: (b.gps && isFinite(+b.gps.lat) && isFinite(+b.gps.lng)) ? { lat: +b.gps.lat, lng: +b.gps.lng } : undefined },
+      cliente: { nombre, tel, direccion: String(b.direccion).slice(0, 500), referencia: String(b.referencia || '').slice(0, 500), gps: _gpsCli || (b.gps && isFinite(+b.gps.lat) && isFinite(+b.gps.lng)) ? { lat: +b.gps.lat, lng: +b.gps.lng } : undefined },
       detalle: String(b.detalle).slice(0, 800),
       items: Array.isArray(b.items) ? b.items.slice(0, 30).map(x => ({ nombre: String(x.nombre || '').slice(0, 60), qty: Math.max(1, Math.min(50, +x.qty || 1)), precio: dinero(x.precio || 0), nota: String(x.nota || '').slice(0, 120), foto: /^https?:\/\//.test(String(x.foto || '')) ? String(x.foto).slice(0, 300) : undefined })) : undefined,
-      compra: dinero(b.compra || 0), servicio: servicio || undefined, envio, tarifaPropuesta: tarifaPropuesta || undefined, destinoGPS: (b.destinoGPS && isFinite(+b.destinoGPS.lat) && isFinite(+b.destinoGPS.lng)) ? { lat: +b.destinoGPS.lat, lng: +b.destinoGPS.lng } : undefined, origenGPS: (b.origenGPS && isFinite(+b.origenGPS.lat) && isFinite(+b.origenGPS.lng)) ? { lat: +b.origenGPS.lat, lng: +b.origenGPS.lng } : undefined, recogidaGPS: (b.recogidaGPS && isFinite(+b.recogidaGPS.lat) && isFinite(+b.recogidaGPS.lng)) ? { lat: +b.recogidaGPS.lat, lng: +b.recogidaGPS.lng } : undefined, promoFiel: promoFiel || undefined, promoTarifa: promoFiel ? envioTarifa : undefined, propina, comision: promoFiel ? 0 : comisionDe(tipo, envioTarifa - recargo), comisionLocal, nocturno, recargo,
+      compra: dinero(b.compra || 0), servicio: servicio || undefined, envio, tarifaPropuesta: tarifaPropuesta || undefined, destinoGPS: _destGPS || (b.destinoGPS && isFinite(+b.destinoGPS.lat) && isFinite(+b.destinoGPS.lng)) ? { lat: +b.destinoGPS.lat, lng: +b.destinoGPS.lng } : undefined, origenGPS: (b.origenGPS && isFinite(+b.origenGPS.lat) && isFinite(+b.origenGPS.lng)) ? { lat: +b.origenGPS.lat, lng: +b.origenGPS.lng } : undefined, recogidaGPS: (b.recogidaGPS && isFinite(+b.recogidaGPS.lat) && isFinite(+b.recogidaGPS.lng)) ? { lat: +b.recogidaGPS.lat, lng: +b.recogidaGPS.lng } : undefined, promoFiel: promoFiel || undefined, promoTarifa: promoFiel ? envioTarifa : undefined, propina, comision: promoFiel ? 0 : comisionDe(tipo, envioTarifa - recargo), comisionLocal, nocturno, recargo,
       estado: 'buscando', piloto: null, ts: now, pago, referencia, local: localObj || undefined, avisoWa: b.avisoWa !== false
     };
     // dispatch: primer piloto disponible de la zona
