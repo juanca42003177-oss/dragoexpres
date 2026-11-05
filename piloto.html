@@ -168,13 +168,26 @@ function abrirMapaGrande(){
       +'<div id="pmBigAviso" style="padding:10px 14px;background:#14151c;color:#ffd479;font-weight:900;text-align:center"></div>';
     document.body.appendChild(ov)}
   ov.style.display='flex';
+  if(!dest){
+    /* el punto viene como DIRECCION escrita, sin coordenadas: el mapa interno no puede dibujarlo */
+    try{
+      var _sub=document.getElementById('pmBigSub');
+      if(_sub) _sub.textContent='Punto: '+(objetivoP.texto||'')+' (dirección escrita)';
+      var _av=document.getElementById('pmBigAviso');
+      if(_av) _av.textContent='🗺️ Este pedido no tiene pin en el mapa: tocá GOOGLE MAPS y te lleva a la dirección.';
+    }catch(e){}
+  }
   document.getElementById('pmWaze').href=linkWazeP(objetivoP);
   document.getElementById('pmGmaps').href=linkMapsP(objetivoP);
   try{ var _tit=document.getElementById('pmBigTit'); if(_tit) _tit.textContent=(o.estado==='recogido')?'Llevá al pasajero al DESTINO':'Andá a RECOGER al pasajero'; }catch(e){}
+  if(!dest){
+    try{ var _a2=document.getElementById('pmBigAviso'); if(_a2) _a2.textContent='🗺️ Sin pin: usá el botón GOOGLE MAPS (arriba) para ir a '+(objetivoP.texto||'la dirección'); }catch(e){}
+    return;
+  }
   if(window.PBIG){window.PBIG.remove();window.PBIG=null}
   window.PBIG=L.map('pmBigMap').setView([window.MYGPS.lat,window.MYGPS.lng],16);
   L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'© OpenStreetMap'}).addTo(window.PBIG);
-  var vic=(o.vehiculo==='carro')?'🚗':(o.vehiculo==='bicicleta')?'🚲':'🏍️';
+  var vic=iconoVicP(o);
   window.PBIGM=L.marker([window.MYGPS.lat,window.MYGPS.lng],{icon:L.divIcon({className:'',html:'<div style="font-size:34px;filter:drop-shadow(0 2px 4px rgba(0,0,0,.5))">'+vic+'</div>',iconSize:[38,38],iconAnchor:[19,19]})}).addTo(window.PBIG);
   L.marker([dest.lat,dest.lng],{icon:L.divIcon({className:'',html:'<div style="font-size:34px">📍</div>',iconSize:[38,38],iconAnchor:[19,19]})}).addTo(window.PBIG).bindPopup('Tu destino');
   trazarRotaPiloto(dest,true);
@@ -193,7 +206,7 @@ function abrirMapaGrande(){
 function cerrarMapaGrande(){var ov=document.getElementById('pmBig');if(ov)ov.style.display='none';if(window.PBIG_T){clearInterval(window.PBIG_T);window.PBIG_T=null}}
 async function trazarRotaPiloto(dest,primera){
   var yo=window.MYGPS; if(!yo)return;
-  var vel=(window.PM_ORDEN&&window.PM_ORDEN.vehiculo==='bicicleta')?10:(window.PM_ORDEN&&window.PM_ORDEN.vehiculo==='carro')?20:22;
+  var _vp=vehiculoP(window.PM_ORDEN); var vel=_vp==='bicicleta'?10:(_vp==='carro'?20:22);
   var sub=document.getElementById('pmBigSub'),av=document.getElementById('pmBigAviso');
   /* ¿se desvió de la ruta? (>120 m de la línea) => RECALCULAR como Waze */
   var fuera=true;
@@ -217,15 +230,26 @@ async function trazarRotaPiloto(dest,primera){
   if(sub)sub.textContent='Faltan '+(dk<1?Math.round(dk*1000)+' m':dk.toFixed(1)+' km')+' — llegás en ~'+min+' min';
   if(av)av.textContent=(dk*1000<150)?'📍 Ya estás llegando: buscá el número de puerta.':(fuera?'🔄 Ruta recalculada por donde vas.':'Seguí la línea dorada — te aviso si te pasás de largo.');
 }
+function vehiculoP(o){
+  var v=(o&&o.vehiculo)||(o&&o.piloto&&o.piloto.vehiculo)||'moto';
+  v=String(v).toLowerCase();
+  if(v.indexOf('bici')===0) return 'bicicleta';
+  if(v.indexOf('carro')===0||v.indexOf('auto')===0) return 'carro';
+  return 'moto';
+}
+function iconoVicP(o){ var v=vehiculoP(o); return v==='carro'?'🚗':(v==='bicicleta'?'🚲':'🏍️'); }
 function puntoRecogidaP(o){
   if(o && o.origenGPS && isFinite(o.origenGPS.lat)) return {lat:+o.origenGPS.lat, lng:+o.origenGPS.lng, tipo:'local'};
   if(o && o.recogidaGPS && isFinite(o.recogidaGPS.lat)) return {lat:+o.recogidaGPS.lat, lng:+o.recogidaGPS.lng, tipo:'gps'};
-  if(o && o.direccion) return {texto:String(o.direccion), tipo:'texto'};
+  var _dir=(o&&o.direccion)||(o&&o.cliente&&o.cliente.direccion)||'';
+  if(_dir) return {texto:String(_dir), tipo:'texto'};
   if(o && o.cliente && o.cliente.gps) return {lat:o.cliente.gps.lat, lng:o.cliente.gps.lng, tipo:'gps'};
   return null;
 }
 function puntoDestinoP(o){
   if(o && o.destinoGPS && isFinite(o.destinoGPS.lat)) return {lat:+o.destinoGPS.lat, lng:+o.destinoGPS.lng, tipo:'gps'};
+  var txt=(o&&o.tipo==='viaje')?((o&&o.detalle)||'').trim():'';
+  if(txt) return {texto:txt, tipo:'texto'};
   return null;
 }
 function linkMapsP(pt){
@@ -251,15 +275,18 @@ function pintarMapaPiloto(o){
   var dest = objetivo ? ((objetivo.lat!=null)?{lat:objetivo.lat,lng:objetivo.lng}:null) : null;
   if(!dest && recP && recP.lat!=null) dest={lat:recP.lat,lng:recP.lng};
   hi.textContent='';ir.style.display='none';
-  if(!dest){mp.style.display='none';hi.textContent='📍 El cliente pidió sin ubicación. Cuando abra su pantalla de seguimiento, su punto cae acá solo. También podés pedírsela por el chat.';return}
+  if(!dest){
+    mp.style.display='none';
+    var _dirtxt=(objetivo&&objetivo.texto)?objetivo.texto:'';
+    hi.textContent='📍 Sin pin en el mapa'+( _dirtxt?(' — la dirección es: '+_dirtxt+'. Tocá CÓMO LLEGAR y te lleva.'):'')+' El cliente pidió sin ubicación. Cuando abra su pantalla de seguimiento, su punto cae acá solo. También podés pedírsela por el chat.';return}
   if(!yo){mp.style.display='none';hi.textContent='📍 Activá tu GPS (permiso de ubicación del navegador) y acá ves el mapa del viaje con la distancia y tu avance.';return}
-  var vel=o.vehiculo==='bicicleta'?10:(o.vehiculo==='carro'?20:22);
+  var _v2=vehiculoP(o); var vel=_v2==='bicicleta'?10:(_v2==='carro'?20:22);
   var dk=distKmP(yo,dest),min=Math.max(1,Math.round(dk/vel*60+1));
   mp.style.display='block';
   if(window.PMM){window.PMM.remove();window.PMM=null}
   window.PMM=L.map('pmMap').setView([(yo.lat+dest.lat)/2,(yo.lng+dest.lng)/2],13);
   L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'© OpenStreetMap'}).addTo(window.PMM);
-  L.marker([yo.lat,yo.lng],{icon:L.divIcon({className:'',html:'<div style="font-size:24px;filter:drop-shadow(0 2px 3px rgba(0,0,0,.4))">'+(o.vehiculo==='carro'?'🚗':(o.vehiculo==='bicicleta'?'🚲':'🏍️'))+'</div>',iconSize:[28,28],iconAnchor:[14,14]})}).addTo(window.PMM).bindPopup('Vos');
+  L.marker([yo.lat,yo.lng],{icon:L.divIcon({className:'',html:'<div style="font-size:24px;filter:drop-shadow(0 2px 3px rgba(0,0,0,.4))">'+iconoVicP(o)+'</div>',iconSize:[28,28],iconAnchor:[14,14]})}).addTo(window.PMM).bindPopup('Vos');
   L.marker([dest.lat,dest.lng],{icon:L.divIcon({className:'',html:'<div style="font-size:24px">📍</div>',iconSize:[28,28],iconAnchor:[14,14]})}).addTo(window.PMM).bindPopup('Tu destino');
   L.polyline([[yo.lat,yo.lng],[dest.lat,dest.lng]],{color:'#f0b90b',weight:3,dashArray:'6,8'}).addTo(window.PMM);
   window.PMM.fitBounds([[yo.lat,yo.lng],[dest.lat,dest.lng]],{padding:[18,18]});
