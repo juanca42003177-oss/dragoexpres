@@ -595,7 +595,13 @@ module.exports = wrap(async (req, res) => {
       vencido = !!(limiteCiclo && now > limiteCiclo && porDepositar >= 50);
       diasRestantes = limiteCiclo ? Math.max(0, Math.ceil((limiteCiclo - now) / 86400000)) : 0;
     } catch (e) { }
-    return res.status(200).json({ ok: true, porDepositar, limiteCiclo, vencido, diasRestantes, entregas: mios.length, resenas, ganado, comisiones: dinero(comisiones - (st.bonosAplicados || 0)), calif, bonosPend: dinero(st.bonosPend || 0), bonoBienvenida: st.bonoBienvenida || null, pendiente: st.pendiente || null, saldoChico: st.saldoChico || 0, pendienteActivo: !!(st.pendiente && !st.pendiente.pagado), retraso: !!st.retraso, meta: { hechas: semana, faltan: Math.max(0, metaEfe - semana), meta: metaEfe }, historial });
+    // pagos REALES del piloto (antes la app mostraba las comisiones generadas como si fueran pagos)
+    let pagadoTotal = 0;
+    try {
+      if (Array.isArray(st.pagos)) pagadoTotal = dinero(st.pagos.reduce((a2, p2) => a2 + (Number(p2 && p2.monto) || 0), 0));
+      if (st.pendiente && st.pendiente.pagado && st.pendiente.monto) pagadoTotal = dinero(pagadoTotal + Number(st.pendiente.monto));
+    } catch (e) { pagadoTotal = 0; }
+    return res.status(200).json({ ok: true, pagadoTotal, porDepositar, limiteCiclo, vencido, diasRestantes, entregas: mios.length, resenas, ganado, comisiones: dinero(comisiones - (st.bonosAplicados || 0)), calif, bonosPend: dinero(st.bonosPend || 0), bonoBienvenida: st.bonoBienvenida || null, pendiente: st.pendiente || null, saldoChico: st.saldoChico || 0, pendienteActivo: !!(st.pendiente && !st.pendiente.pagado), retraso: !!st.retraso, meta: { hechas: semana, faltan: Math.max(0, metaEfe - semana), meta: metaEfe }, historial });
   }
 
   // ---- consultar estado (usuario o pantalla) ----
