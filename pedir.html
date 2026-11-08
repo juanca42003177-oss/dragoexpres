@@ -312,7 +312,15 @@ input,textarea,select{-webkit-user-select:text;user-select:text}
     </div>
     <div style="text-align:center;font-size:11px;color:#6b6b76;margin:6px 0 2px">✅ Todos nuestros pilotos están verificados con DPI y contrato firmado</div>
     <style>
-      .servGrid{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin:10px 0 4px}
+      .pinDrag{position:relative;width:44px;height:52px}
+  .pinDrag .cuerpo{width:44px;height:44px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);background:linear-gradient(135deg,#12864a,#0a5c33);border:3px solid #fff;box-shadow:0 6px 14px rgba(0,0,0,.35)}
+  .pinDrag .foto{position:absolute;top:6px;left:6px;width:32px;height:32px;border-radius:50%;background:#fff;display:flex;align-items:center;justify-content:center;overflow:hidden}
+  .pinDrag .foto img{width:26px;height:26px;object-fit:contain}
+  .pinDrag .pulso{position:absolute;bottom:-4px;left:50%;transform:translateX(-50%);width:26px;height:8px;border-radius:50%;background:rgba(10,92,51,.35);animation:pulsoPin 1.8s ease-out infinite}
+  @keyframes pulsoPin{0%{transform:translateX(-50%) scale(.6);opacity:.9}70%{transform:translateX(-50%) scale(1.6);opacity:0}100%{opacity:0}}
+  @keyframes flujoRuta{to{stroke-dashoffset:-56}}
+  .rutaFlujo{stroke-dasharray:14 14;animation:flujoRuta 1.3s linear infinite}
+  .servGrid{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin:10px 0 4px}
       .servCard{border:2px solid var(--linea);border-radius:14px;padding:10px 6px;text-align:center;cursor:pointer;background:#fff;transition:border-color .15s,background .15s}
       .servCard.on{border-color:#0f7a3d;background:#eafaf0}
       .servCard.soon{border-color:#e0b4b4;background:#fff5f5;opacity:.95}
@@ -1500,8 +1508,11 @@ async function actualizar(){
         .then(function(d){
           if(!d||!d.routes||!d.routes[0])return;
           var pts=d.routes[0].geometry.coordinates.map(function(c){return [c[1],c[0]]});
-          if(window.LMRT){window.LMRT.setLatLngs(pts)}
-          else{window.LMRT=L.polyline(pts,{color:'#0f7a3d',weight:5,opacity:.85}).addTo(window.LMAP)}
+          if(window.LMRT){window.LMRT.setLatLngs(pts); if(window.LMRT2) window.LMRT2.setLatLngs(pts);}
+          else{
+            window.LMRT=L.polyline(pts,{color:'#ffffff',weight:10,opacity:.95}).addTo(window.LMAP);
+            window.LMRT2=L.polyline(pts,{color:'#0f7a3d',weight:5,opacity:.95,className:'rutaFlujo'}).addTo(window.LMAP);
+          }
           try{window.LMAP.fitBounds(window.LMRT.getBounds(),{padding:[40,40],maxZoom:16})}catch(e){}
         }).catch(function(){});
     }
@@ -1553,9 +1564,9 @@ async function actualizar(){
     if(_espP){ _ESPERA={lat:+_espP.lat,lng:+_espP.lng}; window.ESPERA_LL=_ESPERA; }
     if(_espP&&window.LMAP){
       if(!window.LMESP){
-        window.LMESP=L.marker([_ESPERA.lat,_ESPERA.lng],{icon:L.divIcon({className:'',iconSize:[34,34],iconAnchor:[17,34],
-          html:'<div style="width:34px;height:34px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);background:#0f7a3d;border:3px solid #fff;box-shadow:0 3px 8px rgba(0,0,0,.35)"></div>'})})
-          .addTo(window.LMAP).bindPopup('📍 Te esperamos acá');
+        window.LMESP=L.marker([_ESPERA.lat,_ESPERA.lng],{icon:L.divIcon({className:'',iconSize:[44,52],iconAnchor:[22,50],
+          html:'<div class="pinDrag"><div class="pulso"></div><div class="cuerpo"></div><div class="foto"><img src="img/dragon-fuego.webp" alt="DragoExpres"></div></div>'})})
+          .addTo(window.LMAP).bindPopup('🐉 Acá te esperamos');
       } else { window.LMESP.setLatLng([_ESPERA.lat,_ESPERA.lng]); }
     } else if(_espP && !window.LMAP){ window.ESPERA_PEND=_espP; }
   }catch(e){}

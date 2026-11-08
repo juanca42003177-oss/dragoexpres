@@ -198,7 +198,7 @@ function abrirMapaGrande(){
   L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',{subdomains:'abcd',maxZoom:20,attribution:'© OpenStreetMap · © CARTO'}).addTo(window.PBIG);
   var vic=iconoVicP(o);
   window.PBIGM=L.marker([window.MYGPS.lat,window.MYGPS.lng],{icon:L.divIcon({className:'',html:'<div style="font-size:34px;filter:drop-shadow(0 2px 4px rgba(0,0,0,.5))">'+vic+'</div>',iconSize:[38,38],iconAnchor:[19,19]})}).addTo(window.PBIG);
-  L.marker([dest.lat,dest.lng],{icon:L.divIcon({className:'',html:'<div style="font-size:34px">📍</div>',iconSize:[38,38],iconAnchor:[19,19]})}).addTo(window.PBIG).bindPopup('Tu destino');
+  L.marker([dest.lat,dest.lng],{icon:iconoPinDragon()}).addTo(window.PBIG).bindPopup('Tu destino');
   trazarRotaPiloto(dest,true);
   if(window.PBIG_T)clearInterval(window.PBIG_T);
   window.PBIG_T=setInterval(function(){ /* mientras andás: te sigue, recalcula si te desviás */
@@ -268,6 +268,19 @@ function geoTexto(txt,cb){
       cb(null);
     }).catch(function(){cb(null)});
 }
+var _PINCSS=false;
+function pinDragonCSS(){
+  if(_PINCSS) return; _PINCSS=true;
+  var st=document.createElement('style');
+  st.textContent='.pinD{position:relative;width:40px;height:48px}'
+   +'.pinD .c{width:40px;height:40px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);background:linear-gradient(135deg,#12864a,#0a5c33);border:3px solid #fff;box-shadow:0 5px 12px rgba(0,0,0,.35)}'
+   +'.pinD .f{position:absolute;top:6px;left:6px;width:28px;height:28px;border-radius:50%;background:#fff;display:flex;align-items:center;justify-content:center;overflow:hidden}'
+   +'.pinD .f img{width:22px;height:22px;object-fit:contain}'
+   +'.pinD .p{position:absolute;bottom:-3px;left:50%;transform:translateX(-50%);width:24px;height:7px;border-radius:50%;background:rgba(10,92,51,.35);animation:pulsoD 1.8s ease-out infinite}'
+   +'@keyframes pulsoD{0%{transform:translateX(-50%) scale(.6);opacity:.9}70%{transform:translateX(-50%) scale(1.6);opacity:0}100%{opacity:0}}';
+  document.head.appendChild(st);
+}
+function iconoPinDragon(){ pinDragonCSS(); return L.divIcon({className:'',iconSize:[40,48],iconAnchor:[20,46],html:'<div class="pinD"><div class="p"></div><div class="c"></div><div class="f"><img src="img/dragon-fuego.webp" alt="D"></div></div>'}); }
 function vehiculoP(o){
   var v=(o&&o.vehiculo)||(o&&o.piloto&&o.piloto.vehiculo)||'moto';
   v=String(v).toLowerCase();
@@ -336,7 +349,7 @@ function pintarMapaPiloto(o){
   window.PMM=L.map('pmMap').setView([(yo.lat+dest.lat)/2,(yo.lng+dest.lng)/2],13);
   L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',{subdomains:'abcd',maxZoom:20,attribution:'© OpenStreetMap · © CARTO'}).addTo(window.PMM);
   L.marker([yo.lat,yo.lng],{icon:L.divIcon({className:'',html:'<div style="font-size:24px;filter:drop-shadow(0 2px 3px rgba(0,0,0,.4))">'+iconoVicP(o)+'</div>',iconSize:[28,28],iconAnchor:[14,14]})}).addTo(window.PMM).bindPopup('Vos');
-  L.marker([dest.lat,dest.lng],{icon:L.divIcon({className:'',html:'<div style="font-size:24px">📍</div>',iconSize:[28,28],iconAnchor:[14,14]})}).addTo(window.PMM).bindPopup('Tu destino');
+  L.marker([dest.lat,dest.lng],{icon:iconoPinDragon()}).addTo(window.PMM).bindPopup('Tu destino');
   L.polyline([[yo.lat,yo.lng],[dest.lat,dest.lng]],{color:'#f0b90b',weight:3,dashArray:'6,8'}).addTo(window.PMM);
   window.PMM.fitBounds([[yo.lat,yo.lng],[dest.lat,dest.lng]],{padding:[18,18]});
   hi.textContent=(o.estado==='recogido'?'🏁 Pasajero a bordo — te faltan ':'📍 Faltan '+(dk<1?Math.round(dk*1000)+' m':dk.toFixed(1)+' km')+' — llegás en ~'+min+' min. El punto 📍 es tu destino.');
