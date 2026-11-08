@@ -629,6 +629,30 @@ module.exports = wrap(async (req, res) => {
     } catch (e) { }
     return res.status(200).json({ ok: true, recogidaGPS: o.recogidaGPS });
   }
+  /* SUGERENCIAS DE DIRECCION (2026-11-08): autocompletado con OpenStreetMap,
+     gratis y con Guatemala indexada. Solo RECOMIENDA: el cliente puede escribir
+     lo que quiera y nada se le impone. */
+  const _SUG = new Map();
+  if (action === 'sugerirDir') {
+    const q = String(b.q || '').trim();
+    if (q.length < 3) return res.status(200).json({ ok: true, sugerencias: [] });
+    if (_SUG.has(q)) return res.status(200).json({ ok: true, sugerencias: _SUG.get(q), cache: true });
+    let out = [];
+    try {
+      const url = 'https://nominatim.openstreetmap.org/search?format=json&limit=6&countrycodes=gt&addressdetails=1&q=' +
+        encodeURIComponent(q + (/,guatemala/i.test(q) ? '' : ', Guatemala'));
+      const r = await fetch(url, { headers: { 'User-Agent': 'DragoExpres/1.0 (soporte dragoexpres)' } });
+      const j = await r.json();
+      out = (Array.isArray(j) ? j : []).map(x => ({
+        nombre: String(x.display_name || '').split(', ').slice(0, 3).join(', '),
+        completo: String(x.display_name || ''),
+        lat: +x.lat, lng: +x.lon
+      })).filter(x => isFinite(x.lat) && isFinite(x.lng));
+      _SUG.set(q, out);
+      if (_SUG.size > 200) _SUG.clear();
+    } catch (e) { out = []; }
+    return res.status(200).json({ ok: true, sugerencias: out });
+  }
   if (action === 'estado') {
     const fpd = await ghGet('pedidos.json'); const peds = fpd ? fpd.data : [];
     await expirarAsignados(peds, fpd ? fpd.sha : null);

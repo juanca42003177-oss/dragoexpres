@@ -312,7 +312,15 @@ input,textarea,select{-webkit-user-select:text;user-select:text}
     </div>
     <div style="text-align:center;font-size:11px;color:#6b6b76;margin:6px 0 2px">✅ Todos nuestros pilotos están verificados con DPI y contrato firmado</div>
     <style>
-      .pinDrag{position:relative;width:44px;height:52px}
+      .sugBox{position:relative}
+  .sugList{position:absolute;left:0;right:0;top:100%;z-index:900;background:#fff;border:1px solid var(--linea);border-radius:12px;box-shadow:0 10px 26px rgba(0,0,0,.16);max-height:230px;overflow-y:auto;display:none}
+  .sugItem{padding:11px 13px;border-bottom:1px solid #f0f0f4;font-size:13px;cursor:pointer;line-height:1.25}
+  .sugItem:last-child{border-bottom:0}
+  .sugItem:active{background:#eafaf0}
+  .sugItem b{color:#12121a}
+  .sugItem span{display:block;font-size:11px;color:#6b6b76;margin-top:2px}
+  .sugNada{padding:11px 13px;font-size:12px;color:#8a8a95}
+  .pinDrag{position:relative;width:44px;height:52px}
   .pinDrag .cuerpo{width:44px;height:44px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);background:linear-gradient(135deg,#12864a,#0a5c33);border:3px solid #fff;box-shadow:0 6px 14px rgba(0,0,0,.35)}
   .pinDrag .foto{position:absolute;top:6px;left:6px;width:32px;height:32px;border-radius:50%;background:#fff;display:flex;align-items:center;justify-content:center;overflow:hidden}
   .pinDrag .foto img{width:26px;height:26px;object-fit:contain}
@@ -1180,6 +1188,48 @@ function cambiarEntrega(){
   lblSync();
 }
 
+/* AUTOCOMPLETADO DE DIRECCIONES (2026-11-08): recomienda, NO obliga.
+   El cliente puede ignorar las sugerencias y escribir libremente. */
+function autocompletarDir(idInput, cual){
+  var el=document.getElementById(idInput);
+  if(!el) return;
+  var wrap=document.createElement('div'); wrap.className='sugBox';
+  var lista=document.createElement('div'); lista.className='sugList';
+  el.parentNode.insertBefore(wrap, el); wrap.appendChild(el); wrap.appendChild(lista);
+  var tmr=null, ultimaQ='';
+  function pintar(arr, q){
+    lista.innerHTML='';
+    if(!arr.length){ lista.innerHTML='<div class="sugNada">No encontré esa dirección. Escribila igual: igual la ubicamos.</div>'; lista.style.display='block'; return; }
+    arr.forEach(function(sg){
+      var it=document.createElement('div'); it.className='sugItem';
+      var partes=String(sg.nombre).split(',');
+      it.innerHTML='<b>'+partes[0]+'</b><span>'+partes.slice(1).join(', ')+'</span>';
+      it.onclick=function(){
+        el.value=sg.nombre;
+        if(cual==='rec') window.REC_GPS={lat:sg.lat,lng:sg.lng};
+        if(cual==='dest') window.DEST_GPS={lat:sg.lat,lng:sg.lng};
+        lista.style.display='none';
+      };
+      lista.appendChild(it);
+    });
+    lista.style.display='block';
+  }
+  el.addEventListener('input', function(){
+    var q=String(el.value||'').trim();
+    if(cual==='rec') window.REC_GPS=null;
+    if(cual==='dest') window.DEST_GPS=null;
+    if(q.length<3 || q===ultimaQ){ lista.style.display='none'; return; }
+    ultimaQ=q; clearTimeout(tmr);
+    tmr=setTimeout(function(){
+      fetch(api('orders'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'sugerirDir',q:q})})
+        .then(function(r){return r.json()})
+        .then(function(j){ if(ultimaQ===q && j&&j.ok) pintar(j.sugerencias||[], q); })
+        .catch(function(){});
+    },450);
+  });
+  el.addEventListener('blur', function(){ setTimeout(function(){ lista.style.display='none'; }, 220); });
+  el.addEventListener('focus', function(){ if(lista.children.length) lista.style.display='block'; });
+}
 function avisoProximamente(que){
   alert('🚗 '+que+' viene en camino\n\nEstamos sumando pilotos de '+que.toLowerCase()+' a DragoExpres. Por ahora podés pedir en moto 🛵, que ya está funcionando las 24 horas.');
 }
@@ -1204,6 +1254,10 @@ function extra(){
   h+='<label>¿Con qué billete vas a pagar? <span style="font-weight:400;font-size:12px;opacity:.8">(así el piloto lleva el vuelto justo)</span></label><div class="chips" id="f-billetes">'+[0,50,100,200].map(function(b){return '<div class="chip'+(b===0?' on':'')+'" onclick="elegirBillete(this,'+b+')">'+(b===0?'Tengo exacto':'Q'+b)+'</div>'}).join('')+'</div>';
   h+='<div id="totBox" class="tarifa" style="font-size:15px"></div>';
   document.getElementById('extra').innerHTML=h;
+  try{
+    autocompletarDir('f-dir','rec');
+    if(document.getElementById('f-det')) autocompletarDir('f-det','dest');
+  }catch(e){}
 }
 var ULT_TEL='',PROPINA=0,BILLETE=0;
 var TARIFA={comida:15,viaje:25,repuesto:20};
