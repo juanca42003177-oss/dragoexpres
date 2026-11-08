@@ -616,13 +616,28 @@ module.exports = wrap(async (req, res) => {
         await redispatchViaje(o, peds, fpd.sha);
         o = peds.find(x => x.id === String(b.id).trim());
       }
-      let gps = null;
-      if (o.piloto) {
+      let gps = null, pilotosCerca = 0, pilotoFoto = null;
+      try {
         const fp = await ghGet('pilots.json');
-        const st = (fp ? fp.data : []).find(x => x.tel === o.piloto.tel);
-        if (st && st.lat && st.tsGPS && st.tsGPS > now - 300000) gps = { lat: st.lat, lng: st.lng, ts: st.tsGPS };
+        const todosP = fp ? fp.data : [];
+        const ocupados = new Set(peds.filter(x => x.piloto && ['asignado', 'aceptado', 'en_camino', 'recogido'].includes(x.estado)).map(x => dig(x.piloto.tel)));
+        pilotosCerca = todosP.filter(x => x.disponible && !ocupados.has(dig(x.tel))).length;
+        if (o.piloto) {
+          const st = todosP.find(x => x.tel === o.piloto.tel);
+          if (st && st.lat && st.tsGPS && st.tsGPS > now - 300000) gps = { lat: st.lat, lng: st.lng, ts: st.tsGPS };
+        }
+      } catch (e) { }
+      if (o.piloto) {
+        pilotoFoto = o.piloto.foto || null;
+        if (!pilotoFoto && o.piloto.tel) {
+          try {
+            const fr = await ghGet('registros.json');
+            const reg = (fr ? fr.data : []).find(r => r.tipo === 'piloto' && dig((r.datos || {}).tel) === dig(o.piloto.tel));
+            if (reg && reg.datos && reg.datos.foto) pilotoFoto = reg.datos.foto;
+          } catch (e) { }
+        }
       }
-      return res.status(200).json({ ok: true, pedido: o, gps });
+      return res.status(200).json({ ok: true, pedido: o, gps, pilotosCerca, pilotoFoto });
     }
     if (b.tel) {
       const mios = peds.filter(x => x.cliente.tel === String(b.tel).trim()).slice(-5).reverse();

@@ -292,9 +292,29 @@ input,textarea,select{-webkit-user-select:text;user-select:text}
   <div class="asa"></div>
   <h2 style="font-size:18px">Armá tu pedido</h2>
   <div class="pills">
-    <div class="pill on" id="pill-comida" onclick="setTipo('comida')">🍜 Comida</div>
-    <div class="pill" id="pill-viaje" onclick="setTipo('viaje')">🛺 Viaje</div>
-    <div class="pill" id="pill-repuesto" onclick="setTipo('repuesto')">🔧 Repuesto</div>
+    <div class="servGrid">
+      <div class="servCard on" id="pill-comida" onclick="setTipo('comida')">
+        <div class="si">🍜</div><div class="sn">Comida</div>
+        <div class="sd">De restaurantes</div><div class="sp">desde Q15</div>
+      </div>
+      <div class="servCard" id="pill-viaje" onclick="setTipo('viaje')">
+        <div class="si">🛵</div><div class="sn">Viaje</div>
+        <div class="sd">Moto, a donde vas</div><div class="sp">vos ofertás · ~Q25</div>
+      </div>
+      <div class="servCard" id="pill-repuesto" onclick="setTipo('repuesto')">
+        <div class="si">🔧</div><div class="sn">Repuestos</div>
+        <div class="sd">Talleres y partes</div><div class="sp">desde Q20</div>
+      </div>
+    </div>
+    <style>
+      .servGrid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin:10px 0 4px}
+      .servCard{border:2px solid var(--linea);border-radius:14px;padding:10px 6px;text-align:center;cursor:pointer;background:#fff;transition:border-color .15s,background .15s}
+      .servCard.on{border-color:#0f7a3d;background:#eafaf0}
+      .servCard .si{font-size:24px;line-height:1.1}
+      .servCard .sn{font-weight:900;font-size:13px;margin-top:3px;color:#12121a}
+      .servCard .sd{font-size:10px;color:#6b6b76;line-height:1.15;margin-top:1px}
+      .servCard .sp{font-weight:900;font-size:11px;color:#0f7a3d;margin-top:5px}
+    </style>
   </div>
   <div id="datosUser">
   <label>Tu nombre</label><input id="f-nombre" placeholder="Ej: María López">
@@ -361,6 +381,7 @@ input,textarea,select{-webkit-user-select:text;user-select:text}
       <div class="big" id="oid"></div>
       <div style="margin:12px 0"><span class="st sBus" id="oestado">Buscando piloto...</span></div>
       <p class="mini" id="oinfo"></p>
+      <div id="avCerca" style="display:none;margin-top:8px;background:#eafaf0;border:1px solid #b7e4c7;border-radius:10px;padding:8px 12px;font-size:13px;color:#0b5c33"></div>
       <div id="servBox" style="display:none;text-align:left;background:#eef4ff;border:1px solid #bcd4f5;border-radius:12px;padding:11px 13px;margin-top:12px"></div>
       <div id="vehBox" style="display:none;text-align:left;background:#fff8e1;border:1px solid #f0d98a;border-radius:12px;padding:11px 13px;margin-top:12px"></div>
       <a class="wa" id="owa" style="display:none" href="#" target="_blank">💬 Escribille al piloto por WhatsApp</a>
@@ -1455,14 +1476,36 @@ async function actualizar(){
   if(sb){if(o.servicio){sb.style.display='block';sb.innerHTML='<div style="font-size:11px;font-weight:800;color:#3a5a8c;margin-bottom:4px">🔧 TU MECÁNICO VA EN</div><div style="font-size:14px;font-weight:900">'+o.servicio.nombre+' — Q'+o.servicio.precio+'</div><div style="font-size:13px;margin-top:2px">'+o.servicio.mecanico+' · '+(o.servicio.veh==='moto'?'🏍️':'🚗')+' '+o.servicio.color+' '+o.servicio.marca+'</div>'+(o.servicio.placa?'<div style="display:inline-block;margin-top:6px;background:#fff;border:2px solid #1a1a22;border-radius:6px;padding:2px 12px;font-weight:900;letter-spacing:2px">'+String(o.servicio.placa).toUpperCase()+'</div>':'');}else{sb.style.display='none'}}
   // vehiculo del piloto: marca, color y placa
   window.TRK_LAST=j;
+  /* aviso tipo inDrive: cuántos pilotos disponibles ven la solicitud */
+  try{
+    var _avC=document.getElementById('avCerca');
+    if(_avC){
+      if(o.estado==='buscando'){
+        var _n=(j.pilotosCerca!=null?j.pilotosCerca:0);
+        _avC.style.display='block';
+        _avC.innerHTML=_n>0
+          ? ('🟢 <b>'+_n+( _n===1?' piloto disponible':' pilotos disponibles')+'</b> viendo tu solicitud')
+          : '⏳ Buscando pilotos en tu zona…';
+      } else { _avC.style.display='none'; }
+    }
+  }catch(e){}
   var _bs=document.getElementById('obtnSeg');
   if(_bs) _bs.style.display=(o.piloto&&!['entregado','cancelado'].includes(o.estado))?'block':'none';
   var vb=document.getElementById('vehBox');
-  if(o.piloto&&(o.piloto.marca||o.piloto.color||o.piloto.placa)){
+  if(o.piloto&&(o.piloto.marca||o.piloto.color||o.piloto.placa||o.piloto.nombre)){
     var tv={moto:'🏍️ Moto',carro:'🚗 Carro',bicicleta:'🚲 Bicicleta'}[o.piloto.vehiculo]||'🚗 Vehículo';
+    var _foto=j.pilotoFoto||'';
+    var _ini=String(o.piloto.nombre||'P').trim().charAt(0).toUpperCase();
+    var _av=_foto
+      ? '<img src="'+_foto+'" alt="piloto" style="width:54px;height:54px;border-radius:50%;object-fit:cover;border:2px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,.18)">'
+      : '<div style="width:54px;height:54px;border-radius:50%;background:#0f7a3d;color:#fff;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:22px">'+_ini+'</div>';
     vb.style.display='block';
-    var _placa=o.piloto.placa?('<div style="display:inline-block;margin-top:7px;background:#2b2b33;color:#fff;font-weight:900;letter-spacing:2px;padding:6px 12px;border-radius:8px;font-size:15px">'+String(o.piloto.placa).toUpperCase()+'</div>'):'';
-    vb.innerHTML='<div style="font-size:11px;font-weight:800;color:#9a7b00;margin-bottom:4px">TU PILOTO VIENE EN</div><div style="font-size:15px;font-weight:900;color:#1a1a22">'+tv+(o.piloto.marca?' '+o.piloto.marca:'')+(o.piloto.color?' · '+o.piloto.color:'')+'</div>'+(o.piloto.placa?'<div style="display:inline-block;margin-top:6px;background:#fff;border:2px solid #1a1a22;border-radius:6px;padding:2px 12px;font-weight:900;letter-spacing:2px;font-size:15px">'+String(o.piloto.placa).toUpperCase()+'</div>':'')+(o.tipo==='comida'?'<div style="margin-top:6px;font-size:12.5px;color:#188038;font-weight:800">📦 Tu piloto lleva caja térmica: tu comida llega calentita</div>':'');
+    vb.innerHTML='<div style="display:flex;gap:11px;align-items:center">'+_av
+      +'<div style="flex:1;min-width:0"><div style="font-size:10px;font-weight:800;color:#9a7b00;letter-spacing:.5px">TU PILOTO</div>'
+      +'<div style="font-size:15px;font-weight:900;color:#1a1a22">'+(o.piloto.nombre||'Piloto')+'</div>'
+      +'<div style="font-size:12px;color:#5a5a66">'+tv+(o.piloto.marca?' '+o.piloto.marca:'')+(o.piloto.color?' · '+o.piloto.color:'')+'</div></div>'
+      +(o.piloto.placa?'<div style="background:#2b2b33;color:#fff;font-weight:900;letter-spacing:2px;padding:6px 10px;border-radius:8px;font-size:13px">'+String(o.piloto.placa).toUpperCase()+'</div>':'')
+      +'</div>';
   }else{vb.style.display='none'}
   var wa=document.getElementById('owa');
   var _tl=document.getElementById('ollamar');
