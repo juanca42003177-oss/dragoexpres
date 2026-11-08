@@ -734,7 +734,7 @@ function verMapaLocal(idx){
   document.getElementById('locComo').href='https://www.google.com/maps/dir/?api=1&destination='+l.gps.lat+','+l.gps.lng;
   setTimeout(function(){if(window.LML){window.LML.remove();window.LML=null}
     window.LML=L.map('locMapaL').setView([l.gps.lat,l.gps.lng],16);
-    L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'© OpenStreetMap'}).addTo(window.LML);
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',{subdomains:'abcd',maxZoom:20,attribution:'© OpenStreetMap · © CARTO'}).addTo(window.LML);
     L.marker([l.gps.lat,l.gps.lng]).addTo(window.LML).bindPopup('<b>'+(l.nombre||'Local')+'</b><br>'+(l.zona||''));},60);
 }
 function invitarLocalSheet(){cerrarSheet();tab('perfil');var el=document.getElementById('inv-nombre');if(el){el.scrollIntoView({behavior:'smooth'});el.focus();toast('Escribí el nombre de tu local favorito y le mandamos la invitación')}}
@@ -1188,7 +1188,7 @@ function extra(){
   var h='';
   var pre=LOCAL_PRE?' (ej: de '+LOCAL_PRE+')':'';
   if(TIPO==='comida')h=entregaBoxHTML()+'<div id="dirFields"'+(entregaBoxHTML()?' style="display:none"':'')+'><label>Dirección de entrega</label><textarea id="f-dir" rows="3" style="height:auto" placeholder="Calle, número, colonia... y contá con detalle exacto cómo te lo dejamos (portón, timbre, quién recibe): sin límite de texto"></textarea><label>Referencia (opcional)</label><textarea id="f-ref" rows="2" style="height:auto" placeholder="Casa azul, portón negro, timbre plateado... (opcional, escribí con confianza)"></textarea></div><label>¿Qué querés y de dónde?'+pre+'</label><textarea id="f-det" placeholder="Ej: 2 pizzas grandes de la pizzería El Horno"></textarea><label>Precio estimado de tu orden (Q) — se lo pagás al local</label><input id="f-compra" type="number" inputmode="decimal" placeholder="Ej: 120" oninput="pintarTotal()"><label>Envío (tarifa fija DragoExpres)</label><div class="tarifa" id="f-tarifa">Q15 · sin regatear<span class="nch"></span></div>';
-  if(TIPO==='viaje')h='<label>Dirección de recogida</label><textarea id="f-dir" rows="3" style="height:auto" placeholder="¿De dónde te recogemos? Punto exacto: frente a qué, color del edificio, etc. — sin límite de texto"></textarea><label>Referencia (opcional)</label><textarea id="f-ref" rows="2" style="height:auto" placeholder="Frente al parque, bajo el puente... (opcional)"></textarea><label>¿A dónde vas?</label><textarea id="f-det" placeholder="Ej: De Mixco Centro a Oakland Mall"></textarea><button type="button" onclick="abrirRecMap()" style="width:100%;padding:11px;background:#eaf7ee;border:1.5px dashed #2f8a4a;border-radius:10px;font-weight:900;color:#14532d">📍 Marcar mi punto de RECOGIDA en el mapa (recomendado)</button><div id="recMap" style="display:none;height:220px;border-radius:12px;margin:8px 0"></div><div class="mini" id="recTxt" style="color:#1a7a2a;font-weight:700"></div><button type="button" onclick="abrirDestMap()" style="width:100%;padding:11px;background:#fffbea;border:1.5px dashed #b7902b;border-radius:10px;font-weight:900;color:#5c4a10">📍 Marcar mi DESTINO en el mapa (opcional, recomendado)</button><div id="destMap" style="display:none;height:220px;border-radius:12px;margin:8px 0"></div><div class="mini" id="destTxt" style="color:#1a7a2a;font-weight:700"></div><label>Tu oferta de viaje (Q)</label><input id="f-viaje-tarifa" type="number" inputmode="decimal" value="25" min="1" oninput="pintarTotal()" style="width:100%;box-sizing:border-box;font-size:18px;font-weight:900;padding:12px;border:1.5px solid #ccc;border-radius:10px"><div class="tarifa" id="f-tarifa" style="margin-top:6px">Sugerido Q25 · Negociación libre: cortito ofrecé menos, larguito (¿Escuintla?) ofrecé lo justo — el piloto decide si le conviene<span class="nch"></span></div>';
+  if(TIPO==='viaje')h='<label>Dirección de recogida</label><textarea id="f-dir" rows="3" style="height:auto" placeholder="¿De dónde te recogemos? Punto exacto: frente a qué, color del edificio, etc. — sin límite de texto"></textarea><label>Referencia (opcional)</label><textarea id="f-ref" rows="2" style="height:auto" placeholder="Frente al parque, bajo el puente... (opcional)"></textarea><label>¿A dónde vas?</label><textarea id="f-det" placeholder="Ej: De Mixco Centro a Oakland Mall"></textarea><label>Tu oferta de viaje (Q)</label><input id="f-viaje-tarifa" type="number" inputmode="decimal" value="25" min="1" oninput="pintarTotal()" style="width:100%;box-sizing:border-box;font-size:18px;font-weight:900;padding:12px;border:1.5px solid #ccc;border-radius:10px"><div class="tarifa" id="f-tarifa" style="margin-top:6px">Sugerido Q25 · Negociación libre: cortito ofrecé menos, larguito (¿Escuintla?) ofrecé lo justo — el piloto decide si le conviene<span class="nch"></span></div>';
   if(TIPO==='repuesto')h=entregaBoxHTML()+'<div id="dirFields"'+(entregaBoxHTML()?' style="display:none"':'')+'><label>Dirección de entrega</label><textarea id="f-dir" rows="3" style="height:auto" placeholder="Calle, número, colonia... y contá con detalle exacto cómo te lo dejamos (portón, timbre, quién recibe): sin límite de texto"></textarea><label>Referencia (opcional)</label><textarea id="f-ref" rows="2" style="height:auto" placeholder="Taller La Bendición, portón verde... (opcional)"></textarea></div><label>¿Qué repuesto necesitás y para qué vehículo?</label><textarea id="f-det" placeholder="Ej: Pastillas de freno para Honda Wave 110"></textarea><label>Precio estimado del repuesto (Q) — se lo pagás al local</label><input id="f-compra" type="number" inputmode="decimal" placeholder="Ej: 180" oninput="pintarTotal()"><label>Envío (tarifa fija DragoExpres)</label><div class="tarifa" id="f-tarifa">Q20 · sin regatear<span class="nch"></span></div>';
   if(SERV)h+='<div style="background:#fff8e1;border:1px solid #f0d98a;border-radius:10px;padding:9px 12px;font-size:13px;margin:8px 0"><b>🔧 '+SERV.nombre+' (Q'+SERV.precio+')</b> — mecánico '+SERV.mecanico+', llega en '+SERV.veh+' '+SERV.color+' '+SERV.marca+' · placa '+SERV.placa+'<span onclick="quitarServ()" style="color:#c1121f;font-weight:900;float:right;cursor:pointer">✕</span></div>';
   h+='<label>Propina para el piloto (opcional)</label><div class="chips" id="f-propinas">'+[0,5,10,15].map(function(p){return '<div class="chip'+(p===0?' on':'')+'" onclick="elegirProp(this,'+p+')">Q'+p+'</div>'}).join('')+'</div><p class="mini" style="margin:4px 0 0">Como en las apps grandes: la propina es voluntaria. Con propina los pilotos suelen volar más rápido.</p>';
@@ -1202,8 +1202,8 @@ function elegirBillete(el,b){BILLETE=b;var t=document.querySelectorAll('#f-bille
 function elegirProp(el,p){PROPINA=p;var t=document.querySelectorAll('#f-propinas .chip');for(var i=0;i<t.length;i++)t[i].classList.remove('on');el.classList.add('on');pintarTotal();}
 function FIEL(j){if(!j||!j.fiel)return;window.PROMO_FIEL=!!j.fiel.promoAhora;var a=document.getElementById('bnFiel'),s2=document.getElementById('bnFielSub');if(!a)return;if(j.fiel.usado){var bx=document.getElementById('bnFielBox');if(bx)bx.style.display='none';window.PROMO_FIEL=false;return}
 if(window.PROMO_FIEL){a.textContent='🎁 ¡Ya ganaste tu envío GRATIS!';s2.textContent='Se aplica en tu próximo pedido: 0 de envío. Promoción de una sola vez: usala bien.'}else{a.textContent='Sé de los primeros en reclamar tu envío GRATIS';s2.textContent=j.fiel.entregas?('Van '+j.fiel.entregas+' pedidos — te faltan '+j.fiel.faltan+' para reclamar TU envío gratis (limitado, una sola vez).'):'Promoción LIMITADA, una sola vez por usuario: con 30 pedidos, tu pedido 31 viaja sin costo de envío.'}}
-function abrirRecMap(){var d=document.getElementById('recMap');if(!d)return;if(d.style.display==='block'){d.style.display='none';return}d.style.display='block';if(!window.RMAP){window.RMAP=L.map('recMap').setView([14.6284,-90.5154],12);L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'© OpenStreetMap'}).addTo(window.RMAP);window.RMAP.on('click',function(ev){window.REC_GPS={lat:ev.latlng.lat,lng:ev.latlng.lng};if(window.RMK){window.RMK.setLatLng(ev.latlng)}else{window.RMK=L.marker(ev.latlng,{icon:L.divIcon({className:'',html:'<div style="font-size:26px">🚶</div>',iconSize:[28,28],iconAnchor:[14,14]})}).addTo(window.RMAP)}var t=document.getElementById('recTxt');if(t){t.textContent='✅ Recogida marcada. El piloto irá PRIMERO acá y después a tu destino.'}})}try{var u=LS();if(u.gps&&u.gps.lat)window.RMAP.setView([u.gps.lat,u.gps.lng],14)}catch(e){}}
-function abrirDestMap(){var d=document.getElementById('destMap');if(!d)return;if(d.style.display==='block'){d.style.display='none';return}d.style.display='block';if(!window.DMAP){window.DMAP=L.map('destMap').setView([14.6284,-90.5154],12);L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'© OpenStreetMap'}).addTo(window.DMAP);window.DMAP.on('click',function(ev){window.DEST_GPS={lat:ev.latlng.lat,lng:ev.latlng.lng};if(window.DMK){window.DMK.setLatLng(ev.latlng)}else{window.DMK=L.marker(ev.latlng,{icon:L.divIcon({className:'',html:'<div style="font-size:26px">🏁</div>',iconSize:[28,28],iconAnchor:[14,14]})}).addTo(window.DMAP)}var t=document.getElementById('destTxt');if(t){t.textContent='✅ Destino marcado — tocá de nuevo para cambiarlo. El piloto verá la ruta hasta acá.'}})}try{var u=LS();if(u.gps&&u.gps.lat)window.DMAP.setView([u.gps.lat,u.gps.lng],14)}catch(e){}}
+function abrirRecMap(){var d=document.getElementById('recMap');if(!d)return;if(d.style.display==='block'){d.style.display='none';return}d.style.display='block';if(!window.RMAP){window.RMAP=L.map('recMap').setView([14.6284,-90.5154],12);L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',{subdomains:'abcd',maxZoom:20,attribution:'© OpenStreetMap · © CARTO'}).addTo(window.RMAP);window.RMAP.on('click',function(ev){window.REC_GPS={lat:ev.latlng.lat,lng:ev.latlng.lng};if(window.RMK){window.RMK.setLatLng(ev.latlng)}else{window.RMK=L.marker(ev.latlng,{icon:L.divIcon({className:'',html:'<div style="font-size:26px">🚶</div>',iconSize:[28,28],iconAnchor:[14,14]})}).addTo(window.RMAP)}var t=document.getElementById('recTxt');if(t){t.textContent='✅ Recogida marcada. El piloto irá PRIMERO acá y después a tu destino.'}})}try{var u=LS();if(u.gps&&u.gps.lat)window.RMAP.setView([u.gps.lat,u.gps.lng],14)}catch(e){}}
+function abrirDestMap(){var d=document.getElementById('destMap');if(!d)return;if(d.style.display==='block'){d.style.display='none';return}d.style.display='block';if(!window.DMAP){window.DMAP=L.map('destMap').setView([14.6284,-90.5154],12);L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',{subdomains:'abcd',maxZoom:20,attribution:'© OpenStreetMap · © CARTO'}).addTo(window.DMAP);window.DMAP.on('click',function(ev){window.DEST_GPS={lat:ev.latlng.lat,lng:ev.latlng.lng};if(window.DMK){window.DMK.setLatLng(ev.latlng)}else{window.DMK=L.marker(ev.latlng,{icon:L.divIcon({className:'',html:'<div style="font-size:26px">🏁</div>',iconSize:[28,28],iconAnchor:[14,14]})}).addTo(window.DMAP)}var t=document.getElementById('destTxt');if(t){t.textContent='✅ Destino marcado — tocá de nuevo para cambiarlo. El piloto verá la ruta hasta acá.'}})}try{var u=LS();if(u.gps&&u.gps.lat)window.DMAP.setView([u.gps.lat,u.gps.lng],14)}catch(e){}}
 function pintarTotal(){
   var b=document.getElementById('totBox');if(!b)return;
   var c=document.getElementById('f-compra');
@@ -1241,21 +1241,6 @@ async function enviar(){
   var _tarViaje=TIPO==='viaje'?(parseFloat(v('f-viaje-tarifa'))||TARIFA.viaje):(TARIFA[TIPO]||15);
   if(TIPO==='viaje'&&!isNaN(_tarViaje)&&_tarViaje<1){alert('Tu oferta de viaje tiene que ser mayor a cero.');return}
   if(TIPO==='viaje')d.tarifa=_tarViaje;
-  /* OBLIGATORIO EL PIN EN VIAJES (2026-11-05): el pedido DX39741941 se creó sin
-     recogida ni destino, la app cayó al GPS viejo del cliente (Villa Canales) y el
-     piloto fue al lugar equivocado. Ahora no se puede confirmar un viaje sin los dos puntos. */
-  if(TIPO==='viaje'){
-    if(!window.REC_GPS){
-      alert('📍 Marcá en el mapa DESDE DÓNDE te recogemos.\n\nSin ese punto el piloto puede ir a otro lado: nos pasó y terminó en Villa Canales.');
-      try{abrirRecMap()}catch(e){}
-      return;
-    }
-    if(!window.DEST_GPS){
-      alert('🏁 Marcá en el mapa A DÓNDE vas.\n\nAsí el piloto llega exacto y no anda preguntando.');
-      try{abrirDestMap()}catch(e){}
-      return;
-    }
-  }
   var tt=(parseFloat(d.compra)||0)+(window.PROMO_FIEL?0:_tarViaje+(esNocheGT()?5:0))+PROPINA;
   if(BILLETE>0&&BILLETE<tt){alert('Tu billete de Q'+BILLETE+' no cubre el total de Q'+tt+'. Elegí otro billete o marcá “Tengo exacto”.');return}
   if(BILLETE>0){var vu2=BILLETE-tt;d.detalle+=(d.detalle?' · ':'')+'💰 Paga con billete de Q'+BILLETE+' — llevar Q'+vu2+' de vuelto'}
@@ -1446,8 +1431,24 @@ async function actualizar(){
   if(j.gps&&j.gps.lat){
     mapa.style.display='block';
     var mkIcon=L.divIcon({className:'',html:'<div style="font-size:26px;filter:drop-shadow(0 2px 3px rgba(0,0,0,.45))">'+vic+'</div>',iconSize:[30,30],iconAnchor:[15,15]});
-    if(!window.LMAP){window.LMAP=L.map('mapa').setView([j.gps.lat,j.gps.lng],15);L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'© OpenStreetMap'}).addTo(window.LMAP);window.LMK=L.marker([j.gps.lat,j.gps.lng],{icon:mkIcon}).addTo(window.LMAP).bindPopup('Tu piloto DragoExpres viene en '+vic)}
+    if(!window.LMAP){window.LMAP=L.map('mapa').setView([j.gps.lat,j.gps.lng],15);L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',{subdomains:'abcd',maxZoom:20,attribution:'© OpenStreetMap · © CARTO'}).addTo(window.LMAP);window.LMK=L.marker([j.gps.lat,j.gps.lng],{icon:mkIcon}).addTo(window.LMAP).bindPopup('Tu piloto DragoExpres viene en '+vic)}
     else{window.LMK.setLatLng([j.gps.lat,j.gps.lng]);try{window.LMAP.panTo([j.gps.lat,j.gps.lng],{animate:true,duration:0.6})}catch(e){window.LMAP.setView([j.gps.lat,j.gps.lng])}}
+    /* RUTA REAL POR CALLES (OSRM, gratis): se recalcula cuando el piloto se mueve */
+    function _rutaReal(o,from,to){
+      if(!from||!to||!window.LMAP) return;
+      var k=from.lat.toFixed(3)+','+from.lng.toFixed(3)+'>'+to.lat.toFixed(3)+','+to.lng.toFixed(3);
+      if(window._RTK===k) return;
+      window._RTK=k;
+      fetch('https://router.project-osrm.org/route/v1/driving/'+from.lng+','+from.lat+';'+to.lng+','+to.lat+'?overview=full&geometries=geojson')
+        .then(function(r){return r.json()})
+        .then(function(d){
+          if(!d||!d.routes||!d.routes[0])return;
+          var pts=d.routes[0].geometry.coordinates.map(function(c){return [c[1],c[0]]});
+          if(window.LMRT){window.LMRT.setLatLngs(pts)}
+          else{window.LMRT=L.polyline(pts,{color:'#0f7a3d',weight:5,opacity:.85}).addTo(window.LMAP)}
+          try{window.LMAP.fitBounds(window.LMRT.getBounds(),{padding:[40,40],maxZoom:16})}catch(e){}
+        }).catch(function(){});
+    }
     var uE=LS();
     if(uE.gps&&uE.gps.lat){
       // ETA VIVO: se recalcula solo cada vez que el piloto avanza (poll de 12s)
@@ -1457,6 +1458,10 @@ async function actualizar(){
       var dtxt=dkm<1?Math.round(dkm*1000)+' m':dkm.toFixed(1)+' km';
       eta.style.display='block';
       eta.innerHTML=(o.estado==='recogido'?'🏁 <b>Destino en ~'+min+' min</b> · faltan '+dtxt+'<br><span style="font-weight:400;font-size:12px">Rumbo a tu destino con '+((o.piloto||{}).nombre||'tu piloto')+' — se actualiza en vivo</span>':'⏱️ <b>Llega en ~'+min+' min</b> · a '+dtxt+' de tu puerta<br><span style="font-weight:400;font-size:12px">Se actualiza solo conforme '+((o.piloto||{}).nombre||'tu piloto')+' avanza'+(min<=2?' — ¡ya está llegando! 🛺':'')+'</span>');
+      try{
+        var _to=(o.estado==='recogido'&&o.destinoGPS)?o.destinoGPS:(o.recogidaGPS||o.cliente&&o.cliente.gps||(j.pedido&&j.pedido.recogidaGPS)||null);
+        if(_to&&_to.lat) _rutaReal(o,{lat:j.gps.lat,lng:j.gps.lng},{lat:_to.lat,lng:_to.lng});
+      }catch(e){}
       if(!window.LMC){window.LMC=L.circleMarker([uE.gps.lat,uE.gps.lng],{radius:8,color:'#1259c1',fillColor:'#4d9cff',fillOpacity:.9}).addTo(window.LMAP).bindPopup('Tu ubicación')}
       else{window.LMC.setLatLng([uE.gps.lat,uE.gps.lng])}
       if(window.LLN){window.LMAP.removeLayer(window.LLN)}

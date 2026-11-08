@@ -195,7 +195,7 @@ function abrirMapaGrande(){
   }
   if(window.PBIG){window.PBIG.remove();window.PBIG=null}
   window.PBIG=L.map('pmBigMap').setView([window.MYGPS.lat,window.MYGPS.lng],16);
-  L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'© OpenStreetMap'}).addTo(window.PBIG);
+  L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',{subdomains:'abcd',maxZoom:20,attribution:'© OpenStreetMap · © CARTO'}).addTo(window.PBIG);
   var vic=iconoVicP(o);
   window.PBIGM=L.marker([window.MYGPS.lat,window.MYGPS.lng],{icon:L.divIcon({className:'',html:'<div style="font-size:34px;filter:drop-shadow(0 2px 4px rgba(0,0,0,.5))">'+vic+'</div>',iconSize:[38,38],iconAnchor:[19,19]})}).addTo(window.PBIG);
   L.marker([dest.lat,dest.lng],{icon:L.divIcon({className:'',html:'<div style="font-size:34px">📍</div>',iconSize:[38,38],iconAnchor:[19,19]})}).addTo(window.PBIG).bindPopup('Tu destino');
@@ -333,7 +333,7 @@ function pintarMapaPiloto(o){
   mp.style.display='block';
   if(window.PMM){window.PMM.remove();window.PMM=null}
   window.PMM=L.map('pmMap').setView([(yo.lat+dest.lat)/2,(yo.lng+dest.lng)/2],13);
-  L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'© OpenStreetMap'}).addTo(window.PMM);
+  L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',{subdomains:'abcd',maxZoom:20,attribution:'© OpenStreetMap · © CARTO'}).addTo(window.PMM);
   L.marker([yo.lat,yo.lng],{icon:L.divIcon({className:'',html:'<div style="font-size:24px;filter:drop-shadow(0 2px 3px rgba(0,0,0,.4))">'+iconoVicP(o)+'</div>',iconSize:[28,28],iconAnchor:[14,14]})}).addTo(window.PMM).bindPopup('Vos');
   L.marker([dest.lat,dest.lng],{icon:L.divIcon({className:'',html:'<div style="font-size:24px">📍</div>',iconSize:[28,28],iconAnchor:[14,14]})}).addTo(window.PMM).bindPopup('Tu destino');
   L.polyline([[yo.lat,yo.lng],[dest.lat,dest.lng]],{color:'#f0b90b',weight:3,dashArray:'6,8'}).addTo(window.PMM);
