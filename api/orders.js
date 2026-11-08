@@ -629,6 +629,43 @@ module.exports = wrap(async (req, res) => {
     } catch (e) { }
     return res.status(200).json({ ok: true, recogidaGPS: o.recogidaGPS });
   }
+  /* busca en Nominatim probando variantes: la frase completa casi nunca acierta
+     ("42 calle avenida petapa puma villa sol"), pero "avenida petapa" si. */
+  async function _nom(q, limit) {
+    try {
+      const url = 'https://nominatim.openstreetmap.org/search?format=json&limit=' + (limit || 6) +
+        '&countrycodes=gt&addressdetails=1&q=' + encodeURIComponent(q + (/,guatemala/i.test(q) ? '' : ', Guatemala'));
+      const r = await fetch(url, { headers: { 'User-Agent': 'DragoExpres/1.0 (soporte dragoexpres)' } });
+      const j = await r.json();
+      return (Array.isArray(j) ? j : []).map(x => ({
+        nombre: String(x.display_name || '').split(', ').slice(0, 3).join(', '),
+        completo: String(x.display_name || ''),
+        lat: +x.lat, lng: +x.lon
+      })).filter(x => isFinite(x.lat) && isFinite(x.lng));
+    } catch (e) { return []; }
+  }
+  async function buscarDir(q) {
+    const limpio = String(q || '').replace(/[,;]/g, ' ').replace(/\s+/g, ' ').trim();
+    const tk = limpio.split(' ').filter(w => w.length >= 3 &&
+      !['para', 'donde', 'frente', 'casa', 'de', 'del', 'las', 'los', 'por', 'con', 'una'].includes(w.toLowerCase()));
+    const intentos = [limpio];
+    if (tk.length > 3) intentos.push(tk.slice(-3).join(' '));
+    if (tk.length > 4) intentos.push(tk.slice(-4).join(' '));
+    const clave = tk.slice(0, 2).join(' ');
+    if (clave.length >= 6) intentos.push(clave);
+    let vistos = new Set(), out = [];
+    for (const it of intentos.slice(0, 4)) {
+      if (!it || it.length < 4) continue;
+      const r = await _nom(it);
+      for (const x of r) {
+        const k = x.lat.toFixed(4) + ',' + x.lng.toFixed(4);
+        if (!vistos.has(k)) { vistos.add(k); out.push(x); }
+      }
+      if (out.length >= 3) break;
+      await new Promise(z => setTimeout(z, 320));
+    }
+    return out.slice(0, 6);
+  }
   /* SUGERENCIAS DE DIRECCION (2026-11-08): autocompletado con OpenStreetMap,
      gratis y con Guatemala indexada. Solo RECOMIENDA: el cliente puede escribir
      lo que quiera y nada se le impone. */
@@ -639,15 +676,7 @@ module.exports = wrap(async (req, res) => {
     if (_SUG.has(q)) return res.status(200).json({ ok: true, sugerencias: _SUG.get(q), cache: true });
     let out = [];
     try {
-      const url = 'https://nominatim.openstreetmap.org/search?format=json&limit=6&countrycodes=gt&addressdetails=1&q=' +
-        encodeURIComponent(q + (/,guatemala/i.test(q) ? '' : ', Guatemala'));
-      const r = await fetch(url, { headers: { 'User-Agent': 'DragoExpres/1.0 (soporte dragoexpres)' } });
-      const j = await r.json();
-      out = (Array.isArray(j) ? j : []).map(x => ({
-        nombre: String(x.display_name || '').split(', ').slice(0, 3).join(', '),
-        completo: String(x.display_name || ''),
-        lat: +x.lat, lng: +x.lon
-      })).filter(x => isFinite(x.lat) && isFinite(x.lng));
+      out = await buscarDir(q);
       _SUG.set(q, out);
       if (_SUG.size > 200) _SUG.clear();
     } catch (e) { out = []; }
