@@ -655,13 +655,15 @@ module.exports = wrap(async (req, res) => {
     const tk = limpio.split(' ').filter(w => w.length >= 3 &&
       !['para', 'donde', 'frente', 'casa', 'de', 'del', 'las', 'los', 'por', 'con', 'una'].includes(w.toLowerCase()));
     const intentos = [];
-    /* primero lo que de verdad ubica: avenida/calle/calzada/zona + su nombre */
-    const m1 = limpio.match(/(avenida|av|calle|calzada|bulevar|blvd|ruta|zona|colonia)\s+([a-z0-9áéíóúñ]{3,})/i);
+    /* 1) numero + via ("42 calle"): lo mas preciso cuando existe */
+    const m2 = limpio.match(/(\d{1,3})\s*(calle|avenida|av\.?|zona)/i);
+    if (m2) intentos.push(m2[1] + ' ' + m2[2].replace('.', ''));
+    /* 2) via + nombre, SIN engancharse con otra palabra de via ("calle avenida") */
+    const m1 = limpio.match(/(avenida|calzada|bulevar|blvd|ruta|colonia|zona|calle)\s+(?!(?:calle|avenida|av|calzada|bulevar|blvd)\b)([a-záéíóúñ0-9]{3,})/i);
     if (m1) intentos.push(m1[1] + ' ' + m1[2]);
-    const m2 = limpio.match(/(\d{1,3})\s*(calle|avenida|av|zona)/i);
-    if (m2) intentos.push(m2[1] + ' ' + m2[2]);
+    /* 3) las ultimas palabras (nombre del lugar) y 4) la frase tal cual */
+    if (tk.length > 2) intentos.push(tk.slice(-2).join(' '));
     intentos.push(limpio);
-    if (tk.length > 3) intentos.push(tk.slice(-3).join(' '));
 
     let vistos = new Set(), out = [];
     for (const it of intentos.slice(0, 4)) {
