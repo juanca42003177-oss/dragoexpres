@@ -406,6 +406,7 @@ input,textarea,select{-webkit-user-select:text;user-select:text}
           <button class="btn bA" style="width:auto;margin:0;padding:10px 16px" onclick="enviarMsg()">➤</button>
         </div>
       </div>
+      <button id="btnEspera" onclick="fijarPuntoEspera()" style="display:none;width:100%;margin:8px 0 2px;background:#0f7a3d;color:#fff;font-weight:900;border:0;border-radius:12px;padding:12px;font-size:13px;box-shadow:0 4px 12px rgba(15,122,61,.35)">📍 Marcar aquí mi punto de espera</button>
       <div style="position:relative;margin-top:12px">
         <div id="mapa" style="margin-top:0"></div>
         <div id="etaMapa" style="display:none;position:absolute;top:10px;left:10px;right:10px;background:#fff;border-radius:14px;padding:10px 13px;box-shadow:0 6px 18px rgba(0,0,0,.22);align-items:center;gap:10px;z-index:600">
@@ -1266,6 +1267,7 @@ async function enviar(){
   if(d.items){window._CART_PED=null;cartSave(null);}
   cerrarSheet();
   document.getElementById('trk').style.display='block';
+  try{ iniciarSeguimiento(); }catch(e){}
   document.getElementById('oid').textContent=j.pedido.id;
   ULT_TEL=d.tel;
   seguir(j.pedido.id);
@@ -1300,7 +1302,10 @@ function abrirSeguridad(){
     else { window.open('https://wa.me/?text='+encodeURIComponent(txt),'_blank'); }
   }
 }
-function cerrarTrk(){document.getElementById('trk').style.display='none';if(PID){clearInterval(window.TINT);PID=null}cargarMisPedidos()}
+function cerrarTrk_SIGUE(){
+  try{ if(_WATCH&&navigator.geolocation){navigator.geolocation.clearWatch(_WATCH);_WATCH=null;} }catch(e){}
+}
+function cerrarTrk(){document.getElementById('trk').style.display='none';try{cerrarTrk_SIGUE()}catch(e){};if(PID){clearInterval(window.TINT);PID=null}cargarMisPedidos()}
 function seguir(id){PID=id;try{var _u=LS();if(_u&&_u.tel)MI_TEL=_u.tel}catch(e){}
   /* FIX 2026-10-27: al entrar al seguimiento desde la pestaña Pedidos, MI_TEL quedaba vacío
      y el botón de cancelar decía "No es tu pedido" aunque el pedido fuera del cliente. */
@@ -1368,6 +1373,57 @@ async function contraResp(ok){
   if(!j.ok){alert(j.error||'No se pudo responder.');actualizar();return}
   if(window.CFINT){clearInterval(window.CFINT);window.CFINT=null}
   actualizar();
+}
+/* SEGUIMIENTO EN VIVO (2026-11-08): mientras el cliente espera, su ubicacion se
+   envia al pedido para que el piloto lo vea moverse y no lo pierda. El mapa lo sigue. */
+var _WATCH=null,_ULTENV=0,_ULTLL=null,_ESPERA=null;
+function distM(a,b){
+  if(!a||!b)return 0;
+  var R=6371000,dLat=(b.lat-a.lat)*Math.PI/180,dLng=(b.lng-a.lng)*Math.PI/180;
+  var la1=a.lat*Math.PI/180,la2=b.lat*Math.PI/180;
+  var h=Math.sin(dLat/2)*Math.sin(dLat/2)+Math.cos(la1)*Math.cos(la2)*Math.sin(dLng/2)*Math.sin(dLng/2);
+  return 2*R*Math.asin(Math.sqrt(h));
+}
+function iniciarSeguimiento(){
+  if(_WATCH||!navigator.geolocation)return;
+  _WATCH=navigator.geolocation.watchPosition(function(pos){
+    var ll={lat:pos.coords.latitude,lng:pos.coords.longitude};
+    window.MI_LL=ll;
+    if(window.LMAP){ window.LMAP.panTo([ll.lat,ll.lng],{animate:true,duration:0.8}); }
+    try{
+      if(!window.LMYO){ window.LMYO=L.circleMarker([ll.lat,ll.lng],{radius:9,color:'#fff',weight:3,fillColor:'#0f7a3d',fillOpacity:1}).addTo(window.LMAP); }
+      else { window.LMYO.setLatLng([ll.lat,ll.lng]); }
+    }catch(e){}
+    /* boton para fijar el punto de espera si se alejo del marcado */
+    try{
+      var _esp=window.ESPERA_LL||(_ESPERA);
+      var db=document.getElementById('btnEspera');
+      if(db){
+        var d=_esp?distM(ll,_esp):0;
+        db.style.display=(d>120)?'block':'none';
+        if(d>120) db.textContent='📍 Marcar aquí mi punto de espera ('+Math.round(d)+' m de donde te esperan)';
+      }
+    }catch(e){}
+    var ahora=Date.now();
+    if(PID&&(!_ULTLL||distM(_ULTLL,ll)>30||ahora-_ULTENV>15000)){
+      _ULTLL=ll;_ULTENV=ahora;
+      try{fetch(api('orders'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'cliGps',id:PID,tel:LS().tel,lat:ll.lat,lng:ll.lng})});}catch(e){}
+    }
+  },function(){},{enableHighAccuracy:true,maximumAge:8000,timeout:20000});
+}
+function fijarPuntoEspera(){
+  if(!window.MI_LL||!PID){alert('Esperá a que el GPS te ubique.');return}
+  var ll=window.MI_LL;
+  fetch(api('orders'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'moverRecogida',id:PID,lat:ll.lat,lng:ll.lng})})
+    .then(function(r){return r.json()})
+    .then(function(j){
+      if(j&&j.ok){
+        _ESPERA=ll; window.ESPERA_LL=ll;
+        try{ if(window.LMESP){window.LMESP.setLatLng([ll.lat,ll.lng]);} }catch(e){}
+        var b=document.getElementById('btnEspera'); if(b) b.style.display='none';
+        alert('✅ Listo: tu punto de espera quedó marcado acá. El piloto va a ese punto.');
+      } else { alert('No se pudo mover el punto. Probá de nuevo.'); }
+    }).catch(function(){ alert('No se pudo mover el punto. Revisá tu conexión.'); });
 }
 async function actualizar(){
   if(!PID)return;
@@ -1492,6 +1548,17 @@ async function actualizar(){
   if(sb){if(o.servicio){sb.style.display='block';sb.innerHTML='<div style="font-size:11px;font-weight:800;color:#3a5a8c;margin-bottom:4px">🔧 TU MECÁNICO VA EN</div><div style="font-size:14px;font-weight:900">'+o.servicio.nombre+' — Q'+o.servicio.precio+'</div><div style="font-size:13px;margin-top:2px">'+o.servicio.mecanico+' · '+(o.servicio.veh==='moto'?'🏍️':'🚗')+' '+o.servicio.color+' '+o.servicio.marca+'</div>'+(o.servicio.placa?'<div style="display:inline-block;margin-top:6px;background:#fff;border:2px solid #1a1a22;border-radius:6px;padding:2px 12px;font-weight:900;letter-spacing:2px">'+String(o.servicio.placa).toUpperCase()+'</div>':'');}else{sb.style.display='none'}}
   // vehiculo del piloto: marca, color y placa
   window.TRK_LAST=j;
+  try{
+    var _espP=(o.recogidaGPS&&isFinite(o.recogidaGPS.lat))?o.recogidaGPS:((o.cliente&&o.cliente.gps&&isFinite(o.cliente.gps.lat))?o.cliente.gps:null);
+    if(_espP){ _ESPERA={lat:+_espP.lat,lng:+_espP.lng}; window.ESPERA_LL=_ESPERA; }
+    if(_espP&&window.LMAP){
+      if(!window.LMESP){
+        window.LMESP=L.marker([_ESPERA.lat,_ESPERA.lng],{icon:L.divIcon({className:'',iconSize:[34,34],iconAnchor:[17,34],
+          html:'<div style="width:34px;height:34px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);background:#0f7a3d;border:3px solid #fff;box-shadow:0 3px 8px rgba(0,0,0,.35)"></div>'})})
+          .addTo(window.LMAP).bindPopup('📍 Te esperamos acá');
+      } else { window.LMESP.setLatLng([_ESPERA.lat,_ESPERA.lng]); }
+    } else if(_espP && !window.LMAP){ window.ESPERA_PEND=_espP; }
+  }catch(e){}
   /* aviso tipo inDrive: cuántos pilotos disponibles ven la solicitud */
   try{
     var _avC=document.getElementById('avCerca');

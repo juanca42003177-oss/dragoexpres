@@ -279,6 +279,7 @@ function iconoVicP(o){ var v=vehiculoP(o); return v==='carro'?'🚗':(v==='bicic
 function puntoRecogidaP(o){
   if(o && o.origenGPS && isFinite(o.origenGPS.lat)) return {lat:+o.origenGPS.lat, lng:+o.origenGPS.lng, tipo:'local'};
   if(o && o.recogidaGPS && isFinite(o.recogidaGPS.lat)) return {lat:+o.recogidaGPS.lat, lng:+o.recogidaGPS.lng, tipo:'gps'};
+  if(o&&o.cliente&&o.cliente.gps&&isFinite(o.cliente.gps.lat)) return {lat:+o.cliente.gps.lat, lng:+o.cliente.gps.lng, tipo:'cliente'};
   var _dir=(o&&o.direccion)||(o&&o.cliente&&o.cliente.direccion)||'';
   if(_dir){ var _k=String(_dir).trim(); if(GEO_TXT[_k]) return {lat:GEO_TXT[_k].lat,lng:GEO_TXT[_k].lng,tipo:'geo'}; return {texto:_k, tipo:'texto'}; }
   if(o && o.cliente && o.cliente.gps) return {lat:o.cliente.gps.lat, lng:o.cliente.gps.lng, tipo:'gps'};

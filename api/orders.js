@@ -605,6 +605,30 @@ module.exports = wrap(async (req, res) => {
   }
 
   // ---- consultar estado (usuario o pantalla) ----
+  /* MOVER EL PUNTO DE ESPERA (2026-11-08): el cliente puede caminar mientras
+     espera al piloto. Reemplaza el punto de recogida (no lo duplica): el que
+     manda siempre es UNO solo, el ultimo marcado. */
+  if (action === 'moverRecogida') {
+    const id = String(b.id || '').trim();
+    const lat = +b.lat, lng = +b.lng;
+    if (!id || !isFinite(lat) || !isFinite(lng)) return res.status(200).json({ ok: false, error: 'Falta el pedido o la ubicación.' });
+    const fpd = await ghGet('pedidos.json'); const peds = fpd ? fpd.data : [];
+    const o = peds.find(x => x.id === id);
+    if (!o) return res.status(200).json({ ok: false, error: 'Pedido no encontrado.' });
+    if (['entregado', 'cancelado'].includes(o.estado)) return res.status(200).json({ ok: false, error: 'Ese pedido ya terminó.' });
+    o.recogidaGPS = { lat, lng, ts: Date.now() };
+    o.recogidaMovidaTs = Date.now();
+    await ghPut('pedidos.json', fpd ? fpd.sha : null, peds, 'punto de espera movido ' + id);
+    try {
+      if (o.piloto && o.piloto.tel) {
+        const fp = await ghGet('pilots.json');
+        const pil = (fp ? fp.data : []).find(x => x.tel === o.piloto.tel);
+        if (pil) { pil.aviso = '📍 El cliente movió su punto de espera. Revisá el mapa del pedido ' + o.id; }
+        if (pil && fp) await ghPut('pilots.json', fp.sha, fp.data, 'aviso de punto movido');
+      }
+    } catch (e) { }
+    return res.status(200).json({ ok: true, recogidaGPS: o.recogidaGPS });
+  }
   if (action === 'estado') {
     const fpd = await ghGet('pedidos.json'); const peds = fpd ? fpd.data : [];
     await expirarAsignados(peds, fpd ? fpd.sha : null);
@@ -659,6 +683,11 @@ module.exports = wrap(async (req, res) => {
     if (String(o.cliente.tel).replace(/\D/g, '') !== tel) return res.status(200).json({ ok: false, error: 'No es tu pedido.' });
     if (['entregado', 'cancelado'].includes(o.estado)) return res.status(200).json({ ok: false });
     o.cliente.gps = { lat, lng };
+    /* el punto de espera sigue al cliente mientras no lo hayan recogido:
+       asi el piloto nunca lo pierde si camina. Es UN solo punto, no dos. */
+    if (!['recogido', 'entregado', 'cancelado'].includes(o.estado)) {
+      o.recogidaGPS = { lat, lng, ts: Date.now(), auto: true };
+    }
     await ghPut('pedidos.json', fpd ? fpd.sha : null, peds, 'cliente activo ubicacion ' + id);
     return res.status(200).json({ ok: true });
   }
