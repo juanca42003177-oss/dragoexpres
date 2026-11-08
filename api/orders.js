@@ -631,40 +631,55 @@ module.exports = wrap(async (req, res) => {
   }
   /* busca en Nominatim probando variantes: la frase completa casi nunca acierta
      ("42 calle avenida petapa puma villa sol"), pero "avenida petapa" si. */
-  async function _nom(q, limit) {
+  async function _nom(q, ref) {
     try {
-      const url = 'https://nominatim.openstreetmap.org/search?format=json&limit=' + (limit || 6) +
+      let url = 'https://nominatim.openstreetmap.org/search?format=json&limit=10' +
         '&countrycodes=gt&addressdetails=1&q=' + encodeURIComponent(q + (/,guatemala/i.test(q) ? '' : ', Guatemala'));
+      if (ref && isFinite(ref.lat) && isFinite(ref.lng)) {
+        const d = 0.35;
+        url += '&viewbox=' + (ref.lng - d) + ',' + (ref.lat + d) + ',' + (ref.lng + d) + ',' + (ref.lat - d);
+      }
       const r = await fetch(url, { headers: { 'User-Agent': 'DragoExpres/1.0 (soporte dragoexpres)' } });
       const j = await r.json();
       return (Array.isArray(j) ? j : []).map(x => ({
         nombre: String(x.display_name || '').split(', ').slice(0, 3).join(', '),
         completo: String(x.display_name || ''),
-        lat: +x.lat, lng: +x.lon
+        lat: +x.lat, lng: +x.lon,
+        _clase: String(x.class || ''),
+        _tipo: String(x.type || '')
       })).filter(x => isFinite(x.lat) && isFinite(x.lng));
     } catch (e) { return []; }
   }
-  async function buscarDir(q) {
+  async function buscarDir(q, ref) {
     const limpio = String(q || '').replace(/[,;]/g, ' ').replace(/\s+/g, ' ').trim();
     const tk = limpio.split(' ').filter(w => w.length >= 3 &&
       !['para', 'donde', 'frente', 'casa', 'de', 'del', 'las', 'los', 'por', 'con', 'una'].includes(w.toLowerCase()));
-    const intentos = [limpio];
+    const intentos = [];
+    /* primero lo que de verdad ubica: avenida/calle/calzada/zona + su nombre */
+    const m1 = limpio.match(/(avenida|av|calle|calzada|bulevar|blvd|ruta|zona|colonia)\s+([a-z0-9áéíóúñ]{3,})/i);
+    if (m1) intentos.push(m1[1] + ' ' + m1[2]);
+    const m2 = limpio.match(/(\d{1,3})\s*(calle|avenida|av|zona)/i);
+    if (m2) intentos.push(m2[1] + ' ' + m2[2]);
+    intentos.push(limpio);
     if (tk.length > 3) intentos.push(tk.slice(-3).join(' '));
-    if (tk.length > 4) intentos.push(tk.slice(-4).join(' '));
-    const clave = tk.slice(0, 2).join(' ');
-    if (clave.length >= 6) intentos.push(clave);
+
     let vistos = new Set(), out = [];
     for (const it of intentos.slice(0, 4)) {
       if (!it || it.length < 4) continue;
-      const r = await _nom(it);
+      const r = await _nom(it, ref);
       for (const x of r) {
         const k = x.lat.toFixed(4) + ',' + x.lng.toFixed(4);
         if (!vistos.has(k)) { vistos.add(k); out.push(x); }
       }
-      if (out.length >= 3) break;
+      if (out.length >= 4) break;
       await new Promise(z => setTimeout(z, 320));
     }
-    return out.slice(0, 6);
+    /* orden: calles y zonas primero, comercios al final; y lo mas cercano arriba */
+    const peso = (x) => (x._clase === 'highway' ? 0 : (x._clase === 'place' || x._clase === 'boundary') ? 1
+      : (x._clase === 'amenity' || x._clase === 'shop' || x._clase === 'tourism') ? 3 : 2);
+    const dist = (x) => (ref && isFinite(ref.lat)) ? Math.hypot(x.lat - ref.lat, x.lng - ref.lng) : 0;
+    out.sort((a, b) => (peso(a) - peso(b)) || (dist(a) - dist(b)));
+    return out.slice(0, 5).map(x => ({ nombre: x.nombre, completo: x.completo, lat: x.lat, lng: x.lng }));
   }
   /* SUGERENCIAS DE DIRECCION (2026-11-08): autocompletado con OpenStreetMap,
      gratis y con Guatemala indexada. Solo RECOMIENDA: el cliente puede escribir
@@ -676,7 +691,8 @@ module.exports = wrap(async (req, res) => {
     if (_SUG.has(q)) return res.status(200).json({ ok: true, sugerencias: _SUG.get(q), cache: true });
     let out = [];
     try {
-      out = await buscarDir(q);
+      const ref = (isFinite(+b.lat) && isFinite(+b.lng)) ? { lat: +b.lat, lng: +b.lng } : null;
+      out = await buscarDir(q, ref);
       _SUG.set(q, out);
       if (_SUG.size > 200) _SUG.clear();
     } catch (e) { out = []; }

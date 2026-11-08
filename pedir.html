@@ -1221,7 +1221,7 @@ function autocompletarDir(idInput, cual){
     if(q.length<3 || q===ultimaQ){ lista.style.display='none'; return; }
     ultimaQ=q; clearTimeout(tmr);
     tmr=setTimeout(function(){
-      fetch(api('orders'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'sugerirDir',q:q})})
+      fetch(api('orders'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'sugerirDir',q:q,lat:(window.MI_LL&&window.MI_LL.lat)||(LS().gps&&LS().gps.lat)||null,lng:(window.MI_LL&&window.MI_LL.lng)||(LS().gps&&LS().gps.lng)||null})})
         .then(function(r){return r.json()})
         .then(function(j){ if(ultimaQ===q && j&&j.ok) pintar(j.sugerencias||[], q); })
         .catch(function(){});
