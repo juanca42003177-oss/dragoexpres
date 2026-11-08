@@ -305,11 +305,19 @@ input,textarea,select{-webkit-user-select:text;user-select:text}
         <div class="si">🔧</div><div class="sn">Repuestos</div>
         <div class="sd">Talleres y partes</div><div class="sp">desde Q20</div>
       </div>
+      <div class="servCard soon" onclick="avisoProximamente('Carro')">
+        <div class="si">🚗</div><div class="sn">Carro</div>
+        <div class="sd">Confort y maletero</div><div class="sp">PRÓXIMAMENTE</div>
+      </div>
     </div>
+    <div style="text-align:center;font-size:11px;color:#6b6b76;margin:6px 0 2px">✅ Todos nuestros pilotos están verificados con DPI y contrato firmado</div>
     <style>
-      .servGrid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin:10px 0 4px}
+      .servGrid{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin:10px 0 4px}
       .servCard{border:2px solid var(--linea);border-radius:14px;padding:10px 6px;text-align:center;cursor:pointer;background:#fff;transition:border-color .15s,background .15s}
       .servCard.on{border-color:#0f7a3d;background:#eafaf0}
+      .servCard.soon{border-color:#e0b4b4;background:#fff5f5;opacity:.95}
+      .servCard.soon .sn{color:#a03030}
+      .servCard.soon .sp{color:#c0392b;font-size:10px;letter-spacing:.5px}
       .servCard .si{font-size:24px;line-height:1.1}
       .servCard .sn{font-weight:900;font-size:13px;margin-top:3px;color:#12121a}
       .servCard .sd{font-size:10px;color:#6b6b76;line-height:1.15;margin-top:1px}
@@ -1163,6 +1171,9 @@ function cambiarEntrega(){
   lblSync();
 }
 
+function avisoProximamente(que){
+  alert('🚗 '+que+' viene en camino\n\nEstamos sumando pilotos de '+que.toLowerCase()+' a DragoExpres. Por ahora podés pedir en moto 🛵, que ya está funcionando las 24 horas.');
+}
 function setTipo(t){
   TIPO=t;
   var du=document.getElementById('datosUser');
@@ -1503,7 +1514,8 @@ async function actualizar(){
     vb.innerHTML='<div style="display:flex;gap:11px;align-items:center">'+_av
       +'<div style="flex:1;min-width:0"><div style="font-size:10px;font-weight:800;color:#9a7b00;letter-spacing:.5px">TU PILOTO</div>'
       +'<div style="font-size:15px;font-weight:900;color:#1a1a22">'+(o.piloto.nombre||'Piloto')+'</div>'
-      +'<div style="font-size:12px;color:#5a5a66">'+tv+(o.piloto.marca?' '+o.piloto.marca:'')+(o.piloto.color?' · '+o.piloto.color:'')+'</div></div>'
+      +'<div style="font-size:12px;color:#5a5a66">'+tv+(o.piloto.marca?' '+o.piloto.marca:'')+(o.piloto.color?' · '+o.piloto.color:'')+'</div>'
+      +'<div style="display:inline-block;margin-top:5px;background:#eafaf0;border:1px solid #b7e4c7;color:#0b5c33;font-weight:900;font-size:10px;padding:3px 8px;border-radius:20px">✅ Piloto verificado</div></div>'
       +(o.piloto.placa?'<div style="background:#2b2b33;color:#fff;font-weight:900;letter-spacing:2px;padding:6px 10px;border-radius:8px;font-size:13px">'+String(o.piloto.placa).toUpperCase()+'</div>':'')
       +'</div>';
   }else{vb.style.display='none'}
