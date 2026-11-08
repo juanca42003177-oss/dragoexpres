@@ -366,6 +366,7 @@ input,textarea,select{-webkit-user-select:text;user-select:text}
       <a class="wa" id="owa" style="display:none" href="#" target="_blank">💬 Escribille al piloto por WhatsApp</a>
       <a id="ollamar" style="display:none;margin-top:8px;background:#0f7a3d;color:#fff;font-weight:900;border-radius:12px;padding:11px;text-align:center;text-decoration:none" href="#">📞 Llamar al piloto</a>
       <div id="oeta" style="display:none;margin-top:10px;background:#fff8e1;border:1px solid #f0d98a;border-radius:12px;padding:10px 12px;font-weight:800;color:#7a5b00"></div>
+      <button id="obtnSeg" onclick="abrirSeguridad()" style="display:none;width:100%;margin-top:8px;background:#1f6feb;color:#fff;font-weight:900;border:0;border-radius:12px;padding:11px;font-size:14px">🛡️ Seguridad</button>
       <div id="oespera" style="display:none;margin-top:10px;background:#eef4ff;border:1px solid #bcd4f5;border-radius:12px;padding:10px 12px;font-size:12px;color:#1a3a6b">⏳ Esperando la ubicación del piloto… el mapa se actualiza solo.</div>
       <div id="chatBox" style="display:none;text-align:left;margin-top:12px">
         <p class="mini" style="margin:0 0 6px;font-weight:800">💬 CHAT CON TU PILOTO</p>
@@ -376,7 +377,16 @@ input,textarea,select{-webkit-user-select:text;user-select:text}
           <button class="btn bA" style="width:auto;margin:0;padding:10px 16px" onclick="enviarMsg()">➤</button>
         </div>
       </div>
-      <div id="mapa"></div>
+      <div style="position:relative;margin-top:12px">
+        <div id="mapa" style="margin-top:0"></div>
+        <div id="etaMapa" style="display:none;position:absolute;top:10px;left:10px;right:10px;background:#fff;border-radius:14px;padding:10px 13px;box-shadow:0 6px 18px rgba(0,0,0,.22);align-items:center;gap:10px;z-index:600">
+          <div style="flex:1;min-width:0">
+            <div id="etaTxt" style="font-weight:900;font-size:15px;color:#12121a;line-height:1.2"></div>
+            <div id="etaSub" style="font-size:11px;color:#666;margin-top:2px"></div>
+          </div>
+          <div id="etaPlaca" style="display:none;background:#2b2b33;color:#fff;font-weight:900;letter-spacing:1.5px;padding:7px 11px;border-radius:9px;font-size:13px;white-space:nowrap"></div>
+        </div>
+      </div>
       <div id="calif" style="display:none;margin-top:12px">
         <p class="mini" style="font-weight:800">¿Cómo te fue con tu piloto?</p>
         <div id="estrellas"></div>
@@ -1259,6 +1269,20 @@ async function clienteCancela(){
   alert(conViaje?'Pedido cancelado. Tu piloto quedó libre.':'Pedido cancelado. Nadie perdió nada.');
   cerrarTrk();
 }
+function abrirSeguridad(){
+  var o=window.TRK_LAST||{};
+  var quien=o.piloto?(o.piloto.nombre||'mi piloto'):'mi piloto';
+  var placa=o.piloto&&o.piloto.placa?(' · placa '+o.piloto.placa):'';
+  var txt='Estoy en un viaje de DragoExpres'+(o.id?(' ('+o.id+')'):'')+' con '+quien+placa+'. Mi ubicación en vivo: '+location.href;
+  var r=prompt('🛡️ SEGURIDAD\n\nEscribí:\n1 = Llamar a la PNC (110)\n2 = Compartir mi viaje por WhatsApp\n3 = Avisar a DragoExpres', '2');
+  if(r==='1'){ location.href='tel:110'; }
+  else if(r==='2'){ window.open('https://wa.me/?text='+encodeURIComponent(txt),'_blank'); }
+  else if(r==='3'){
+    var ci=document.getElementById('chat-in');
+    if(ci){ ci.value='🛡️ SEGURIDAD: necesito ayuda. '+(o.piloto?('Estoy con '+(o.piloto.nombre||'mi piloto')):'')+' — '+location.href; ci.focus(); }
+    else { window.open('https://wa.me/?text='+encodeURIComponent(txt),'_blank'); }
+  }
+}
 function cerrarTrk(){document.getElementById('trk').style.display='none';if(PID){clearInterval(window.TINT);PID=null}cargarMisPedidos()}
 function seguir(id){PID=id;try{var _u=LS();if(_u&&_u.tel)MI_TEL=_u.tel}catch(e){}
   /* FIX 2026-10-27: al entrar al seguimiento desde la pestaña Pedidos, MI_TEL quedaba vacío
@@ -1430,10 +1454,14 @@ async function actualizar(){
   var sb=document.getElementById('servBox');
   if(sb){if(o.servicio){sb.style.display='block';sb.innerHTML='<div style="font-size:11px;font-weight:800;color:#3a5a8c;margin-bottom:4px">🔧 TU MECÁNICO VA EN</div><div style="font-size:14px;font-weight:900">'+o.servicio.nombre+' — Q'+o.servicio.precio+'</div><div style="font-size:13px;margin-top:2px">'+o.servicio.mecanico+' · '+(o.servicio.veh==='moto'?'🏍️':'🚗')+' '+o.servicio.color+' '+o.servicio.marca+'</div>'+(o.servicio.placa?'<div style="display:inline-block;margin-top:6px;background:#fff;border:2px solid #1a1a22;border-radius:6px;padding:2px 12px;font-weight:900;letter-spacing:2px">'+String(o.servicio.placa).toUpperCase()+'</div>':'');}else{sb.style.display='none'}}
   // vehiculo del piloto: marca, color y placa
+  window.TRK_LAST=j;
+  var _bs=document.getElementById('obtnSeg');
+  if(_bs) _bs.style.display=(o.piloto&&!['entregado','cancelado'].includes(o.estado))?'block':'none';
   var vb=document.getElementById('vehBox');
   if(o.piloto&&(o.piloto.marca||o.piloto.color||o.piloto.placa)){
     var tv={moto:'🏍️ Moto',carro:'🚗 Carro',bicicleta:'🚲 Bicicleta'}[o.piloto.vehiculo]||'🚗 Vehículo';
     vb.style.display='block';
+    var _placa=o.piloto.placa?('<div style="display:inline-block;margin-top:7px;background:#2b2b33;color:#fff;font-weight:900;letter-spacing:2px;padding:6px 12px;border-radius:8px;font-size:15px">'+String(o.piloto.placa).toUpperCase()+'</div>'):'';
     vb.innerHTML='<div style="font-size:11px;font-weight:800;color:#9a7b00;margin-bottom:4px">TU PILOTO VIENE EN</div><div style="font-size:15px;font-weight:900;color:#1a1a22">'+tv+(o.piloto.marca?' '+o.piloto.marca:'')+(o.piloto.color?' · '+o.piloto.color:'')+'</div>'+(o.piloto.placa?'<div style="display:inline-block;margin-top:6px;background:#fff;border:2px solid #1a1a22;border-radius:6px;padding:2px 12px;font-weight:900;letter-spacing:2px;font-size:15px">'+String(o.piloto.placa).toUpperCase()+'</div>':'')+(o.tipo==='comida'?'<div style="margin-top:6px;font-size:12.5px;color:#188038;font-weight:800">📦 Tu piloto lleva caja térmica: tu comida llega calentita</div>':'');
   }else{vb.style.display='none'}
   var wa=document.getElementById('owa');
@@ -1445,10 +1473,25 @@ async function actualizar(){
     if(o.piloto&&o.piloto.gps&&_tgt&&_tgt.lat){
       var _km=distKm2(o.piloto.gps,_tgt);
       var _min=Math.max(1,Math.round(_km/22*60));
-      if(_eta){_eta.style.display='block';_eta.innerHTML='🛵 '+(o.piloto.nombre||'Tu piloto')+' llega en <b>~'+_min+' min</b> · '+_km.toFixed(1)+' km'+(o.estado==='recogido'?' al destino':' a recoger');}
+      if(_eta){_eta.style.display='none';}
+      var _em=document.getElementById('etaMapa'),_et=document.getElementById('etaTxt'),_es=document.getElementById('etaSub'),_ep=document.getElementById('etaPlaca');
+      if(_em){
+        _em.style.display='flex';
+        if(_et) _et.textContent=(o.estado==='recogido'?'Llegás al destino en ~'+_min+' min':'Tu piloto llega en ~'+_min+' min');
+        if(_es) _es.textContent=(o.piloto.nombre||'Tu piloto')+' · '+_km.toFixed(1)+' km '+(o.estado==='recogido'?'hasta el destino':'hasta vos');
+        if(_ep){ if(o.piloto.placa){_ep.style.display='block';_ep.textContent=String(o.piloto.placa).toUpperCase();} else {_ep.style.display='none';} }
+      }
       if(_esp)_esp.style.display='none';
     }else{
       if(_eta)_eta.style.display='none';
+      var _em2=document.getElementById('etaMapa');
+      if(_em2 && o.piloto && !['entregado','cancelado'].includes(o.estado)){
+        _em2.style.display='flex';
+        var _et2=document.getElementById('etaTxt'),_es2=document.getElementById('etaSub'),_ep2=document.getElementById('etaPlaca');
+        if(_et2) _et2.textContent='Ubicando a '+(o.piloto.nombre||'tu piloto')+'…';
+        if(_es2) _es2.textContent='En cuanto prenda el GPS lo ves en el mapa';
+        if(_ep2&&o.piloto.placa){_ep2.style.display='block';_ep2.textContent=String(o.piloto.placa).toUpperCase();}
+      } else if(_em2){ _em2.style.display='none'; }
       if(_esp)_esp.style.display=(o.piloto?'block':'none');
     }
   }catch(e){}
