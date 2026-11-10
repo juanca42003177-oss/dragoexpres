@@ -879,7 +879,15 @@ module.exports = wrap(async (req, res) => {
       const fa = await ghGet('direcciones.json');
       const L = (fa && Array.isArray(fa.data)) ? fa.data : [];
       const qn = _nrm(limpio);
-      L.filter(x => x && isFinite(+x.lat) && isFinite(+x.lng) && _nrm(x.k || '').indexOf(qn) >= 0).slice(0, 3).forEach(x => {
+      const toksQ = qn.split(' ').filter(w => w.length >= 3);
+      L.filter(x => {
+        if (!x || !isFinite(+x.lat) || !isFinite(+x.lng)) return false;
+        const kk = _nrm(x.k || '');
+        if (!kk) return false;
+        if (kk.indexOf(qn) >= 0) return true;                       // "pacific center" dentro del texto guardado
+        if (_sim(kk, qn) >= 0.8) return true;                       // casi igual (un typo de diferencia)
+        return toksQ.length >= 2 && toksQ.every(t => kk.indexOf(t.slice(0, 5)) >= 0); // todas las palabras, tolerando el final
+      }).slice(0, 3).forEach(x => {
         const k = (+x.lat).toFixed(4) + ',' + (+x.lng).toFixed(4);
         if (!vistos.has(k)) { vistos.add(k); out.push({ nombre: x.label || x.k, completo: (x.label || x.k) + ' · guardada en DragoExpres', lat: +x.lat, lng: +x.lng, _clase: 'place' }); }
       });
