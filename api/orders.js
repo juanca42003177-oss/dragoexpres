@@ -35,6 +35,8 @@ async function compensarPiloto(tel, id) {
 }
 const semana = () => 'S' + Math.floor((Date.now() - TZ) / (7 * 864e5));
 const dinero = (q) => { const n = Number(q); return (isNaN(n) || !isFinite(n) || n < 0) ? 0 : Math.round(n * 100) / 100; };
+/* convierte {lat,lng} en punto valido o undefined (nunca revienta) */
+const _pt = (p) => (p && isFinite(+p.lat) && isFinite(+p.lng)) ? { lat: +p.lat, lng: +p.lng } : undefined;
 const dig = (t) => { const d = String(t || '').replace(/\D/g, ''); return d.length > 8 ? d.slice(-8) : d; };
 
 /* CACHE DE LECTURA (2026-11-01): cada consulta iba a la base y algunas acciones
@@ -539,10 +541,10 @@ module.exports = wrap(async (req, res) => {
     if (!_destGPS && _peds2[1]) { _destGPS = { lat: _peds2[1].lat, lng: _peds2[1].lng }; _destInfo = _peds2[1]; }
     const pedido = {
       id, tipo, zona,
-      cliente: { nombre, tel, direccion: String(b.direccion).slice(0, 500), referencia: String(b.referencia || '').slice(0, 500), gps: _gpsCli || (b.gps && isFinite(+b.gps.lat) && isFinite(+b.gps.lng)) ? { lat: +b.gps.lat, lng: +b.gps.lng } : undefined },
+      cliente: { nombre, tel, direccion: String(b.direccion).slice(0, 500), referencia: String(b.referencia || '').slice(0, 500), gps: _gpsCli || _pt(b.gps) },
       detalle: String(b.detalle).slice(0, 800),
       items: Array.isArray(b.items) ? b.items.slice(0, 30).map(x => ({ nombre: String(x.nombre || '').slice(0, 60), qty: Math.max(1, Math.min(50, +x.qty || 1)), precio: dinero(x.precio || 0), nota: String(x.nota || '').slice(0, 120), foto: /^https?:\/\//.test(String(x.foto || '')) ? String(x.foto).slice(0, 300) : undefined })) : undefined,
-      compra: dinero(b.compra || 0), servicio: servicio || undefined, envio, tarifaPropuesta: tarifaPropuesta || undefined, destinoGPS: _destGPS || (b.destinoGPS && isFinite(+b.destinoGPS.lat) && isFinite(+b.destinoGPS.lng)) ? { lat: +b.destinoGPS.lat, lng: +b.destinoGPS.lng } : undefined, origenGPS: (b.origenGPS && isFinite(+b.origenGPS.lat) && isFinite(+b.origenGPS.lng)) ? { lat: +b.origenGPS.lat, lng: +b.origenGPS.lng } : undefined, recogidaGPS: (b.recogidaGPS && isFinite(+b.recogidaGPS.lat) && isFinite(+b.recogidaGPS.lng)) ? { lat: +b.recogidaGPS.lat, lng: +b.recogidaGPS.lng } : undefined, destinoAprox: (_destInfo && _destInfo.conf !== 'alta') ? true : undefined, destinoEtiqueta: _destInfo ? String(_destInfo.label || '').slice(0, 160) : undefined, promoFiel: promoFiel || undefined, promoTarifa: promoFiel ? envioTarifa : undefined, propina, comision: promoFiel ? 0 : comisionDe(tipo, envioTarifa - recargo), comisionLocal, nocturno, recargo,
+      compra: dinero(b.compra || 0), servicio: servicio || undefined, envio, tarifaPropuesta: tarifaPropuesta || undefined, destinoGPS: _destGPS || _pt(b.destinoGPS), origenGPS: (b.origenGPS && isFinite(+b.origenGPS.lat) && isFinite(+b.origenGPS.lng)) ? { lat: +b.origenGPS.lat, lng: +b.origenGPS.lng } : undefined, recogidaGPS: (b.recogidaGPS && isFinite(+b.recogidaGPS.lat) && isFinite(+b.recogidaGPS.lng)) ? { lat: +b.recogidaGPS.lat, lng: +b.recogidaGPS.lng } : undefined, destinoAprox: (_destInfo && _destInfo.conf !== 'alta') ? true : undefined, destinoEtiqueta: _destInfo ? String(_destInfo.label || '').slice(0, 160) : undefined, promoFiel: promoFiel || undefined, promoTarifa: promoFiel ? envioTarifa : undefined, propina, comision: promoFiel ? 0 : comisionDe(tipo, envioTarifa - recargo), comisionLocal, nocturno, recargo,
       estado: 'buscando', piloto: null, ts: now, pago, referencia, local: localObj || undefined, avisoWa: b.avisoWa !== false
     };
     // dispatch: primer piloto disponible de la zona
