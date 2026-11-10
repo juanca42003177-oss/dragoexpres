@@ -201,7 +201,7 @@ async function resolverDir(txt, ref) {
         const sim = Math.max.apply(null, resto.map(r => _sim(nombre, r)));
         if (sim >= 0.45 && (!top || sim > top.sim)) top = { c, sim };
       });
-      if (top) mejor = { c: top.c, mat: 1, via: 'categoria:' + cat, total: Math.max(1, D.length) };
+      if (top && top.sim >= 0.7) mejor = { c: top.c, mat: 1, via: 'categoria:' + cat, total: Math.max(1, D.length) };
     }
   }
   if (!mejor) { _GEO.set(clave, { ts: Date.now(), val: null }); return null; }
@@ -210,6 +210,10 @@ async function resolverDir(txt, ref) {
   const nomM = _nrm(mejor.c.label);
   const genOk = !GEN.length || GEN.some(g => nomM.indexOf(g) >= 0);
   const conf = !genOk ? 'baja' : ((!D.length) ? 'media' : (mejor.mat >= mejor.total ? 'alta' : (mejor.mat / Math.max(1, mejor.total) >= 0.5 ? 'media' : 'baja')));
+  /* REGLA (2026-11-10, pedido de Juan): es mejor NO tener coordenadas que mandar al
+     piloto a un lugar inventado. Si la confianza es baja, se descarta el resultado:
+     queda solo la direccion escrita y el cliente marca su punto en el mapa. */
+  if (conf === 'baja') { _GEO.set(clave, { ts: Date.now(), val: null }); return null; }
   const out = { lat: mejor.c.lat, lng: mejor.c.lng, label: mejor.c.label, conf, via: mejor.via };
   _GEO.set(clave, { ts: Date.now(), val: out });
   try {
@@ -546,7 +550,7 @@ module.exports = wrap(async (req, res) => {
       detalle: String(b.detalle).slice(0, 800),
       fotoFachada: _fotoArchivo(b.fotoFachada),
       items: Array.isArray(b.items) ? b.items.slice(0, 30).map(x => ({ nombre: String(x.nombre || '').slice(0, 60), qty: Math.max(1, Math.min(50, +x.qty || 1)), precio: dinero(x.precio || 0), nota: String(x.nota || '').slice(0, 120), foto: /^https?:\/\//.test(String(x.foto || '')) ? String(x.foto).slice(0, 300) : undefined })) : undefined,
-      compra: dinero(b.compra || 0), servicio: servicio || undefined, envio, tarifaPropuesta: tarifaPropuesta || undefined, destinoGPS: _destGPS || _pt(b.destinoGPS), origenGPS: (b.origenGPS && isFinite(+b.origenGPS.lat) && isFinite(+b.origenGPS.lng)) ? { lat: +b.origenGPS.lat, lng: +b.origenGPS.lng } : undefined, recogidaGPS: (b.recogidaGPS && isFinite(+b.recogidaGPS.lat) && isFinite(+b.recogidaGPS.lng)) ? { lat: +b.recogidaGPS.lat, lng: +b.recogidaGPS.lng } : undefined, destinoAprox: (_destInfo && _destInfo.conf !== 'alta') ? true : undefined, destinoEtiqueta: _destInfo ? String(_destInfo.label || '').slice(0, 160) : undefined, promoFiel: promoFiel || undefined, promoTarifa: promoFiel ? envioTarifa : undefined, propina, comision: promoFiel ? 0 : comisionDe(tipo, envioTarifa - recargo), comisionLocal, nocturno, recargo,
+      compra: dinero(b.compra || 0), servicio: servicio || undefined, envio, tarifaPropuesta: tarifaPropuesta || undefined, destinoGPS: _destGPS || _pt(b.destinoGPS), origenGPS: (b.origenGPS && isFinite(+b.origenGPS.lat) && isFinite(+b.origenGPS.lng)) ? { lat: +b.origenGPS.lat, lng: +b.origenGPS.lng } : undefined, recogidaGPS: (b.recogidaGPS && isFinite(+b.recogidaGPS.lat) && isFinite(+b.recogidaGPS.lng)) ? { lat: +b.recogidaGPS.lat, lng: +b.recogidaGPS.lng } : undefined, destinoAprox: ((_destInfo && _destInfo.conf !== 'alta') || (tipo === 'viaje' && !_destGPS && !!b.detalle)) ? true : undefined, destinoEtiqueta: _destInfo ? String(_destInfo.label || '').slice(0, 160) : (tipo === 'viaje' && b.detalle ? String(b.detalle).slice(0, 160) : undefined), promoFiel: promoFiel || undefined, promoTarifa: promoFiel ? envioTarifa : undefined, propina, comision: promoFiel ? 0 : comisionDe(tipo, envioTarifa - recargo), comisionLocal, nocturno, recargo,
       estado: 'buscando', piloto: null, ts: now, pago, referencia, local: localObj || undefined, avisoWa: b.avisoWa !== false
     };
     // dispatch: primer piloto disponible de la zona
@@ -840,7 +844,7 @@ module.exports = wrap(async (req, res) => {
         const k = x.lat.toFixed(4) + ',' + x.lng.toFixed(4);
         if (!vistos.has(k)) { vistos.add(k); out.push(x); }
       }
-      if (out.length >= 4) break;
+      if (out.length >= 10) break;
       await new Promise(z => setTimeout(z, 320));
     }
     /* orden: calles y zonas primero, comercios al final; y lo mas cercano arriba */
@@ -848,7 +852,7 @@ module.exports = wrap(async (req, res) => {
       : (x._clase === 'amenity' || x._clase === 'shop' || x._clase === 'tourism') ? 3 : 2);
     const dist = (x) => (ref && isFinite(ref.lat)) ? Math.hypot(x.lat - ref.lat, x.lng - ref.lng) : 0;
     out.sort((a, b) => (peso(a) - peso(b)) || (dist(a) - dist(b)));
-    return out.slice(0, 5).map(x => ({ nombre: x.nombre, completo: x.completo, lat: x.lat, lng: x.lng }));
+    return out.slice(0, 12).map(x => ({ nombre: x.nombre, completo: x.completo, lat: x.lat, lng: x.lng }));
   }
   /* SUGERENCIAS DE DIRECCION (2026-11-08): autocompletado con OpenStreetMap,
      gratis y con Guatemala indexada. Solo RECOMIENDA: el cliente puede escribir
@@ -876,6 +880,26 @@ module.exports = wrap(async (req, res) => {
     let g = null;
     try { g = await resolverDir(q, ref); } catch (e) { g = null; }
     return res.status(200).json({ ok: true, dir: g || null });
+  }
+  /* APRENDER LA DIRECCION DEL CLIENTE (2026-11-10): cuando la direccion escrita NO
+     existe en los mapas (colonias nuevas, "La Dorada", "Pacific Center"), el cliente
+     marca su punto exacto y ESA direccion queda aprendida para siempre. Va validada
+     dentro de Guatemala para que nunca se guarde basura. */
+  if (action === 'aprenderDir') {
+    const texto = String(b.texto || '').trim().slice(0, 200);
+    const clave = _nrm(texto);
+    const lat = +b.lat, lng = +b.lng;
+    const enGT = lat > 13.5 && lat < 18.2 && lng > -92.5 && lng < -88.0;
+    if (!clave || clave.length < 4 || !isFinite(lat) || !isFinite(lng) || !enGT) return res.status(200).json({ ok: false, error: 'Punto inválido: marcá el lugar en el mapa.' });
+    const f = await ghGet('direcciones.json'); const L = (f && Array.isArray(f.data)) ? f.data : [];
+    const i = L.findIndex(x => x && x.k === clave);
+    if (i >= 0 && L[i].fijada) return res.status(200).json({ ok: true, aprendida: true, fijada: true });
+    const reg = { k: clave, lat, lng, label: texto.slice(0, 160), conf: 'alta', ts: Date.now(), veces: ((i >= 0 && L[i].veces) || 0) + 1, fuente: 'cliente' };
+    if (i >= 0) L[i] = reg; else L.push(reg);
+    while (L.length > 500) L.shift();
+    await ghPut('direcciones.json', f ? f.sha : null, L, 'direccion del cliente: ' + clave.slice(0, 50));
+    _GEO.set(clave, { ts: Date.now(), val: { lat, lng, label: reg.label, conf: 'alta', aprendida: true } });
+    return res.status(200).json({ ok: true, aprendida: true, lat, lng });
   }
   /* FIJAR UNA DIRECCION A MANO (admin): corrige el pin de una direccion para TODOS
      los pedidos siguientes y, si se manda el id, arregla ese pedido concreto. */

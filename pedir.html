@@ -1199,7 +1199,7 @@ function autocompletarDir(idInput, cual){
   var tmr=null, ultimaQ='';
   function pintar(arr, q){
     lista.innerHTML='';
-    if(!arr.length){ lista.innerHTML='<div class="sugNada">No encontré esa dirección. Escribila igual: igual la ubicamos.</div>'; lista.style.display='block'; return; }
+    if(!arr.length){ lista.innerHTML='<div class="sugNada">No está en los mapas (pasa con colonias nuevas). Escribila igual y tocá 📍 Ajustar mi punto en el mapa: queda guardada para siempre.</div>'; lista.style.display='block'; return; }
     arr.forEach(function(sg){
       var it=document.createElement('div'); it.className='sugItem';
       var partes=String(sg.nombre).split(',');
@@ -1278,6 +1278,20 @@ function _capaSat(m){
   try{L.control.layers({'🛰️ Satélite (real)':sat,'🗺️ Calles':calle},{position:'topright'}).addTo(m)}catch(e){}
   return m;
 }
+/* Tocar una direccion guardada debe llenar el texto Y el punto exacto (antes solo
+   llenaba el texto y el pedido salia con un GPS viejo del perfil: por eso el piloto
+   iba a un lugar que no era). */
+document.addEventListener('click',function(ev){
+  var t=ev.target; while(t&&t!==document&&!(t.className&&String(t.className).indexOf('dirchip')>=0)) t=t.parentNode;
+  if(!t||t===document) return;
+  var i=+t.getAttribute('data-di'); var u=LS(); var d=(u.dires||[])[i];
+  if(d&&isFinite(d.lat)&&isFinite(d.lng)){
+    setTimeout(function(){
+      window.REC_GPS={lat:+d.lat,lng:+d.lng};
+      var pi=document.getElementById('pinInfo'); if(pi)pi.innerHTML='✅ Punto exacto de «'+(d.label||'tu dirección')+'» aplicado.';
+    },80);
+  }
+});
 function abrirPinRec(){abrirPin('rec')}
 function abrirPinDest(){abrirPin('dest')}
 function abrirPin(kind){
@@ -1320,6 +1334,22 @@ function pinConfirmar(){
     else{window.REC_GPS=punto;try{var u=LS();u.gps=punto;SS(u)}catch(e){}var d2=document.getElementById('pinInfo');if(d2)d2.innerHTML='✅ Punto confirmado: el piloto irá exactamente ahí.';}
   }
   var ov=document.getElementById('pinOv'); if(ov)ov.remove();
+  // GUARDAR LA DIRECCION: si no existe en los mapas, queda aprendida para siempre
+  try{
+    var campo=window._PIN_ES_DEST?document.getElementById('f-det'):document.getElementById('f-dir');
+    var txt=campo?String(campo.value||'').trim():'';
+    var u=LS();
+    if(txt&&txt.length>=4){
+      fetch(api('orders'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'aprenderDir',texto:txt,lat:punto.lat,lng:punto.lng,tel:u.tel||''})}).catch(function(){});
+      u.dires=u.dires||[];
+      var idx=-1;
+      u.dires.forEach(function(d,i){if(d&&typeof d==='object'&&String(d.dir||'').trim()===txt)idx=i});
+      if(idx>=0){u.dires[idx].lat=punto.lat;u.dires[idx].lng=punto.lng;u.dires[idx].label=u.dires[idx].label||'Casa';}
+      else{u.dires.unshift({label:'Casa',dir:txt,lat:punto.lat,lng:punto.lng});}
+      if(u.dires.length>12)u.dires=u.dires.slice(0,12);
+      SS(u);
+    }
+  }catch(e){}
 }
 function comprimirImg(file,cb){
   var fr=new FileReader();
@@ -1393,7 +1423,7 @@ async function enviar(){
     }
   }catch(e){}
   var telCli=v('f-tel')||u.tel;MI_TEL=telCli;
-  var d={action:'crear',tipo:TIPO,fotoFachada:window.FOTO_FACHADA||undefined,local:(LOCAL_TEL?{nombre:LOCAL_PRE,tel:LOCAL_TEL}:undefined),nombre:v('f-nombre')||u.nombre,tel:telCli,zona:zonaValor(),direccion:v('f-dir'),referencia:v('f-ref'),detalle:v('f-det'),compra:v('f-compra')||0,servicio:SERV?SERV.id:undefined,envio:TARIFA[TIPO]||15,propina:PROPINA,avisoWa:(LS().avisoWa!==false),gps:((LS().gps&&LS().gps.lat)?{lat:LS().gps.lat,lng:LS().gps.lng}:undefined),destinoGPS:(TIPO==='viaje'&&window.DEST_GPS)?window.DEST_GPS:undefined,recogidaGPS:(TIPO==='viaje'&&window.REC_GPS)?window.REC_GPS:undefined,origenGPS:(function(){try{if(!LOCAL_TEL||!LOCALES)return undefined;var ll=LOCALES.find(function(x){return String(x.tel)===String(LOCAL_TEL)});return (ll&&ll.gps&&ll.gps.lat)?{lat:ll.gps.lat,lng:ll.gps.lng}:undefined}catch(e){return undefined}})()};
+  var d={action:'crear',tipo:TIPO,fotoFachada:window.FOTO_FACHADA||undefined,local:(LOCAL_TEL?{nombre:LOCAL_PRE,tel:LOCAL_TEL}:undefined),nombre:v('f-nombre')||u.nombre,tel:telCli,zona:zonaValor(),direccion:v('f-dir'),referencia:v('f-ref'),detalle:v('f-det'),compra:v('f-compra')||0,servicio:SERV?SERV.id:undefined,envio:TARIFA[TIPO]||15,propina:PROPINA,avisoWa:(LS().avisoWa!==false),gps:((window.REC_GPS&&window.REC_GPS.lat)?{lat:window.REC_GPS.lat,lng:window.REC_GPS.lng}:undefined),destinoGPS:(TIPO==='viaje'&&window.DEST_GPS)?window.DEST_GPS:undefined,recogidaGPS:(TIPO==='viaje'&&window.REC_GPS)?window.REC_GPS:undefined,origenGPS:(function(){try{if(!LOCAL_TEL||!LOCALES)return undefined;var ll=LOCALES.find(function(x){return String(x.tel)===String(LOCAL_TEL)});return (ll&&ll.gps&&ll.gps.lat)?{lat:ll.gps.lat,lng:ll.gps.lng}:undefined}catch(e){return undefined}})()};
   if(window._CART_PED&&d.local&&window._CART_PED.tel===d.local.tel){d.items=window._CART_PED.items.map(function(x){return{nombre:x.nombre,precio:x.precio,qty:x.qty,nota:x.nota||'',foto:x.foto||''}})}
   var _tarViaje=TIPO==='viaje'?(parseFloat(v('f-viaje-tarifa'))||TARIFA.viaje):(TARIFA[TIPO]||15);
   if(TIPO==='viaje'&&!isNaN(_tarViaje)&&_tarViaje<1){alert('Tu oferta de viaje tiene que ser mayor a cero.');return}
