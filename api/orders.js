@@ -568,9 +568,17 @@ module.exports = wrap(async (req, res) => {
       if (now - primera >= GRACIA_LOCAL_MS) comisionLocal = dinero(baseLocal * PCT_LOCAL);
     }
     // si no vino pin, intentamos convertir la direccion escrita en coordenadas
-    let _gpsCli = (b.gps && isFinite(+b.gps.lat) && isFinite(+b.gps.lng)) ? { lat: +b.gps.lat, lng: +b.gps.lng } : null;
-    const _refGeo = (b.gps && isFinite(+b.gps.lat) && isFinite(+b.gps.lng)) ? { lat: +b.gps.lat, lng: +b.gps.lng } : null;
-    let _destGPS = (b.destinoGPS && isFinite(+b.destinoGPS.lat) && isFinite(+b.destinoGPS.lng)) ? { lat: +b.destinoGPS.lat, lng: +b.destinoGPS.lng } : null;
+    /* PUNTOS DEL NAVEGADOR (2026-11-10, aclaracion de Juan: "yo no puse ningun punto").
+       Solo se confia en un punto si el cliente lo MARCO a mano o lo eligio de una
+       sugerencia. Un punto sin origen (pin heredado de una version vieja, GPS viejo)
+       se descarta y manda el TEXTO que el cliente escribio. Ademas todo punto debe
+       caer dentro de Guatemala. */
+    const _ptGT = (x) => x && isFinite(+x.lat) && isFinite(+x.lng) && +x.lat > 13.5 && +x.lat < 18.2 && +x.lng > -92.5 && +x.lng < -88.0;
+    const _fuenteCli = String(b.gpsFuente || '');
+    const _fuenteDest = String(b.destinoFuente || '');
+    let _gpsCli = (_ptGT(b.gps) && _fuenteCli) ? { lat: +b.gps.lat, lng: +b.gps.lng } : null;
+    const _refGeo = _ptGT(b.gps) ? { lat: +b.gps.lat, lng: +b.gps.lng } : null;
+    let _destGPS = (_ptGT(b.destinoGPS) && (_fuenteDest === 'pin' || _fuenteDest === 'sugerencia')) ? { lat: +b.destinoGPS.lat, lng: +b.destinoGPS.lng } : null;
     let _destInfo = null;
     /* recogida y destino se resuelven EN PARALELO: dos consultas en fila hacian
        esperar al cliente el doble (2026-11-10) */
@@ -578,7 +586,8 @@ module.exports = wrap(async (req, res) => {
       (!_gpsCli && b.direccion) ? resolverDir(b.direccion, _refGeo).catch(() => null) : Promise.resolve(null),
       (tipo === 'viaje' && b.detalle) ? resolverDir(b.detalle, _refGeo).catch(() => null) : Promise.resolve(null),
     ]);
-    if (!_gpsCli && _peds2[0]) _gpsCli = { lat: _peds2[0].lat, lng: _peds2[0].lng };
+    /* si el punto no vino marcado a mano, manda la DIRECCION ESCRITA */
+    if (_peds2[0] && (!_gpsCli || _fuenteCli !== 'pin')) _gpsCli = { lat: _peds2[0].lat, lng: _peds2[0].lng };
     /* EL TEXTO ESCRITO MANDA (2026-11-10): si el cliente escribio la direccion y eligio
        una sugerencia del buscador, se resuelve el TEXTO en el servidor. Asi un "Villa
        Lobos" de otro municipio (Av. Petapa) no le gana a lo que el cliente escribio
@@ -586,6 +595,12 @@ module.exports = wrap(async (req, res) => {
     if (tipo === 'viaje' && _peds2[1] && (b.destinoFuente !== 'pin' || !_destGPS)) {
       _destGPS = { lat: _peds2[1].lat, lng: _peds2[1].lng }; _destInfo = _peds2[1];
     } else if (!_destGPS && _peds2[1]) { _destGPS = { lat: _peds2[1].lat, lng: _peds2[1].lng }; _destInfo = _peds2[1]; }
+    /* el destino no puede ser el mismo punto de la recogida (eso pasa cuando se
+       confirma un pin sin moverlo): si estan a menos de 150 m, no hay punto valido */
+    if (_destGPS && _gpsCli) {
+      const _dkm2 = Math.hypot((_destGPS.lat - _gpsCli.lat) * 111, (_destGPS.lng - _gpsCli.lng) * 105);
+      if (_dkm2 < 0.15) { _destGPS = null; _destInfo = null; }
+    }
     const pedido = {
       id, tipo, zona,
       cliente: { nombre, tel, direccion: String(b.direccion).slice(0, 500), referencia: String(b.referencia || '').slice(0, 500), gps: _gpsCli || _pt(b.gps) },

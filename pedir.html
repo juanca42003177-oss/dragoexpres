@@ -1220,7 +1220,7 @@ function autocompletarDir(idInput, cual){
       it.innerHTML='<b>'+partes[0]+'</b><span>'+partes.slice(1).join(', ')+'</span>';
       it.onclick=function(){
         el.value=sg.nombre;
-        if(cual==='rec') window.REC_GPS={lat:sg.lat,lng:sg.lng};
+        if(cual==='rec'){window.REC_GPS={lat:sg.lat,lng:sg.lng};window.REC_FUENTE='sugerencia';}
         if(cual==='dest'){window.DEST_GPS={lat:sg.lat,lng:sg.lng};window.DEST_ETIQ=sg.completo||sg.nombre;window.DEST_FUENTE='sugerencia';}
         lista.style.display='none';
       };
@@ -1230,7 +1230,7 @@ function autocompletarDir(idInput, cual){
   }
   el.addEventListener('input', function(){
     var q=String(el.value||'').trim();
-    if(cual==='rec') window.REC_GPS=null;
+    if(cual==='rec'){window.REC_GPS=null;window.REC_FUENTE=null;}
     if(cual==='dest'){window.DEST_GPS=null;window.DEST_ETIQ=null;window.DEST_FUENTE=null;}
     if(q.length<3 || q===ultimaQ){ lista.style.display='none'; return; }
     ultimaQ=q; clearTimeout(tmr);
@@ -1349,7 +1349,7 @@ function pinConfirmar(){
   if(document.getElementById('pinMap')){
     // si el overlay se abrió como destino, guardamos destino; si no, recogida/entrega
     if(window._PIN_ES_DEST){window.DEST_GPS=punto;window.DEST_FUENTE='pin';var _cd=document.getElementById('f-det');if(_cd)window.DEST_ETIQ=String(_cd.value||'').trim()||null;var d1=document.getElementById('pinInfoDest');if(d1)d1.innerHTML='✅ Destino confirmado en el mapa.';}
-    else{window.REC_GPS=punto;try{var u=LS();u.gps=punto;SS(u)}catch(e){}var d2=document.getElementById('pinInfo');if(d2)d2.innerHTML='✅ Punto confirmado: el piloto irá exactamente ahí.';}
+    else{window.REC_GPS=punto;window.REC_FUENTE='pin';try{var u=LS();u.gps=punto;SS(u)}catch(e){}var d2=document.getElementById('pinInfo');if(d2)d2.innerHTML='✅ Punto confirmado: el piloto irá exactamente ahí.';}
   }
   var ov=document.getElementById('pinOv'); if(ov)ov.remove();
   // GUARDAR LA DIRECCION: si no existe en los mapas, queda aprendida para siempre
@@ -1441,7 +1441,7 @@ async function enviar(){
     }
   }catch(e){}
   var telCli=v('f-tel')||u.tel;MI_TEL=telCli;
-  var d={action:'crear',tipo:TIPO,fotoFachada:window.FOTO_FACHADA||undefined,local:(LOCAL_TEL?{nombre:LOCAL_PRE,tel:LOCAL_TEL}:undefined),nombre:v('f-nombre')||u.nombre,tel:telCli,zona:zonaValor(),direccion:v('f-dir'),referencia:v('f-ref'),detalle:v('f-det'),compra:v('f-compra')||0,servicio:SERV?SERV.id:undefined,envio:TARIFA[TIPO]||15,propina:PROPINA,avisoWa:(LS().avisoWa!==false),gps:((window.REC_GPS&&window.REC_GPS.lat)?{lat:window.REC_GPS.lat,lng:window.REC_GPS.lng}:undefined),destinoGPS:(TIPO==='viaje'&&window.DEST_GPS)?window.DEST_GPS:undefined,destinoFuente:window.DEST_FUENTE||undefined,destinoEtiqueta:window.DEST_ETIQ||undefined,recogidaGPS:(TIPO==='viaje'&&window.REC_GPS)?window.REC_GPS:undefined,origenGPS:(function(){try{if(!LOCAL_TEL||!LOCALES)return undefined;var ll=LOCALES.find(function(x){return String(x.tel)===String(LOCAL_TEL)});return (ll&&ll.gps&&ll.gps.lat)?{lat:ll.gps.lat,lng:ll.gps.lng}:undefined}catch(e){return undefined}})()};
+  var d={action:'crear',tipo:TIPO,fotoFachada:window.FOTO_FACHADA||undefined,local:(LOCAL_TEL?{nombre:LOCAL_PRE,tel:LOCAL_TEL}:undefined),nombre:v('f-nombre')||u.nombre,tel:telCli,zona:zonaValor(),direccion:v('f-dir'),referencia:v('f-ref'),detalle:v('f-det'),compra:v('f-compra')||0,servicio:SERV?SERV.id:undefined,envio:TARIFA[TIPO]||15,propina:PROPINA,avisoWa:(LS().avisoWa!==false),gps:((window.REC_GPS&&window.REC_GPS.lat)?{lat:window.REC_GPS.lat,lng:window.REC_GPS.lng}:undefined),gpsFuente:window.REC_FUENTE||undefined,destinoGPS:(TIPO==='viaje'&&window.DEST_GPS)?window.DEST_GPS:undefined,destinoFuente:window.DEST_FUENTE||undefined,destinoEtiqueta:window.DEST_ETIQ||undefined,recogidaGPS:(TIPO==='viaje'&&window.REC_GPS)?window.REC_GPS:undefined,origenGPS:(function(){try{if(!LOCAL_TEL||!LOCALES)return undefined;var ll=LOCALES.find(function(x){return String(x.tel)===String(LOCAL_TEL)});return (ll&&ll.gps&&ll.gps.lat)?{lat:ll.gps.lat,lng:ll.gps.lng}:undefined}catch(e){return undefined}})()};
   if(window._CART_PED&&d.local&&window._CART_PED.tel===d.local.tel){d.items=window._CART_PED.items.map(function(x){return{nombre:x.nombre,precio:x.precio,qty:x.qty,nota:x.nota||'',foto:x.foto||''}})}
   var _tarViaje=TIPO==='viaje'?(parseFloat(v('f-viaje-tarifa'))||TARIFA.viaje):(TARIFA[TIPO]||15);
   if(TIPO==='viaje'&&!isNaN(_tarViaje)&&_tarViaje<1){alert('Tu oferta de viaje tiene que ser mayor a cero.');return}
