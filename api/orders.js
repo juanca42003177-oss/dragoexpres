@@ -42,27 +42,182 @@ const dig = (t) => { const d = String(t || '').replace(/\D/g, ''); return d.leng
    instantaneas y el panel se siente vivo. Se invalida al escribir (ghPut). */
 const _LECT = new Map();
 const _LECT_TTL = 8000;
-/* GEOCODIFICACION (2026-11-05): si el cliente no marca pin, la direccion escrita se
-   convierte en coordenadas para que el mapa del piloto SIEMPRE pueda dibujar la ruta.
-   Antes, un viaje sin pin dejaba al piloto sin mapa y sin destino. */
+/* GEOCODIFICACION INTELIGENTE (2026-11-10). Antes se mandaba la frase tal cual a
+   Nominatim y se tomaba el PRIMER resultado. Con direcciones guatemaltecas escritas a
+   mano eso fallaba de dos maneras: "Hospital roosveld" (error de tipeo) no devolvia
+   nada, y "Villa lobos recidenciales la dorada" tambien quedaba sin punto: el viaje se
+   creaba SIN destino y el piloto no veia a donde ir. Ahora el resolver:
+     1. corrige errores comunes de escritura (roosveld -> roosevelt, resicencial -> residencial);
+     2. prueba variantes en orden (frase, numero+via, via+nombre, pares de palabras,
+        "residencial X", palabras sueltas) y acepta la primera con coincidencia REAL;
+     3. descarta comercios y resultados sin relacion: mejor sin pin que un pin equivocado;
+     4. si nada coincide, busca por categoria con nombre parecido (hospital, mercado...);
+     5. aprende: cada direccion resuelta queda en direcciones.json y se reusa para
+        todos los pedidos siguientes (instantaneo y consistente).
+   Devuelve {lat,lng,label,conf} o null. conf: alta | media | baja (aproximada). */
 const _GEO = new Map();
-async function geoDireccion(txt) {
-  const q = String(txt || '').trim();
-  if (!q || q.length < 3) return null;
-  if (_GEO.has(q)) return _GEO.get(q);
+const _GEO_TTL = 6 * 3600e3;
+const _GEO_VACIAS = new Set('de del la las el los en frente enfrente parada buses bus cerca por y al a no km kilometro casa numero interior apto guatemala ciudad'.split(' '));
+const _GEO_GENERICAS = new Set('calle avenida av avda calzada ruta bulevar blvd zona colonia residencial residenciales villa villas nueva nuevo sector aldea ciudad guatemala norte sur este oeste central lote manzana etapa pasaje diagonal san santa kilometro'.split(' '));
+const _GEO_BONO = { place: 1.4, boundary: 1.0, residential: 1.4, neighbourhood: 1.4, house: 1.2, building: 1.2, suburb: 1.2, highway: 1.0, amenity: 1.0, bus_station: 0.2, shop: 0.3, tourism: 0.3 };
+const _GEO_CATS = ['hospital', 'mercado', 'parque', 'universidad', 'colegio', 'iglesia', 'terminal', 'aeropuerto', 'supermercado', 'banco', 'municipalidad', 'estadio'];
+const _nrm = (x) => String(x || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9ñ ]+/g, ' ').replace(/\s+/g, ' ').trim();
+function _corrTok(w) {
+  if (/^roo?s[vb][a-z]*$/.test(w) || /^roos?ev/.test(w) || /^roosev/.test(w)) return 'roosevelt';
+  if (/^(resicencial|recidencial|residensial|residenciales|residensiales|residencia)$/.test(w)) return 'residencial';
+  if (/^(avda|av)$/.test(w)) return 'avenida';
+  if (/^(col|cla|clnia)$/.test(w)) return 'colonia';
+  if (/^(zn|z)$/.test(w)) return 'zona';
+  return w;
+}
+const _corr = (x) => _nrm(x).split(' ').map(_corrTok).join(' ');
+const _toks = (x) => _corr(x).split(' ').filter(w => w.length >= 3 && !_GEO_VACIAS.has(w));
+const _dist2 = (x) => _toks(x).filter(w => !_GEO_GENERICAS.has(w));
+function _trigramas(x) { const t = '  ' + x + ' '; const o = new Set(); for (let i = 0; i < t.length - 2; i++) o.add(t.substr(i, 3)); return o; }
+function _sim(a, b) { const A = _trigramas(a), B = _trigramas(b); if (!A.size || !B.size) return 0; let n = 0; A.forEach(v => { if (B.has(v)) n++; }); return 2 * n / (A.size + B.size); }
+async function _nomBuscar(q, ref) {
   try {
-    const url = 'https://nominatim.openstreetmap.org/search?format=json&limit=1&countrycodes=gt&q=' +
-      encodeURIComponent(q + (/,guatemala/i.test(q) ? '' : ', Guatemala'));
-    const r = await fetch(url, { headers: { 'User-Agent': 'DragoExpres/1.0 (soporte dragoexpres)' } });
-    if (!r.ok) return null;
+    let url = 'https://nominatim.openstreetmap.org/search?format=jsonv2&limit=10&countrycodes=gt&addressdetails=1&q=' + encodeURIComponent(q + (/,guatemala/i.test(q) ? '' : ', Guatemala'));
+    if (ref && isFinite(ref.lat) && isFinite(ref.lng)) {
+      const d = 0.9;
+      url += '&viewbox=' + (ref.lng - d) + ',' + (ref.lat + d) + ',' + (ref.lng + d) + ',' + (ref.lat - d);
+    }
+    /* tope de 3s por consulta: sin esto una respuesta lenta de Nominatim dejaba
+       al cliente esperando 15 segundos al crear el pedido (2026-11-10) */
+    const ctl = new AbortController(); const reloj = setTimeout(() => ctl.abort(), 3000);
+    let r;
+    try { r = await fetch(url, { headers: { 'User-Agent': 'DragoExpres/1.0 (soporte dragoexpres)' }, signal: ctl.signal }); }
+    finally { clearTimeout(reloj); }
+    if (!r.ok) return [];
     const j = await r.json();
-    if (!Array.isArray(j) || !j.length) return null;
-    const lat = +j[0].lat, lng = +j[0].lon;
-    if (!isFinite(lat) || !isFinite(lng)) return null;
-    const out = { lat, lng };
-    _GEO.set(q, out);
-    return out;
-  } catch (e) { return null; }
+    return (Array.isArray(j) ? j : []).map(x => ({ lat: +x.lat, lng: +x.lon, label: String(x.display_name || '').split(', ').slice(0, 3).join(', '), clase: String(x.class || ''), tipo: String(x.type || '') }))
+      .filter(x => isFinite(x.lat) && isFinite(x.lng));
+  } catch (e) { return []; }
+}
+function _geoIntentos(txt) {
+  /* Devuelve los intentos YA ORDENADOS por probabilidad de acertar:
+     P0 direccion estructurada (numero-zona), P1 numero+via / via+nombre,
+     P2 pares de palabras propias del lugar ("villa lobos"), P3 frase completa,
+     P4 triples/palabras sueltas. Asi la primera consulta suele ser la buena y
+     el pedido no espera cinco consultas. */
+  const raw = String(txt || '').replace(/\s+/g, ' ').trim();
+  const t = _corr(txt), T = _toks(txt), D = _dist2(txt);
+  const P = [[], [], [], [], []];
+  const add = (nivel, q) => {
+    q = String(q || '').replace(/\s+/g, ' ').trim();
+    if (!q || q.length < 4) return;
+    if (D.length && !D.some(d => q.toLowerCase().includes(d))) return;
+    for (const arr of P) if (arr.some(x => x.toLowerCase() === q.toLowerCase())) return;
+    P[nivel].push(q);
+  };
+  const estructurada = /(\d{2,3}\s*-\s*\d{1,3})|(\bzona\s+\d)/.test(t);
+  if (estructurada) { add(0, raw); add(0, t); }
+  const mVia = t.match(/(\d{1,3})\s*(calle|avenida|zona)/);
+  if (mVia) add(1, mVia[1] + ' ' + mVia[2]);
+  const mVia2 = t.match(/(avenida|calzada|bulevar|blvd|ruta|colonia|zona|calle|pasaje|diagonal)\s+(?!(?:calle|avenida|av|calzada|bulevar|blvd)\b)([a-zñ0-9]{3,})/);
+  if (mVia2) add(1, mVia2[1] + ' ' + mVia2[2]);
+  if (D.length && /residencial|condominio|colonia|villa/.test(t)) add(2, 'residencial ' + D.slice(0, 2).join(' '));
+  for (let i = 0; i < T.length - 1; i++) { const par = T[i] + ' ' + T[i + 1]; if (D.some(d => par.includes(d))) add(2, par); }
+  add(3, t); add(3, raw);
+  for (let i = 0; i < T.length - 2; i++) { const tr = T[i] + ' ' + T[i + 1] + ' ' + T[i + 2]; if (D.some(d => tr.includes(d))) add(4, tr); }
+  if (D.length) { add(4, D.join(' ')); D.forEach(d => add(4, d)); }
+  return P[0].concat(P[1], P[2], P[3], P[4]).slice(0, 6);
+}
+function parOk(tr, D) { return D.some(d => tr.includes(d)); }
+/* Las palabras genericas no validan solas, pero si suman cuando la consulta tambien
+   las trae ("villa nueva", "zona 11"): asi se elige bien el municipio. Los numeros
+   del domicilio ("5a", "12-34", "zona 11") SI validan: son lo mas distintivo. */
+function _claves(x) {
+  const t = _corr(x);
+  const nums = (t.match(/\b\d{1,4}[a-z]?\b/g) || []).filter(w => w.length >= 2);
+  return Array.from(new Set(_dist2(x).concat(nums)));
+}
+function _genericasDe(x) {
+  const t = _corr(x);
+  const g = t.split(' ').filter(w => _GEO_GENERICAS.has(w) && w.length >= 4);
+  const zn = t.match(/zona \d{1,2}/g) || [];
+  return Array.from(new Set(g.concat(zn)));
+}
+function _coincide(t, w) { if (t === w) return true; if (t.length >= 4 && w.indexOf(t) === 0) return true; if (w.length >= 4 && t.indexOf(w) === 0) return true; return false; }
+function _geoPuntaje(c, V, D, ref) {
+  const nombres = Array.from(new Set(_nrm(c.label).split(' ')));
+  let mat = 0, matD = 0;
+  V.forEach(t => { if (nombres.some(w => _coincide(t, w))) mat++; });
+  D.forEach(t => { if (nombres.some(w => _coincide(t, w))) matD++; });
+  let p = (_GEO_BONO[c.tipo] !== undefined ? _GEO_BONO[c.tipo] : 0.6) + (c.clase === 'highway' ? 0.5 : 0) + mat * 1.2 + matD * 0.6;
+  if (ref) { const dkm = Math.hypot((c.lat - ref.lat) * 111, (c.lng - ref.lng) * 105); p -= Math.min(3, dkm / 15); }
+  return { p, mat, matD };
+}
+async function resolverDir(txt, ref) {
+  const raw = String(txt || '').trim();
+  if (raw.length < 4) return null;
+  const clave = _nrm(raw);
+  if (!clave) return null;
+  const mem = _GEO.get(clave);
+  if (mem) { const ttl = mem.val ? _GEO_TTL : 18e5; if (Date.now() - mem.ts < ttl) return mem.val; }
+  let apr = null;
+  try {
+    apr = await ghGet('direcciones.json');
+    const hit = (apr && Array.isArray(apr.data)) ? apr.data.find(x => x && x.k === clave && isFinite(+x.lat) && isFinite(+x.lng)) : null;
+    if (hit) {
+      const out = { lat: +hit.lat, lng: +hit.lng, label: hit.label || raw, conf: hit.conf || 'alta', aprendida: true };
+      _GEO.set(clave, { ts: Date.now(), val: out });
+      return out;
+    }
+  } catch (e) { apr = null; }
+  const D = _dist2(raw);
+  const V = _claves(raw);
+  const GEN = _genericasDe(raw);
+  let mejor = null;
+  const t0 = Date.now(); const LIMITE = 4200; // el pedido no puede esperar mas que esto
+  for (const q of _geoIntentos(raw)) {
+    if (Date.now() - t0 > LIMITE) break;
+    const rs = await _nomBuscar(q, ref);
+    const ok = [];
+    rs.forEach(c => {
+      const sm = _geoPuntaje(c, V, D, ref);
+      if (!V.length) { ok.push({ c, p: sm.p, mat: 0, matD: 0 }); return; }
+      if (sm.mat > 0) {
+        const nomC = _nrm(c.label);
+        const bono = GEN.filter(g => nomC.indexOf(g) >= 0).length * 0.45;
+        ok.push({ c, p: sm.p + bono, mat: sm.mat, matD: sm.matD });
+      }
+    });
+    ok.sort((a, b) => b.p - a.p);
+    if (ok.length) { mejor = { c: ok[0].c, mat: ok[0].matD, via: q, total: D.length }; break; }
+    await new Promise(z => setTimeout(z, 180));
+  }
+  if (!mejor) { // categoria + nombre parecido (para errores de tipeo en lugares conocidos)
+    const cat = _toks(raw).find(w => _GEO_CATS.indexOf(w) >= 0);
+    if (cat) {
+      const resto = D.length ? D : [_corr(raw)];
+      const rs = await _nomBuscar(cat, ref);
+      let top = null;
+      rs.forEach(c => {
+        const nombre = _nrm(String(c.label).split(',')[0]);
+        const sim = Math.max.apply(null, resto.map(r => _sim(nombre, r)));
+        if (sim >= 0.45 && (!top || sim > top.sim)) top = { c, sim };
+      });
+      if (top) mejor = { c: top.c, mat: 1, via: 'categoria:' + cat, total: Math.max(1, D.length) };
+    }
+  }
+  if (!mejor) { _GEO.set(clave, { ts: Date.now(), val: null }); return null; }
+  /* si la direccion nombraba un municipio/colonia ("villa nueva", "zona 11") y el
+     resultado no lo trae, nunca es confiable: queda como aproximada. */
+  const nomM = _nrm(mejor.c.label);
+  const genOk = !GEN.length || GEN.some(g => nomM.indexOf(g) >= 0);
+  const conf = !genOk ? 'baja' : ((!D.length) ? 'media' : (mejor.mat >= mejor.total ? 'alta' : (mejor.mat / Math.max(1, mejor.total) >= 0.5 ? 'media' : 'baja')));
+  const out = { lat: mejor.c.lat, lng: mejor.c.lng, label: mejor.c.label, conf, via: mejor.via };
+  _GEO.set(clave, { ts: Date.now(), val: out });
+  try {
+    const L = (apr && Array.isArray(apr.data)) ? apr.data : [];
+    if (!L.some(x => x && x.k === clave)) {
+      L.push({ k: clave, lat: out.lat, lng: out.lng, label: out.label, conf, ts: Date.now(), veces: 1 });
+      while (L.length > 500) L.shift();
+      await ghPut('direcciones.json', apr ? apr.sha : null, L, 'direccion aprendida: ' + clave.slice(0, 60));
+    }
+  } catch (e) { }
+  return out;
 }
 
 async function ghGet(path) {
@@ -371,15 +526,23 @@ module.exports = wrap(async (req, res) => {
     }
     // si no vino pin, intentamos convertir la direccion escrita en coordenadas
     let _gpsCli = (b.gps && isFinite(+b.gps.lat) && isFinite(+b.gps.lng)) ? { lat: +b.gps.lat, lng: +b.gps.lng } : null;
-    if (!_gpsCli && b.direccion) { const _g1 = await geoDireccion(b.direccion); if (_g1) _gpsCli = _g1; }
+    const _refGeo = (b.gps && isFinite(+b.gps.lat) && isFinite(+b.gps.lng)) ? { lat: +b.gps.lat, lng: +b.gps.lng } : null;
     let _destGPS = (b.destinoGPS && isFinite(+b.destinoGPS.lat) && isFinite(+b.destinoGPS.lng)) ? { lat: +b.destinoGPS.lat, lng: +b.destinoGPS.lng } : null;
-    if (!_destGPS && tipo === 'viaje' && b.detalle) { const _g2 = await geoDireccion(b.detalle); if (_g2) _destGPS = _g2; }
+    let _destInfo = null;
+    /* recogida y destino se resuelven EN PARALELO: dos consultas en fila hacian
+       esperar al cliente el doble (2026-11-10) */
+    const _peds2 = await Promise.all([
+      (!_gpsCli && b.direccion) ? resolverDir(b.direccion, _refGeo).catch(() => null) : Promise.resolve(null),
+      (!_destGPS && tipo === 'viaje' && b.detalle) ? resolverDir(b.detalle, _refGeo).catch(() => null) : Promise.resolve(null),
+    ]);
+    if (!_gpsCli && _peds2[0]) _gpsCli = { lat: _peds2[0].lat, lng: _peds2[0].lng };
+    if (!_destGPS && _peds2[1]) { _destGPS = { lat: _peds2[1].lat, lng: _peds2[1].lng }; _destInfo = _peds2[1]; }
     const pedido = {
       id, tipo, zona,
       cliente: { nombre, tel, direccion: String(b.direccion).slice(0, 500), referencia: String(b.referencia || '').slice(0, 500), gps: _gpsCli || (b.gps && isFinite(+b.gps.lat) && isFinite(+b.gps.lng)) ? { lat: +b.gps.lat, lng: +b.gps.lng } : undefined },
       detalle: String(b.detalle).slice(0, 800),
       items: Array.isArray(b.items) ? b.items.slice(0, 30).map(x => ({ nombre: String(x.nombre || '').slice(0, 60), qty: Math.max(1, Math.min(50, +x.qty || 1)), precio: dinero(x.precio || 0), nota: String(x.nota || '').slice(0, 120), foto: /^https?:\/\//.test(String(x.foto || '')) ? String(x.foto).slice(0, 300) : undefined })) : undefined,
-      compra: dinero(b.compra || 0), servicio: servicio || undefined, envio, tarifaPropuesta: tarifaPropuesta || undefined, destinoGPS: _destGPS || (b.destinoGPS && isFinite(+b.destinoGPS.lat) && isFinite(+b.destinoGPS.lng)) ? { lat: +b.destinoGPS.lat, lng: +b.destinoGPS.lng } : undefined, origenGPS: (b.origenGPS && isFinite(+b.origenGPS.lat) && isFinite(+b.origenGPS.lng)) ? { lat: +b.origenGPS.lat, lng: +b.origenGPS.lng } : undefined, recogidaGPS: (b.recogidaGPS && isFinite(+b.recogidaGPS.lat) && isFinite(+b.recogidaGPS.lng)) ? { lat: +b.recogidaGPS.lat, lng: +b.recogidaGPS.lng } : undefined, promoFiel: promoFiel || undefined, promoTarifa: promoFiel ? envioTarifa : undefined, propina, comision: promoFiel ? 0 : comisionDe(tipo, envioTarifa - recargo), comisionLocal, nocturno, recargo,
+      compra: dinero(b.compra || 0), servicio: servicio || undefined, envio, tarifaPropuesta: tarifaPropuesta || undefined, destinoGPS: _destGPS || (b.destinoGPS && isFinite(+b.destinoGPS.lat) && isFinite(+b.destinoGPS.lng)) ? { lat: +b.destinoGPS.lat, lng: +b.destinoGPS.lng } : undefined, origenGPS: (b.origenGPS && isFinite(+b.origenGPS.lat) && isFinite(+b.origenGPS.lng)) ? { lat: +b.origenGPS.lat, lng: +b.origenGPS.lng } : undefined, recogidaGPS: (b.recogidaGPS && isFinite(+b.recogidaGPS.lat) && isFinite(+b.recogidaGPS.lng)) ? { lat: +b.recogidaGPS.lat, lng: +b.recogidaGPS.lng } : undefined, destinoAprox: (_destInfo && _destInfo.conf !== 'alta') ? true : undefined, destinoEtiqueta: _destInfo ? String(_destInfo.label || '').slice(0, 160) : undefined, promoFiel: promoFiel || undefined, promoTarifa: promoFiel ? envioTarifa : undefined, propina, comision: promoFiel ? 0 : comisionDe(tipo, envioTarifa - recargo), comisionLocal, nocturno, recargo,
       estado: 'buscando', piloto: null, ts: now, pago, referencia, local: localObj || undefined, avisoWa: b.avisoWa !== false
     };
     // dispatch: primer piloto disponible de la zona
@@ -699,6 +862,39 @@ module.exports = wrap(async (req, res) => {
       if (_SUG.size > 200) _SUG.clear();
     } catch (e) { out = []; }
     return res.status(200).json({ ok: true, sugerencias: out });
+  }
+  /* RESOLVER UNA DIRECCION SUELTA (2026-11-10): lo usa la pantalla del piloto cuando
+     el pedido viejo no trae coordenadas. Devuelve el mismo criterio que el backend. */
+  if (action === 'dir') {
+    const q = String(b.q || '').trim();
+    if (q.length < 4) return res.status(200).json({ ok: true, dir: null });
+    const ref = (isFinite(+b.lat) && isFinite(+b.lng)) ? { lat: +b.lat, lng: +b.lng } : null;
+    let g = null;
+    try { g = await resolverDir(q, ref); } catch (e) { g = null; }
+    return res.status(200).json({ ok: true, dir: g || null });
+  }
+  /* FIJAR UNA DIRECCION A MANO (admin): corrige el pin de una direccion para TODOS
+     los pedidos siguientes y, si se manda el id, arregla ese pedido concreto. */
+  if (action === 'fijarDir') {
+    const okPass = (x) => process.env.ADMIN_PASS && String(x).trim() === String(process.env.ADMIN_PASS).trim();
+    if (!okPass(b.pass)) return res.status(200).json({ ok: false, error: 'Acceso denegado' });
+    const clave = _nrm(b.texto || '');
+    const lat = +b.lat, lng = +b.lng;
+    if (!clave || !isFinite(lat) || !isFinite(lng)) return res.status(200).json({ ok: false, error: 'Faltan datos: texto, lat y lng.' });
+    const f = await ghGet('direcciones.json'); const L = (f && Array.isArray(f.data)) ? f.data : [];
+    const i = L.findIndex(x => x && x.k === clave);
+    const reg = { k: clave, lat, lng, label: String(b.label || b.texto || '').slice(0, 160), conf: 'alta', ts: Date.now(), veces: ((i >= 0 && L[i].veces) || 0) + 1, fijada: true };
+    if (i >= 0) L[i] = reg; else L.push(reg);
+    while (L.length > 500) L.shift();
+    await ghPut('direcciones.json', f ? f.sha : null, L, 'direccion fijada a mano: ' + clave.slice(0, 60));
+    _GEO.set(clave, { ts: Date.now(), val: { lat, lng, label: reg.label, conf: 'alta' } });
+    let arreglado = null;
+    if (b.id) {
+      const fpd = await ghGet('pedidos.json'); const peds = fpd ? fpd.data : [];
+      const o = peds.find(x => x.id === String(b.id).trim());
+      if (o) { o.destinoGPS = { lat, lng }; delete o.destinoAprox; o.destinoEtiqueta = reg.label; await ghPut('pedidos.json', fpd.sha, peds, 'destino corregido ' + o.id); arreglado = o.id; }
+    }
+    return res.status(200).json({ ok: true, clave, lat, lng, pedidoArreglado: arreglado });
   }
   if (action === 'estado') {
     const fpd = await ghGet('pedidos.json'); const peds = fpd ? fpd.data : [];

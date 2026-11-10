@@ -254,16 +254,21 @@ function copiarCuenta(){
 }
 function geoGuardar(k,v){ GEO_TXT[k]=v; try{sessionStorage.setItem('dx_geo',JSON.stringify(GEO_TXT))}catch(e){} }
 function geoTexto(txt,cb){
+  /* Ahora la ubicacion la resuelve el mismo buscador inteligente del backend
+     (corrige errores de tipeo, prueba variantes y aprende la direccion). Antes
+     esta pantalla tomaba el PRIMER resultado de OpenStreetMap, que muchas veces
+     era otro lugar y mandaba al piloto a la direccion equivocada (2026-11-10). */
   var k=String(txt||'').trim();
   if(!k){cb(null);return}
   if(GEO_TXT[k]){cb(GEO_TXT[k]);return}
-  var q=k+(/,guatemala/i.test(k)?'':', Guatemala');
-  fetch('https://nominatim.openstreetmap.org/search?format=json&limit=1&countrycodes=gt&q='+encodeURIComponent(q),{headers:{'Accept':'application/json'}})
+  var pos=window.MYGPS||{};
+  fetch(api('orders'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'dir',q:k,lat:pos.lat,lng:pos.lng})})
     .then(function(r){return r.json()})
     .then(function(j){
-      if(Array.isArray(j)&&j.length){
-        var c={lat:parseFloat(j[0].lat),lng:parseFloat(j[0].lon)};
-        if(isFinite(c.lat)&&isFinite(c.lng)){geoGuardar(k,c);cb(c);return}
+      var d=j&&j.dir;
+      if(d&&isFinite(d.lat)){
+        var c={lat:d.lat,lng:d.lng,conf:d.conf};
+        geoGuardar(k,c);cb(c);return;
       }
       cb(null);
     }).catch(function(){cb(null)});
@@ -470,6 +475,19 @@ async function login(){
   document.getElementById('login').style.display='none';document.getElementById('app').style.display='block';
   if(POLL)clearInterval(POLL);POLL=setInterval(tick,5000);
 }
+function confirmarFinPedido(id){
+  /* ANTES: si el servidor dejaba de mandar el pedido un solo ciclo (internet, oferta
+     vencida, re-despacho) la pantalla avisaba "CANCELADO" y asustaba al piloto.
+     Paso con el viaje DX60008550 del 10-11-2026, que seguia activo. Ahora se
+     pregunta el estado real antes de decir nada. */
+  fetch(api('orders'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'estado',id:id})})
+    .then(function(r){return r.json()})
+    .then(function(k){
+      var e=(k&&k.pedido&&k.pedido.estado)||'';
+      if(e==='cancelado') alert('Tu pedido '+id+' fue cancelado. Si ya ibas en camino, te acreditamos Q5 de gasolina (se te abona en tu próxima liquidación, cada 72h).');
+      else if(e==='buscando') alert('El pedido '+id+' volvió a la lista: nadie lo tomó a tiempo. Si sigue libre te aparece abajo para tomarlo.');
+    }).catch(function(){});
+}
 function pintar(j){
   var p=j.piloto;
   document.getElementById('p-nombre').textContent=p.nombre.split(' ')[0];
@@ -489,8 +507,8 @@ function pintar(j){
   var sw=document.getElementById('sw');sw.className='sw'+(p.disponible?' on':'');
   document.getElementById('dis-txt').textContent=p.disponible?'DISPONIBLE 🟢':'NO DISPONIBLE';
   var act=document.getElementById('pedidoActivo'),sin=document.getElementById('sinPedido');
-  if(j.activo&&AID&&j.activo.id!==AID){alert('Tu pedido '+AID+' fue cancelado. No es tu culpa: tu racha sigue viva ');AID=j.activo.id;}
-  if(!j.activo&&AID){alert('Tu pedido '+AID+' fue cancelado. Si ya ibas en camino, te acreditamos Q5 de gasolina (se te abona en tu próxima liquidación, cada 72h). ');AID=null;}
+  if(j.activo&&AID&&j.activo.id!==AID){AID=j.activo.id;}
+  if(!j.activo&&AID){confirmarFinPedido(AID);AID=null;}
   if(j.activo){if(j.activo.estado==='asignado'){if(!OF||OF.id!==j.activo.id){mostrarOferta(j.activo)}}else{cerrarOferta()}
   sin.style.display='none';act.style.display='block';if(j.activo.id!==window.PM_LAST_ID){window.PM_LAST_ID=j.activo.id;ULT_GPS=0;/* GPS INMEDIATO al tomar el pedido: el cliente ve el mapa ya */}var ci0=document.getElementById('chat-in');var cv0=ci0?ci0.value:'';var foc0=!!ci0&&document.activeElement===ci0;AID=j.activo.id;act.innerHTML=pedidoHTML(j.activo);pintarMapaPiloto(j.activo);var ci1=document.getElementById('chat-in');if(ci1){ci1.value=cv0;if(foc0)ci1.focus();}}
   else if(PCALIF){cerrarOferta();act.style.display='block';sin.style.display='none';act.innerHTML='<div class="pedido"><h3>¿Cómo estuvo el cliente? ⭐</h3><div class="mini">'+PCALIF.cliente+'</div><div id="cest" style="margin:10px 0">'+[1,2,3,4,5].map(function(n){return '<span style="font-size:30px;cursor:pointer;padding:2px" onclick="calificarCliente('+n+')">⭐</span>'}).join('')+'</div></div>';}
@@ -512,7 +530,7 @@ function pedidoHTML(o){
   return '<div class="pedido'+(o.estado==='asignado'?' flash':'')+'"><h3>'+tipo+' · '+o.id+'</h3><div class="mini">'+est+'</div>'+
   '<div class="dato">👤 '+o.cliente.nombre+(o.zona?' · '+o.zona:'')+'</div>'+
   '<div class="dato">📍 '+o.cliente.direccion+(o.cliente.referencia?'<br><span class="mini">'+o.cliente.referencia+'</span>':'')+'</div>'+
-  '<div class="dato">📝 '+o.detalle+'</div>'+(o.items&&o.items.length?'<div style="margin:8px 0"><div class="mini" style="margin-bottom:2px">🛒 PRODUCTOS DEL PEDIDO</div>'+o.items.map(function(x){return '<div style="display:flex;gap:9px;align-items:center;padding:7px 0;border-bottom:1px solid #2a2b38">'+(x.foto?'<img src="'+x.foto+'" style="width:56px;height:56px;border-radius:11px;object-fit:cover;flex:none">':'<div style="width:56px;height:56px;border-radius:11px;background:#22232c;display:flex;align-items:center;justify-content:center;font-size:24px;flex:none">🍽</div>')+'<div style="flex:1;min-width:0"><b style="display:block;font-size:14px">'+x.nombre+'</b>'+(x.precio?'<span class="mini">Q'+x.precio+' c/u</span>':'')+'</div>'+'<b style="color:#f0b90b;font-size:15px">x'+x.qty+'</b></div>'}).join('')+'</div>':'')+
+  '<div class="dato">📝 '+o.detalle+(o.tipo==='viaje'?(o.destinoGPS?(o.destinoAprox?'<br><span class="mini">📍 Destino aproximado: '+(o.destinoEtiqueta||'')+' — confirmá con el cliente al recogerlo.</span>':''):'<br><span class="mini">📍 El cliente no marcó el destino en el mapa: usá "Cómo llegar" con la dirección escrita.</span>'):'')+'</div>'+(o.items&&o.items.length?'<div style="margin:8px 0"><div class="mini" style="margin-bottom:2px">🛒 PRODUCTOS DEL PEDIDO</div>'+o.items.map(function(x){return '<div style="display:flex;gap:9px;align-items:center;padding:7px 0;border-bottom:1px solid #2a2b38">'+(x.foto?'<img src="'+x.foto+'" style="width:56px;height:56px;border-radius:11px;object-fit:cover;flex:none">':'<div style="width:56px;height:56px;border-radius:11px;background:#22232c;display:flex;align-items:center;justify-content:center;font-size:24px;flex:none">🍽</div>')+'<div style="flex:1;min-width:0"><b style="display:block;font-size:14px">'+x.nombre+'</b>'+(x.precio?'<span class="mini">Q'+x.precio+' c/u</span>':'')+'</div>'+'<b style="color:#f0b90b;font-size:15px">x'+x.qty+'</b></div>'}).join('')+'</div>':'')+
   (o.compra?'<div class="dato">💵 Compra'+(o.servicio?' + servicio':'')+': <b>Q'+(+o.compra+ +(o.servicio?o.servicio.precio:0))+'</b> (al local le pagás <b>Q'+(+o.compra+ +(o.servicio?o.servicio.precio:0)-(o.comisionLocal||0))+'</b>'+(o.comisionLocal?' · 10% zona operativa':'')+')</div><div class="dato" style="background:#fff3cd;border:1px solid #f0d98a;color:#5c4a10">⚠️ <b>El local solo entrega pagando:</b> llevá <b>Q'+(+o.compra+ +(o.servicio?o.servicio.precio:0)-(o.comisionLocal||0))+'</b> al recoger. Cobrás <b>Q'+(+o.compra+ +(o.servicio?o.servicio.precio:0)+ +o.envio+ +(o.propina||0))+'</b> al cliente, así salís ganando en una sola vuelta.</div>':'')+
   (o.promoFiel?'<div class="dato">Tu envío: <b style="color:#f0b90b">Q'+((o.promoTarifa||0)+(o.promoBonus||0))+'</b> 🎁 <b>CASHBACK PROMO cliente fiel</b> (el cliente no paga envío; se te acredita completo en tu liquidación de 72h)':'<div class="dato">Tu envío: <b style="color:#f0b90b">Q'+o.envio+'</b>'+(o.tarifaPropuesta?(o.contraAceptado?' <span style="color:#ffd479">(precio NEGOCIADO: tu oferta aceptada)</span>':' <span style="color:#ffd479">(OFERTA del cliente, podés pedír más)</span>'):'')+' (menos Q'+o.comision+' de comisión = <b>Q'+(o.envio-o.comision)+'</b> para vos)')+((o.propina||0)>0?' · <b style="color:#f0b90b">+ Q'+o.propina+' de propina</b>':'')+'</div>'+
   '<div class="dato">⏱️ '+(o.prep?('El local confirmó: listo en ~'+o.prep.min+' min'):(o.local?'Esperando confirmación del local…':''))+'</div>'+
