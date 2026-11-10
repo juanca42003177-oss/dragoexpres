@@ -137,6 +137,15 @@ function mostrarOferta(o){
   },1000);
 }
 var AID=null;
+/* Mapa con imagen SATELITAL real (Esri) y selector de calles: el piloto ve la casa,
+   no un dibujo. Se usa en las dos pantallas de mapa (oferta y pedido activo). */
+function _capaSat(m){
+  var sat=L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',{maxZoom:19,attribution:'Imagen © Esri, Maxar, Earthstar Geographics'});
+  var calle=L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',{subdomains:'abcd',maxZoom:20,attribution:'© OpenStreetMap · © CARTO'});
+  sat.addTo(m);
+  try{L.control.layers({'🛰️ Satélite (real)':sat,'🗺️ Calles':calle},{position:'topright'}).addTo(m)}catch(e){}
+  return m;
+}
 function api(fn){return (location.hostname.includes('vercel.app')?'/api':'https://dragoexpres.vercel.app/api')+'/'+fn}
 function chatHTML(o){return (o.chat||[]).map(function(m){
  var qui=m.de==='piloto'?'Vos 🏍️':m.de==='local'?'🏪 '+(o.local?o.local.nombre.split(' ')[0]:'Local'):'🧑 '+o.cliente.nombre.split(' ')[0];
@@ -195,7 +204,7 @@ function abrirMapaGrande(){
   }
   if(window.PBIG){window.PBIG.remove();window.PBIG=null}
   window.PBIG=L.map('pmBigMap').setView([window.MYGPS.lat,window.MYGPS.lng],16);
-  L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',{subdomains:'abcd',maxZoom:20,attribution:'© OpenStreetMap · © CARTO'}).addTo(window.PBIG);
+  _capaSat(window.PBIG);
   var vic=iconoVicP(o);
   window.PBIGM=L.marker([window.MYGPS.lat,window.MYGPS.lng],{icon:L.divIcon({className:'',html:'<div style="font-size:34px;filter:drop-shadow(0 2px 4px rgba(0,0,0,.5))">'+vic+'</div>',iconSize:[38,38],iconAnchor:[19,19]})}).addTo(window.PBIG);
   L.marker([dest.lat,dest.lng],{icon:iconoPinDragon()}).addTo(window.PBIG).bindPopup('Tu destino');
@@ -352,7 +361,7 @@ function pintarMapaPiloto(o){
   mp.style.display='block';
   if(window.PMM){window.PMM.remove();window.PMM=null}
   window.PMM=L.map('pmMap').setView([(yo.lat+dest.lat)/2,(yo.lng+dest.lng)/2],13);
-  L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',{subdomains:'abcd',maxZoom:20,attribution:'© OpenStreetMap · © CARTO'}).addTo(window.PMM);
+  _capaSat(window.PMM);
   L.marker([yo.lat,yo.lng],{icon:L.divIcon({className:'',html:'<div style="font-size:24px;filter:drop-shadow(0 2px 3px rgba(0,0,0,.4))">'+iconoVicP(o)+'</div>',iconSize:[28,28],iconAnchor:[14,14]})}).addTo(window.PMM).bindPopup('Vos');
   L.marker([dest.lat,dest.lng],{icon:iconoPinDragon()}).addTo(window.PMM).bindPopup('Tu destino');
   L.polyline([[yo.lat,yo.lng],[dest.lat,dest.lng]],{color:'#f0b90b',weight:3,dashArray:'6,8'}).addTo(window.PMM);
@@ -529,7 +538,7 @@ function pedidoHTML(o){
   if(o.estado==='recogido')botones='<button class="btn bA" onclick="hacer(\'avanzar\',\''+o.id+'\')">🏁 LLEGAMOS A TU DESTINO — ENTREGADO</button>';
   return '<div class="pedido'+(o.estado==='asignado'?' flash':'')+'"><h3>'+tipo+' · '+o.id+'</h3><div class="mini">'+est+'</div>'+
   '<div class="dato">👤 '+o.cliente.nombre+(o.zona?' · '+o.zona:'')+'</div>'+
-  '<div class="dato">📍 '+o.cliente.direccion+(o.cliente.referencia?'<br><span class="mini">'+o.cliente.referencia+'</span>':'')+'</div>'+
+  '<div class="dato">📍 '+o.cliente.direccion+(o.cliente.referencia?'<br><span class="mini">'+o.cliente.referencia+'</span>':'')+(o.fotoFachada?'<img src="/api/foto?p='+o.fotoFachada+'" alt="Foto de la fachada del cliente" style="width:100%;border-radius:12px;margin-top:8px;display:block">':'')+'</div>'+
   '<div class="dato">📝 '+o.detalle+(o.tipo==='viaje'?(o.destinoGPS?(o.destinoAprox?'<br><span class="mini">📍 Destino aproximado: '+(o.destinoEtiqueta||'')+' — confirmá con el cliente al recogerlo.</span>':''):'<br><span class="mini">📍 El cliente no marcó el destino en el mapa: usá "Cómo llegar" con la dirección escrita.</span>'):'')+'</div>'+(o.items&&o.items.length?'<div style="margin:8px 0"><div class="mini" style="margin-bottom:2px">🛒 PRODUCTOS DEL PEDIDO</div>'+o.items.map(function(x){return '<div style="display:flex;gap:9px;align-items:center;padding:7px 0;border-bottom:1px solid #2a2b38">'+(x.foto?'<img src="'+x.foto+'" style="width:56px;height:56px;border-radius:11px;object-fit:cover;flex:none">':'<div style="width:56px;height:56px;border-radius:11px;background:#22232c;display:flex;align-items:center;justify-content:center;font-size:24px;flex:none">🍽</div>')+'<div style="flex:1;min-width:0"><b style="display:block;font-size:14px">'+x.nombre+'</b>'+(x.precio?'<span class="mini">Q'+x.precio+' c/u</span>':'')+'</div>'+'<b style="color:#f0b90b;font-size:15px">x'+x.qty+'</b></div>'}).join('')+'</div>':'')+
   (o.compra?'<div class="dato">💵 Compra'+(o.servicio?' + servicio':'')+': <b>Q'+(+o.compra+ +(o.servicio?o.servicio.precio:0))+'</b> (al local le pagás <b>Q'+(+o.compra+ +(o.servicio?o.servicio.precio:0)-(o.comisionLocal||0))+'</b>'+(o.comisionLocal?' · 10% zona operativa':'')+')</div><div class="dato" style="background:#fff3cd;border:1px solid #f0d98a;color:#5c4a10">⚠️ <b>El local solo entrega pagando:</b> llevá <b>Q'+(+o.compra+ +(o.servicio?o.servicio.precio:0)-(o.comisionLocal||0))+'</b> al recoger. Cobrás <b>Q'+(+o.compra+ +(o.servicio?o.servicio.precio:0)+ +o.envio+ +(o.propina||0))+'</b> al cliente, así salís ganando en una sola vuelta.</div>':'')+
   (o.promoFiel?'<div class="dato">Tu envío: <b style="color:#f0b90b">Q'+((o.promoTarifa||0)+(o.promoBonus||0))+'</b> 🎁 <b>CASHBACK PROMO cliente fiel</b> (el cliente no paga envío; se te acredita completo en tu liquidación de 72h)':'<div class="dato">Tu envío: <b style="color:#f0b90b">Q'+o.envio+'</b>'+(o.tarifaPropuesta?(o.contraAceptado?' <span style="color:#ffd479">(precio NEGOCIADO: tu oferta aceptada)</span>':' <span style="color:#ffd479">(OFERTA del cliente, podés pedír más)</span>'):'')+' (menos Q'+o.comision+' de comisión = <b>Q'+(o.envio-o.comision)+'</b> para vos)')+((o.propina||0)>0?' · <b style="color:#f0b90b">+ Q'+o.propina+' de propina</b>':'')+'</div>'+

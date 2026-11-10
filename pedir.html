@@ -1246,9 +1246,9 @@ function extra(){
   BILLETE=0;
   var h='';
   var pre=LOCAL_PRE?' (ej: de '+LOCAL_PRE+')':'';
-  if(TIPO==='comida')h=entregaBoxHTML()+'<div id="dirFields"'+(entregaBoxHTML()?' style="display:none"':'')+'><label>Dirección de entrega</label><textarea id="f-dir" rows="3" style="height:auto" placeholder="Calle, número, colonia... y contá con detalle exacto cómo te lo dejamos (portón, timbre, quién recibe): sin límite de texto"></textarea><label>Referencia (opcional)</label><textarea id="f-ref" rows="2" style="height:auto" placeholder="Casa azul, portón negro, timbre plateado... (opcional, escribí con confianza)"></textarea></div><label>¿Qué querés y de dónde?'+pre+'</label><textarea id="f-det" placeholder="Ej: 2 pizzas grandes de la pizzería El Horno"></textarea><label>Precio estimado de tu orden (Q) — se lo pagás al local</label><input id="f-compra" type="number" inputmode="decimal" placeholder="Ej: 120" oninput="pintarTotal()"><label>Envío (tarifa fija DragoExpres)</label><div class="tarifa" id="f-tarifa">Q15 · sin regatear<span class="nch"></span></div>';
-  if(TIPO==='viaje')h='<label>Dirección de recogida</label><textarea id="f-dir" rows="3" style="height:auto" placeholder="¿De dónde te recogemos? Punto exacto: frente a qué, color del edificio, etc. — sin límite de texto"></textarea><label>Referencia (opcional)</label><textarea id="f-ref" rows="2" style="height:auto" placeholder="Frente al parque, bajo el puente... (opcional)"></textarea><label>¿A dónde vas?</label><textarea id="f-det" placeholder="Ej: De Mixco Centro a Oakland Mall"></textarea><label>Tu oferta de viaje (Q)</label><input id="f-viaje-tarifa" type="number" inputmode="decimal" value="25" min="1" oninput="pintarTotal()" style="width:100%;box-sizing:border-box;font-size:18px;font-weight:900;padding:12px;border:1.5px solid #ccc;border-radius:10px"><div class="tarifa" id="f-tarifa" style="margin-top:6px">Sugerido Q25 · Negociación libre: cortito ofrecé menos, larguito (¿Escuintla?) ofrecé lo justo — el piloto decide si le conviene<span class="nch"></span></div>';
-  if(TIPO==='repuesto')h=entregaBoxHTML()+'<div id="dirFields"'+(entregaBoxHTML()?' style="display:none"':'')+'><label>Dirección de entrega</label><textarea id="f-dir" rows="3" style="height:auto" placeholder="Calle, número, colonia... y contá con detalle exacto cómo te lo dejamos (portón, timbre, quién recibe): sin límite de texto"></textarea><label>Referencia (opcional)</label><textarea id="f-ref" rows="2" style="height:auto" placeholder="Taller La Bendición, portón verde... (opcional)"></textarea></div><label>¿Qué repuesto necesitás y para qué vehículo?</label><textarea id="f-det" placeholder="Ej: Pastillas de freno para Honda Wave 110"></textarea><label>Precio estimado del repuesto (Q) — se lo pagás al local</label><input id="f-compra" type="number" inputmode="decimal" placeholder="Ej: 180" oninput="pintarTotal()"><label>Envío (tarifa fija DragoExpres)</label><div class="tarifa" id="f-tarifa">Q20 · sin regatear<span class="nch"></span></div>';
+  if(TIPO==='comida')h=entregaBoxHTML()+'<div id="dirFields"'+(entregaBoxHTML()?' style="display:none"':'')+'><label>Dirección de entrega</label><textarea id="f-dir" rows="3" style="height:auto" placeholder="Calle, número, colonia... y contá con detalle exacto cómo te lo dejamos (portón, timbre, quién recibe): sin límite de texto"></textarea><div style="display:flex;gap:8px;margin:7px 0 2px"><button type="button" class="btnW" onclick="abrirPinRec()" style="flex:1;padding:11px;font-size:13px">📍 Ajustar mi punto en el mapa</button><button type="button" class="btnW" onclick="subirFotoFachada()" style="flex:1;padding:11px;font-size:13px">📷 Foto de la fachada</button></div><div class="mini" id="pinInfo"></div><div class="mini" id="fotoInfo"></div><label>Referencia (opcional)</label><textarea id="f-ref" rows="2" style="height:auto" placeholder="Casa azul, portón negro, timbre plateado... (opcional, escribí con confianza)"></textarea></div><label>¿Qué querés y de dónde?'+pre+'</label><textarea id="f-det" placeholder="Ej: 2 pizzas grandes de la pizzería El Horno"></textarea><label>Precio estimado de tu orden (Q) — se lo pagás al local</label><input id="f-compra" type="number" inputmode="decimal" placeholder="Ej: 120" oninput="pintarTotal()"><label>Envío (tarifa fija DragoExpres)</label><div class="tarifa" id="f-tarifa">Q15 · sin regatear<span class="nch"></span></div>';
+  if(TIPO==='viaje')h='<label>Dirección de recogida</label><textarea id="f-dir" rows="3" style="height:auto" placeholder="¿De dónde te recogemos? Punto exacto: frente a qué, color del edificio, etc. — sin límite de texto"></textarea><div style="display:flex;gap:8px;margin:7px 0 2px"><button type="button" class="btnW" onclick="abrirPinRec()" style="flex:1;padding:11px;font-size:13px">📍 Ajustar mi punto en el mapa</button><button type="button" class="btnW" onclick="subirFotoFachada()" style="flex:1;padding:11px;font-size:13px">📷 Foto de la fachada</button></div><div class="mini" id="pinInfo"></div><div class="mini" id="fotoInfo"></div><label>Referencia (opcional)</label><textarea id="f-ref" rows="2" style="height:auto" placeholder="Frente al parque, bajo el puente... (opcional)"></textarea><label>¿A dónde vas?</label><textarea id="f-det" placeholder="Ej: De Mixco Centro a Oakland Mall"></textarea><div style="margin:7px 0 2px"><button type="button" class="btnW" onclick="abrirPinDest()" style="width:100%;padding:11px;font-size:13px">🏁 Marcar el destino exacto en el mapa</button></div><div class="mini" id="pinInfoDest"></div><label>Tu oferta de viaje (Q)</label><input id="f-viaje-tarifa" type="number" inputmode="decimal" value="25" min="1" oninput="pintarTotal()" style="width:100%;box-sizing:border-box;font-size:18px;font-weight:900;padding:12px;border:1.5px solid #ccc;border-radius:10px"><div class="tarifa" id="f-tarifa" style="margin-top:6px">Sugerido Q25 · Negociación libre: cortito ofrecé menos, larguito (¿Escuintla?) ofrecé lo justo — el piloto decide si le conviene<span class="nch"></span></div>';
+  if(TIPO==='repuesto')h=entregaBoxHTML()+'<div id="dirFields"'+(entregaBoxHTML()?' style="display:none"':'')+'><label>Dirección de entrega</label><textarea id="f-dir" rows="3" style="height:auto" placeholder="Calle, número, colonia... y contá con detalle exacto cómo te lo dejamos (portón, timbre, quién recibe): sin límite de texto"></textarea><div style="display:flex;gap:8px;margin:7px 0 2px"><button type="button" class="btnW" onclick="abrirPinRec()" style="flex:1;padding:11px;font-size:13px">📍 Ajustar mi punto en el mapa</button><button type="button" class="btnW" onclick="subirFotoFachada()" style="flex:1;padding:11px;font-size:13px">📷 Foto de la fachada</button></div><div class="mini" id="pinInfo"></div><div class="mini" id="fotoInfo"></div><label>Referencia (opcional)</label><textarea id="f-ref" rows="2" style="height:auto" placeholder="Taller La Bendición, portón verde... (opcional)"></textarea></div><label>¿Qué repuesto necesitás y para qué vehículo?</label><textarea id="f-det" placeholder="Ej: Pastillas de freno para Honda Wave 110"></textarea><label>Precio estimado del repuesto (Q) — se lo pagás al local</label><input id="f-compra" type="number" inputmode="decimal" placeholder="Ej: 180" oninput="pintarTotal()"><label>Envío (tarifa fija DragoExpres)</label><div class="tarifa" id="f-tarifa">Q20 · sin regatear<span class="nch"></span></div>';
   if(SERV)h+='<div style="background:#fff8e1;border:1px solid #f0d98a;border-radius:10px;padding:9px 12px;font-size:13px;margin:8px 0"><b>🔧 '+SERV.nombre+' (Q'+SERV.precio+')</b> — mecánico '+SERV.mecanico+', llega en '+SERV.veh+' '+SERV.color+' '+SERV.marca+' · placa '+SERV.placa+'<span onclick="quitarServ()" style="color:#c1121f;font-weight:900;float:right;cursor:pointer">✕</span></div>';
   h+='<label>Propina para el piloto (opcional)</label><div class="chips" id="f-propinas">'+[0,5,10,15].map(function(p){return '<div class="chip'+(p===0?' on':'')+'" onclick="elegirProp(this,'+p+')">Q'+p+'</div>'}).join('')+'</div><p class="mini" style="margin:4px 0 0">Como en las apps grandes: la propina es voluntaria. Con propina los pilotos suelen volar más rápido.</p>';
   h+='<label>¿Con qué billete vas a pagar? <span style="font-weight:400;font-size:12px;opacity:.8">(así el piloto lleva el vuelto justo)</span></label><div class="chips" id="f-billetes">'+[0,50,100,200].map(function(b){return '<div class="chip'+(b===0?' on':'')+'" onclick="elegirBillete(this,'+b+')">'+(b===0?'Tengo exacto':'Q'+b)+'</div>'}).join('')+'</div>';
@@ -1265,6 +1265,100 @@ function elegirBillete(el,b){BILLETE=b;var t=document.querySelectorAll('#f-bille
 function elegirProp(el,p){PROPINA=p;var t=document.querySelectorAll('#f-propinas .chip');for(var i=0;i<t.length;i++)t[i].classList.remove('on');el.classList.add('on');pintarTotal();}
 function FIEL(j){if(!j||!j.fiel)return;window.PROMO_FIEL=!!j.fiel.promoAhora;var a=document.getElementById('bnFiel'),s2=document.getElementById('bnFielSub');if(!a)return;if(j.fiel.usado){var bx=document.getElementById('bnFielBox');if(bx)bx.style.display='none';window.PROMO_FIEL=false;return}
 if(window.PROMO_FIEL){a.textContent='🎁 ¡Ya ganaste tu envío GRATIS!';s2.textContent='Se aplica en tu próximo pedido: 0 de envío. Promoción de una sola vez: usala bien.'}else{a.textContent='Sé de los primeros en reclamar tu envío GRATIS';s2.textContent=j.fiel.entregas?('Van '+j.fiel.entregas+' pedidos — te faltan '+j.fiel.faltan+' para reclamar TU envío gratis (limitado, una sola vez).'):'Promoción LIMITADA, una sola vez por usuario: con 30 pedidos, tu pedido 31 viaja sin costo de envío.'}}
+
+/* ---------- MAPA REAL + PUNTO EXACTO + FOTO DE FACHADA (2026-11-10) ----------
+   El mapa "de caricatura" no convencia a nadie: ahora la base es IMAGEN SATELITAL
+   real (Esri, la misma que usan las apps grandes) con selector para ver calles.
+   El cliente afina su punto en el mapa y sube la foto de su fachada: eso es lo que
+   de verdad evita que el piloto no encuentre la casa. Todo gratis, sin Google. */
+function _capaSat(m){
+  var sat=L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',{maxZoom:19,attribution:'Imagen © Esri, Maxar, Earthstar Geographics'});
+  var calle=L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',{subdomains:'abcd',maxZoom:20,attribution:'© OpenStreetMap · © CARTO'});
+  sat.addTo(m);
+  try{L.control.layers({'🛰️ Satélite (real)':sat,'🗺️ Calles':calle},{position:'topright'}).addTo(m)}catch(e){}
+  return m;
+}
+function abrirPinRec(){abrirPin('rec')}
+function abrirPinDest(){abrirPin('dest')}
+function abrirPin(kind){
+  var esDest=(kind==='dest'); window._PIN_ES_DEST=esDest;
+  var viejo=document.getElementById('pinOv'); if(viejo)viejo.remove();
+  var o=document.createElement('div'); o.id='pinOv';
+  o.style.cssText='position:fixed;inset:0;background:#0b0b10;z-index:200;display:flex;flex-direction:column';
+  o.innerHTML='<div style="display:flex;align-items:center;gap:10px;padding:12px 14px"><button onclick="document.getElementById(\'pinOv\').remove()" style="font-size:22px;background:none;border:0;color:#f0b90b;cursor:pointer">✕</button><b style="color:#fff">'+(esDest?'Marcá tu DESTINO exacto':'Marcá TU punto exacto')+'</b></div>'
+   +'<div id="pinMap" style="flex:1;min-height:260px"></div>'
+   +'<div style="padding:12px;display:flex;gap:8px"><button onclick="pinMiUbicacion()" class="btnW" style="flex:1;padding:13px">📍 Mi ubicación</button><button onclick="pinConfirmar()" class="btnS" style="flex:2;padding:13px">✅ Confirmar este punto</button></div>'
+   +'<div style="color:#bbb;font-size:12px;text-align:center;padding:0 16px 16px;line-height:1.4">Tocá el mapa o arrastrá el pin hasta la puerta exacta. Arriba a la derecha cambiás entre satélite y calles.</div>';
+  document.body.appendChild(o);
+  setTimeout(function(){
+    var u=LS();
+    var c=(esDest?window.DEST_GPS:window.REC_GPS)||((u.gps&&u.gps.lat)?u.gps:null)||{lat:14.6284,lng:-90.5154};
+    var m=L.map('pinMap').setView([c.lat,c.lng],(u.gps&&u.gps.lat)?17:12);
+    _capaSat(m);
+    window._PINV={lat:c.lat,lng:c.lng};
+    window._PINMK=L.marker([c.lat,c.lng],{draggable:true,icon:L.divIcon({className:'',html:'<div style="font-size:30px;filter:drop-shadow(0 3px 4px rgba(0,0,0,.65))">'+(esDest?'🏁':'📍')+'</div>',iconSize:[30,30],iconAnchor:[15,28]})}).addTo(m);
+    window._PINMK.on('dragend',function(e){window._PINV={lat:e.target.getLatLng().lat,lng:e.target.getLatLng().lng}});
+    m.on('click',function(e){window._PINV={lat:e.latlng.lat,lng:e.latlng.lng};window._PINMK.setLatLng(e.latlng)});
+    setTimeout(function(){m.invalidateSize()},250);
+  },70);
+}
+function pinMiUbicacion(){
+  if(!navigator.geolocation)return;
+  navigator.geolocation.getCurrentPosition(function(p){
+    var c={lat:p.coords.latitude,lng:p.coords.longitude};
+    window._PINV=c;
+    if(window._PINMK)window._PINMK.setLatLng([c.lat,c.lng]);
+    if(window._PINMK&&window._PINMK._map)window._PINMK._map.setView([c.lat,c.lng],18);
+  },function(){alert('No pudimos leer tu GPS. Movés el pin a mano: igual queda exacto.')},{enableHighAccuracy:true,timeout:12000,maximumAge:0});
+}
+function pinConfirmar(){
+  var v=window._PINV; if(!v){alert('Marcá un punto primero.');return}
+  var punto={lat:+v.lat.toFixed(6),lng:+v.lng.toFixed(6)};
+  if(document.getElementById('pinMap')){
+    // si el overlay se abrió como destino, guardamos destino; si no, recogida/entrega
+    if(window._PIN_ES_DEST){window.DEST_GPS=punto;var d1=document.getElementById('pinInfoDest');if(d1)d1.innerHTML='✅ Destino confirmado en el mapa.';}
+    else{window.REC_GPS=punto;try{var u=LS();u.gps=punto;SS(u)}catch(e){}var d2=document.getElementById('pinInfo');if(d2)d2.innerHTML='✅ Punto confirmado: el piloto irá exactamente ahí.';}
+  }
+  var ov=document.getElementById('pinOv'); if(ov)ov.remove();
+}
+function comprimirImg(file,cb){
+  var fr=new FileReader();
+  fr.onload=function(){
+    var img=new Image();
+    img.onload=function(){
+      var max=1000,w=img.width,h=img.height;
+      if(w>max||h>max){var e=Math.max(w,h)/max;w=Math.round(w/e);h=Math.round(h/e)}
+      var c=document.createElement('canvas');c.width=w;c.height=h;
+      c.getContext('2d').drawImage(img,0,0,w,h);
+      cb(c.toDataURL('image/jpeg',0.6).split(',')[1]);
+    };
+    img.src=fr.result;
+  };
+  fr.readAsDataURL(file);
+}
+function subirFotoFachada(){
+  var inp=document.getElementById('fotoInp');
+  if(!inp){
+    inp=document.createElement('input');inp.type='file';inp.accept='image/*';inp.id='fotoInp';inp.style.display='none';
+    inp.setAttribute('capture','environment');
+    document.body.appendChild(inp);
+    inp.onchange=function(){
+      if(!inp.files||!inp.files[0])return;
+      var inf=document.getElementById('fotoInfo'); if(inf)inf.innerHTML='⏳ Subiendo foto…';
+      comprimirImg(inp.files[0],function(b64){
+        var u=LS();
+        fetch(api('upload'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({docTipo:'fachada',tel:(u.tel||'0'),nombre:'fachada',b64:b64})})
+         .then(function(r){return r.json()})
+         .then(function(j){
+            var i2=document.getElementById('fotoInfo');
+            if(j&&j.ok){window.FOTO_FACHADA=j.archivo;if(i2)i2.innerHTML='✅ Foto lista: el piloto verá la fachada real de tu casa.'}
+            else if(i2)i2.innerHTML='No se pudo subir la foto. Podés pedir igual.';
+         }).catch(function(){var i3=document.getElementById('fotoInfo');if(i3)i3.innerHTML='No se pudo subir la foto. Podés pedir igual.';});
+      });
+    };
+  }
+  inp.click();
+}
 function abrirRecMap(){var d=document.getElementById('recMap');if(!d)return;if(d.style.display==='block'){d.style.display='none';return}d.style.display='block';if(!window.RMAP){window.RMAP=L.map('recMap').setView([14.6284,-90.5154],12);L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',{subdomains:'abcd',maxZoom:20,attribution:'© OpenStreetMap · © CARTO'}).addTo(window.RMAP);window.RMAP.on('click',function(ev){window.REC_GPS={lat:ev.latlng.lat,lng:ev.latlng.lng};if(window.RMK){window.RMK.setLatLng(ev.latlng)}else{window.RMK=L.marker(ev.latlng,{icon:L.divIcon({className:'',html:'<div style="font-size:26px">🚶</div>',iconSize:[28,28],iconAnchor:[14,14]})}).addTo(window.RMAP)}var t=document.getElementById('recTxt');if(t){t.textContent='✅ Recogida marcada. El piloto irá PRIMERO acá y después a tu destino.'}})}try{var u=LS();if(u.gps&&u.gps.lat)window.RMAP.setView([u.gps.lat,u.gps.lng],14)}catch(e){}}
 function abrirDestMap(){var d=document.getElementById('destMap');if(!d)return;if(d.style.display==='block'){d.style.display='none';return}d.style.display='block';if(!window.DMAP){window.DMAP=L.map('destMap').setView([14.6284,-90.5154],12);L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',{subdomains:'abcd',maxZoom:20,attribution:'© OpenStreetMap · © CARTO'}).addTo(window.DMAP);window.DMAP.on('click',function(ev){window.DEST_GPS={lat:ev.latlng.lat,lng:ev.latlng.lng};if(window.DMK){window.DMK.setLatLng(ev.latlng)}else{window.DMK=L.marker(ev.latlng,{icon:L.divIcon({className:'',html:'<div style="font-size:26px">🏁</div>',iconSize:[28,28],iconAnchor:[14,14]})}).addTo(window.DMAP)}var t=document.getElementById('destTxt');if(t){t.textContent='✅ Destino marcado — tocá de nuevo para cambiarlo. El piloto verá la ruta hasta acá.'}})}try{var u=LS();if(u.gps&&u.gps.lat)window.DMAP.setView([u.gps.lat,u.gps.lng],14)}catch(e){}}
 function pintarTotal(){
@@ -1299,7 +1393,7 @@ async function enviar(){
     }
   }catch(e){}
   var telCli=v('f-tel')||u.tel;MI_TEL=telCli;
-  var d={action:'crear',tipo:TIPO,local:(LOCAL_TEL?{nombre:LOCAL_PRE,tel:LOCAL_TEL}:undefined),nombre:v('f-nombre')||u.nombre,tel:telCli,zona:zonaValor(),direccion:v('f-dir'),referencia:v('f-ref'),detalle:v('f-det'),compra:v('f-compra')||0,servicio:SERV?SERV.id:undefined,envio:TARIFA[TIPO]||15,propina:PROPINA,avisoWa:(LS().avisoWa!==false),gps:((LS().gps&&LS().gps.lat)?{lat:LS().gps.lat,lng:LS().gps.lng}:undefined),destinoGPS:(TIPO==='viaje'&&window.DEST_GPS)?window.DEST_GPS:undefined,recogidaGPS:(TIPO==='viaje'&&window.REC_GPS)?window.REC_GPS:undefined,origenGPS:(function(){try{if(!LOCAL_TEL||!LOCALES)return undefined;var ll=LOCALES.find(function(x){return String(x.tel)===String(LOCAL_TEL)});return (ll&&ll.gps&&ll.gps.lat)?{lat:ll.gps.lat,lng:ll.gps.lng}:undefined}catch(e){return undefined}})()};
+  var d={action:'crear',tipo:TIPO,fotoFachada:window.FOTO_FACHADA||undefined,local:(LOCAL_TEL?{nombre:LOCAL_PRE,tel:LOCAL_TEL}:undefined),nombre:v('f-nombre')||u.nombre,tel:telCli,zona:zonaValor(),direccion:v('f-dir'),referencia:v('f-ref'),detalle:v('f-det'),compra:v('f-compra')||0,servicio:SERV?SERV.id:undefined,envio:TARIFA[TIPO]||15,propina:PROPINA,avisoWa:(LS().avisoWa!==false),gps:((LS().gps&&LS().gps.lat)?{lat:LS().gps.lat,lng:LS().gps.lng}:undefined),destinoGPS:(TIPO==='viaje'&&window.DEST_GPS)?window.DEST_GPS:undefined,recogidaGPS:(TIPO==='viaje'&&window.REC_GPS)?window.REC_GPS:undefined,origenGPS:(function(){try{if(!LOCAL_TEL||!LOCALES)return undefined;var ll=LOCALES.find(function(x){return String(x.tel)===String(LOCAL_TEL)});return (ll&&ll.gps&&ll.gps.lat)?{lat:ll.gps.lat,lng:ll.gps.lng}:undefined}catch(e){return undefined}})()};
   if(window._CART_PED&&d.local&&window._CART_PED.tel===d.local.tel){d.items=window._CART_PED.items.map(function(x){return{nombre:x.nombre,precio:x.precio,qty:x.qty,nota:x.nota||'',foto:x.foto||''}})}
   var _tarViaje=TIPO==='viaje'?(parseFloat(v('f-viaje-tarifa'))||TARIFA.viaje):(TARIFA[TIPO]||15);
   if(TIPO==='viaje'&&!isNaN(_tarViaje)&&_tarViaje<1){alert('Tu oferta de viaje tiene que ser mayor a cero.');return}
@@ -1549,7 +1643,7 @@ async function actualizar(){
   if(j.gps&&j.gps.lat){
     mapa.style.display='block';
     var mkIcon=L.divIcon({className:'',html:'<div style="font-size:26px;filter:drop-shadow(0 2px 3px rgba(0,0,0,.45))">'+vic+'</div>',iconSize:[30,30],iconAnchor:[15,15]});
-    if(!window.LMAP){window.LMAP=L.map('mapa').setView([j.gps.lat,j.gps.lng],15);L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',{subdomains:'abcd',maxZoom:20,attribution:'© OpenStreetMap · © CARTO'}).addTo(window.LMAP);window.LMK=L.marker([j.gps.lat,j.gps.lng],{icon:mkIcon}).addTo(window.LMAP).bindPopup('Tu piloto DragoExpres viene en '+vic)}
+    if(!window.LMAP){window.LMAP=L.map('mapa').setView([j.gps.lat,j.gps.lng],15);_capaSat(window.LMAP);window.LMK=L.marker([j.gps.lat,j.gps.lng],{icon:mkIcon}).addTo(window.LMAP).bindPopup('Tu piloto DragoExpres viene en '+vic)}
     else{window.LMK.setLatLng([j.gps.lat,j.gps.lng]);try{window.LMAP.panTo([j.gps.lat,j.gps.lng],{animate:true,duration:0.6})}catch(e){window.LMAP.setView([j.gps.lat,j.gps.lng])}}
     /* RUTA REAL POR CALLES (OSRM, gratis): se recalcula cuando el piloto se mueve */
     function _rutaReal(o,from,to){
