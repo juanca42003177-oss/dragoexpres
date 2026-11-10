@@ -576,10 +576,16 @@ module.exports = wrap(async (req, res) => {
        esperar al cliente el doble (2026-11-10) */
     const _peds2 = await Promise.all([
       (!_gpsCli && b.direccion) ? resolverDir(b.direccion, _refGeo).catch(() => null) : Promise.resolve(null),
-      (!_destGPS && tipo === 'viaje' && b.detalle) ? resolverDir(b.detalle, _refGeo).catch(() => null) : Promise.resolve(null),
+      (tipo === 'viaje' && b.detalle) ? resolverDir(b.detalle, _refGeo).catch(() => null) : Promise.resolve(null),
     ]);
     if (!_gpsCli && _peds2[0]) _gpsCli = { lat: _peds2[0].lat, lng: _peds2[0].lng };
-    if (!_destGPS && _peds2[1]) { _destGPS = { lat: _peds2[1].lat, lng: _peds2[1].lng }; _destInfo = _peds2[1]; }
+    /* EL TEXTO ESCRITO MANDA (2026-11-10): si el cliente escribio la direccion y eligio
+       una sugerencia del buscador, se resuelve el TEXTO en el servidor. Asi un "Villa
+       Lobos" de otro municipio (Av. Petapa) no le gana a lo que el cliente escribio
+       ("Villa Nueva"). El pin que el cliente marca a mano SI manda siempre. */
+    if (tipo === 'viaje' && _peds2[1] && (b.destinoFuente !== 'pin' || !_destGPS)) {
+      _destGPS = { lat: _peds2[1].lat, lng: _peds2[1].lng }; _destInfo = _peds2[1];
+    } else if (!_destGPS && _peds2[1]) { _destGPS = { lat: _peds2[1].lat, lng: _peds2[1].lng }; _destInfo = _peds2[1]; }
     const pedido = {
       id, tipo, zona,
       cliente: { nombre, tel, direccion: String(b.direccion).slice(0, 500), referencia: String(b.referencia || '').slice(0, 500), gps: _gpsCli || _pt(b.gps) },
