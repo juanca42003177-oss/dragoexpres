@@ -873,6 +873,17 @@ module.exports = wrap(async (req, res) => {
     intentos.push(limpio);
 
     let vistos = new Set(), out = [];
+    /* 0) LO YA APRENDIDO VA PRIMERO: direcciones que el cliente marco una vez
+       (colonias nuevas, "Pacific Center") aparecen al instante y sin buscar afuera. */
+    try {
+      const fa = await ghGet('direcciones.json');
+      const L = (fa && Array.isArray(fa.data)) ? fa.data : [];
+      const qn = _nrm(limpio);
+      L.filter(x => x && isFinite(+x.lat) && isFinite(+x.lng) && _nrm(x.k || '').indexOf(qn) >= 0).slice(0, 3).forEach(x => {
+        const k = (+x.lat).toFixed(4) + ',' + (+x.lng).toFixed(4);
+        if (!vistos.has(k)) { vistos.add(k); out.push({ nombre: x.label || x.k, completo: (x.label || x.k) + ' · guardada en DragoExpres', lat: +x.lat, lng: +x.lng, _clase: 'place' }); }
+      });
+    } catch (e) { }
     for (const it of intentos.slice(0, 4)) {
       if (!it || it.length < 4) continue;
       const r = await _nom(it, ref);
@@ -889,6 +900,22 @@ module.exports = wrap(async (req, res) => {
       }
       if (out.length >= 10) break;
       await new Promise(z => setTimeout(z, 320));
+    }
+    /* 1b) SI NO HAY NADA, CORREGIR EL TIPEO Y VOLVER A BUSCAR (como hace Google/Waze):
+       "roosvel hospital" -> "roosevelt hospital", "pacif center" -> "pacific center". */
+    if (out.length < 3) {
+      try {
+        const vars = _geoIntentos ? _geoIntentos(limpio).slice(0, 4) : [];
+        for (const it of vars) {
+          if (!it || it.length < 4 || _nrm(it) === _nrm(limpio)) continue;
+          const r1 = await _nom(it, ref); const r2 = await _photon(it, ref);
+          for (const x of r1.concat(r2)) {
+            const k = x.lat.toFixed(4) + ',' + x.lng.toFixed(4);
+            if (!vistos.has(k)) { vistos.add(k); out.push(x); }
+          }
+          if (out.length >= 6) break;
+        }
+      } catch (e) { }
     }
     /* orden: calles y zonas primero, comercios al final; y lo mas cercano arriba */
     const peso = (x) => (x._clase === 'highway' ? 0 : (x._clase === 'place' || x._clase === 'boundary') ? 1
