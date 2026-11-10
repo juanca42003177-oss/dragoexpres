@@ -592,6 +592,20 @@ function onbArranca(){
 }
 
 /* ---------- hojas: direcciones y notificaciones ---------- */
+/* PASOS DEL PEDIDO estilo apps grandes: el cliente ve en que etapa va, sin adivinar */
+function pasosPedido(est){
+  var orden=['buscando','asignado','en_camino','recogido','entregado'];
+  var ico=['🛒','🛺','🛣️','📦','🏁'], txt=['Pedido','Piloto','En camino','Recogido','Entregado'];
+  if(est==='aceptado') est='asignado';
+  var idx=orden.indexOf(est); if(idx<0) idx=0;
+  var h='<div style="display:flex;align-items:flex-start;margin:12px 0 2px">';
+  for(var i=0;i<orden.length;i++){
+    var on=i<=idx;
+    h+='<div style="flex:0 0 auto;width:48px;text-align:center"><div style="width:28px;height:28px;border-radius:50%;margin:0 auto;display:flex;align-items:center;justify-content:center;font-size:13px;background:'+(on?'var(--ok)':'#eef0f3')+';color:'+(on?'#fff':'#98a2b3')+';box-shadow:'+(on?'0 4px 10px rgba(20,150,80,.28)':'none')+'">'+(on?'✓':ico[i])+'</div><div style="font-size:9.5px;margin-top:5px;font-weight:800;color:'+(on?'#101828':'#98a2b3')+'">'+txt[i]+'</div></div>';
+    if(i<orden.length-1) h+='<div style="flex:1 1 auto;height:3px;border-radius:2px;background:'+(i<idx?'var(--ok)':'#eef0f3')+';margin-top:13px"></div>';
+  }
+  return h+'</div>';
+}
 function cerrarSheets(){document.querySelectorAll('.sheetFull').forEach(function(s){s.className='sheetFull'})}
 function dirIco(lb){lb=String(lb||'').toLowerCase();
   if(lb==='casa')return '🏠';if(lb==='trabajo'||lb==='oficina')return '💼';if(lb==='hotel')return '🏨';
@@ -622,7 +636,7 @@ function abrirNotif(){
   fetch(api('orders'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'misp',tel:u.tel||''})}).then(function(r){return r.json()}).then(function(j){
     var act=(j.pedidos||[]).find(function(o){return ['buscando','asignado','aceptado','en_camino','recogido'].indexOf(o.estado)>=0});
     var b=document.getElementById('shNot-body');
-    b.innerHTML=act?('<div style="background:#fff;border:1px solid #eee;border-radius:12px;padding:12px"><b>Pedido '+act.id+' en camino</b><div class="mini" style="margin-top:4px">Estado: '+({buscando:'Buscando piloto',asignado:'Piloto asignado',aceptado:'Piloto va por tu pedido',en_camino:'¡En camino a vos!',recogido:'📦 Ya recogieron tu pedido, van hacia vos'}[act.estado]||act.estado)+' · Tocá 🛒 para seguirlo en vivo.</div></div>'):(j.pedidos&&j.pedidos.length?'Tu último pedido: '+j.pedidos[0].id+' — revisá la pestaña Pedidos.':'Sin notificaciones nuevas. Cuando pidas, te avisamos acá.');
+    b.innerHTML=act?('<div style="background:#fff;border:1px solid #eef0f3;border-radius:16px;padding:14px;box-shadow:0 4px 16px rgba(16,24,40,.07)"><div style="display:flex;justify-content:space-between;align-items:center"><b style="font-size:14px">Pedido '+act.id+'</b><span style="font-size:11px;font-weight:800;color:var(--ok)">'+({buscando:'Buscando piloto',asignado:'Piloto asignado',aceptado:'Va por tu pedido',en_camino:'¡En camino a vos!',recogido:'📦 Ya lo recogieron',entregado:'🏁 Entregado'}[act.estado]||act.estado)+'</span></div>'+pasosPedido(act.estado)+'<div class="mini" style="margin-top:8px">Tocá 🛒 para seguirlo en vivo en el mapa.</div></div>'):(j.pedidos&&j.pedidos.length?'Tu último pedido: '+j.pedidos[0].id+' — revisá la pestaña Pedidos.':'Sin notificaciones nuevas. Cuando pidas, te avisamos acá.');
     var nb=document.getElementById('nBadge');if(nb)nb.style.display=act?'inline-block':'none';
     FIEL(j);
   }).catch(function(){});
@@ -1272,7 +1286,11 @@ if(window.PROMO_FIEL){a.textContent='🎁 ¡Ya ganaste tu envío GRATIS!';s2.tex
    El cliente afina su punto en el mapa y sube la foto de su fachada: eso es lo que
    de verdad evita que el piloto no encuentre la casa. Todo gratis, sin Google. */
 function _capaSat(m){
-  var sat=L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',{maxZoom:19,attribution:'Imagen © Esri, Maxar, Earthstar Geographics'});
+  // satelite REAL + nombres de calles encima (asi se ve en las apps grandes)
+  var sat=L.layerGroup([
+    L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',{maxZoom:19,attribution:'Imagen © Esri, Maxar, Earthstar Geographics'}),
+    L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}',{maxZoom:19,opacity:0.95})
+  ]);
   var calle=L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',{subdomains:'abcd',maxZoom:20,attribution:'© OpenStreetMap · © CARTO'});
   sat.addTo(m);
   try{L.control.layers({'🛰️ Satélite (real)':sat,'🗺️ Calles':calle},{position:'topright'}).addTo(m)}catch(e){}

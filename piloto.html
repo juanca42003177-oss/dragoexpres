@@ -140,7 +140,11 @@ var AID=null;
 /* Mapa con imagen SATELITAL real (Esri) y selector de calles: el piloto ve la casa,
    no un dibujo. Se usa en las dos pantallas de mapa (oferta y pedido activo). */
 function _capaSat(m){
-  var sat=L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',{maxZoom:19,attribution:'Imagen © Esri, Maxar, Earthstar Geographics'});
+  // satelite REAL + nombres de calles encima (asi se ve en las apps grandes)
+  var sat=L.layerGroup([
+    L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',{maxZoom:19,attribution:'Imagen © Esri, Maxar, Earthstar Geographics'}),
+    L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}',{maxZoom:19,opacity:0.95})
+  ]);
   var calle=L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',{subdomains:'abcd',maxZoom:20,attribution:'© OpenStreetMap · © CARTO'});
   sat.addTo(m);
   try{L.control.layers({'🛰️ Satélite (real)':sat,'🗺️ Calles':calle},{position:'topright'}).addTo(m)}catch(e){}

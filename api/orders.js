@@ -151,6 +151,29 @@ function _geoPuntaje(c, V, D, ref) {
   if (ref) { const dkm = Math.hypot((c.lat - ref.lat) * 111, (c.lng - ref.lng) * 105); p -= Math.min(3, dkm / 15); }
   return { p, mat, matD };
 }
+/* SEGUNDO BUSCADOR GRATIS (2026-11-10): Photon (Komoot). Nominatim falla con
+   nombres locales de Guatemala; Photon tolera errores de tipeo y ordena por cercania.
+   Sin llave ni costo. */
+async function _photon(q, ref) {
+  try {
+    let u = 'https://photon.komoot.io/api/?q=' + encodeURIComponent(q) + '&limit=10&lang=es&bbox=-92.5,13.5,-88.0,18.2';
+    if (ref && isFinite(ref.lat)) u += '&lat=' + ref.lat + '&lon=' + ref.lng;
+    const ctl = new AbortController(); const tid = setTimeout(() => ctl.abort(), 3500);
+    const r = await fetch(u, { headers: { 'User-Agent': 'DragoExpres/1.0' }, signal: ctl.signal });
+    clearTimeout(tid);
+    if (!r.ok) return [];
+    const j = await r.json();
+    return (j.features || []).map(f => {
+      const pr = f.properties || {}; const g = (f.geometry && f.geometry.coordinates) || [];
+      const nombre = [pr.name, pr.street, pr.housenumber].filter(Boolean).join(' ').trim();
+      const completo = [nombre, pr.district, pr.city, pr.state, 'Guatemala'].filter(Boolean).join(', ');
+      const clase = pr.osm_key === 'highway' ? 'highway'
+        : (pr.osm_key === 'place' || pr.type === 'city' || pr.type === 'district' || pr.type === 'locality') ? 'place'
+        : (pr.osm_key === 'amenity' || pr.osm_key === 'shop' || pr.osm_key === 'tourism') ? 'amenity' : 'otro';
+      return { nombre: nombre || completo, completo, lat: +g[1], lng: +g[0], _clase: clase };
+    }).filter(x => isFinite(x.lat) && isFinite(x.lng));
+  } catch (e) { return []; }
+}
 async function resolverDir(txt, ref) {
   const raw = String(txt || '').trim();
   if (raw.length < 4) return null;
@@ -203,6 +226,19 @@ async function resolverDir(txt, ref) {
       });
       if (top && top.sim >= 0.7) mejor = { c: top.c, mat: 1, via: 'categoria:' + cat, total: Math.max(1, D.length) };
     }
+  }
+  if (!mejor) { // ULTIMO RECURSO: Photon (mejor con nombres locales y errores de tipeo)
+    try {
+      const rp = await _photon(raw, ref);
+      let best = null;
+      const base = D.length ? D : [_corr(raw)];
+      rp.forEach(c => {
+        const nom = _nrm(String(c.nombre || '').split(',')[0]);
+        const sim = Math.max.apply(null, base.map(w => _sim(nom, w)));
+        if (sim >= 0.62 && (!best || sim > best.sim)) best = { c, sim };
+      });
+      if (best) mejor = { c: best.c, mat: 1, via: 'photon', total: Math.max(1, D.length) };
+    } catch (e) { }
   }
   if (!mejor) { _GEO.set(clave, { ts: Date.now(), val: null }); return null; }
   /* si la direccion nombraba un municipio/colonia ("villa nueva", "zona 11") y el
@@ -843,6 +879,13 @@ module.exports = wrap(async (req, res) => {
       for (const x of r) {
         const k = x.lat.toFixed(4) + ',' + x.lng.toFixed(4);
         if (!vistos.has(k)) { vistos.add(k); out.push(x); }
+      }
+      if (out.length < 6) { // segundo buscador gratis: cubre nombres que Nominatim no tiene
+        const rp = await _photon(it, ref);
+        for (const x of rp) {
+          const k = x.lat.toFixed(4) + ',' + x.lng.toFixed(4);
+          if (!vistos.has(k)) { vistos.add(k); out.push(x); }
+        }
       }
       if (out.length >= 10) break;
       await new Promise(z => setTimeout(z, 320));
