@@ -376,7 +376,8 @@ function pintarMapaPiloto(o){
   L.marker([dest.lat,dest.lng],{icon:iconoPinDragon()}).addTo(window.PMM).bindPopup('Tu destino');
   L.polyline([[yo.lat,yo.lng],[dest.lat,dest.lng]],{color:'#f0b90b',weight:3,dashArray:'6,8'}).addTo(window.PMM);
   window.PMM.fitBounds([[yo.lat,yo.lng],[dest.lat,dest.lng]],{padding:[18,18]});
-  hi.textContent=(o.estado==='recogido'?'🏁 Pasajero a bordo — te faltan ':'📍 Faltan '+(dk<1?Math.round(dk*1000)+' m':dk.toFixed(1)+' km')+' — llegás en ~'+min+' min. El punto 📍 es tu destino.');
+  var _etapaP=(o.estado==='recogido')?'al DESTINO':(o.tipo==='viaje'?'a RECOGER al pasajero':'a RECOGER el pedido');
+  hi.textContent=(o.estado==='recogido'?'🏁 Pasajero a bordo — te faltan ':'📍 Faltan ')+(dk<1?Math.round(dk*1000)+' m':dk.toFixed(1)+' km')+' — llegás en ~'+min+' min '+_etapaP+'.';
   ir.style.display='block';
   ir.href=linkMapsP(objetivo||dest);
   var gr=document.getElementById('pmGrande');if(gr){gr.style.display='block';gr.textContent='🗺️ MAPA GRANDE DE RUTA'}
