@@ -1578,7 +1578,12 @@ async function actualizar(){
       var min=Math.max(1,Math.round(dkm/vel*60+2));
       var dtxt=dkm<1?Math.round(dkm*1000)+' m':dkm.toFixed(1)+' km';
       eta.style.display='block';
-      eta.innerHTML=(o.estado==='recogido'?'🏁 <b>Destino en ~'+min+' min</b> · faltan '+dtxt+'<br><span style="font-weight:400;font-size:12px">Rumbo a tu destino con '+((o.piloto||{}).nombre||'tu piloto')+' — se actualiza en vivo</span>':'⏱️ <b>Llega en ~'+min+' min</b> · a '+dtxt+' de tu puerta<br><span style="font-weight:400;font-size:12px">Se actualiza solo conforme '+((o.piloto||{}).nombre||'tu piloto')+' avanza'+(min<=2?' — ¡ya está llegando! 🛺':'')+'</span>');
+      /* Si el destino no quedo en el mapa, no inventamos minutos: se le dice al
+         cliente que confirme el punto por el chat (paso con DX60008550, 2026-11-10) */
+      var _sinDest=(o.estado==='recogido'&&!o.destinoGPS);
+      var _notaDest=_sinDest?'<br><span style="font-weight:400;font-size:12px">📍 Tu piloto va con la dirección escrita. Confirmale el punto exacto por el chat del pedido.</span>':((o.estado==='recogido'&&o.destinoAprox)?'<br><span style="font-weight:400;font-size:12px">📍 El destino quedó aproximado en el mapa: confirmale el punto exacto por el chat del pedido.</span>':'');
+      eta.innerHTML=_sinDest?('🏁 <b>Vas con '+((o.piloto||{}).nombre||'tu piloto')+'</b> rumbo a tu destino'+_notaDest)
+        :(o.estado==='recogido'?'🏁 <b>Destino en ~'+min+' min</b> · faltan '+dtxt+'<br><span style="font-weight:400;font-size:12px">Rumbo a tu destino con '+((o.piloto||{}).nombre||'tu piloto')+' — se actualiza en vivo</span>'+_notaDest:'⏱️ <b>Llega en ~'+min+' min</b> · a '+dtxt+' de tu puerta<br><span style="font-weight:400;font-size:12px">Se actualiza solo conforme '+((o.piloto||{}).nombre||'tu piloto')+' avanza'+(min<=2?' — ¡ya está llegando! 🛺':'')+'</span>');
       try{
         var _to=(o.estado==='recogido'&&o.destinoGPS)?o.destinoGPS:(o.recogidaGPS||o.cliente&&o.cliente.gps||(j.pedido&&j.pedido.recogidaGPS)||null);
         if(_to&&_to.lat) _rutaReal(o,{lat:j.gps.lat,lng:j.gps.lng},{lat:_to.lat,lng:_to.lng});
