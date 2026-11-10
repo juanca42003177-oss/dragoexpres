@@ -1251,13 +1251,20 @@ module.exports = wrap(async (req, res) => {
       await avisoPedido(`🚀 DRAGOEXPRES — Pedido ${id}\n⚠️ Un piloto rechazó → volvió a BUSCANDO, se lo ofrecemos a otro piloto de la zona.`);
       return res.status(200).json({ ok: true, pedido: o });
     }
-    if (action === 'recoger') { // VIAJE estilo las grandes: pasajero A BORDO → fase de DESTINO
-      if (o.tipo !== 'viaje') return res.status(200).json({ ok: false, error: 'Esto es solo para viajes de personas.' });
+    if (action === 'recoger') { // FASE DE ENTREGA: ya tengo al pasajero (viaje) o la comida/repuesto en la mano
+      if (!['viaje', 'comida', 'repuesto'].includes(o.tipo)) return res.status(200).json({ ok: false, error: 'Este pedido no tiene fase de recogida.' });
       if (o.estado !== 'en_camino') return res.status(200).json({ ok: false, error: 'Primero marcá YA VOY EN CAMINO (vas a buscarlo).' });
       o.estado = 'recogido'; o.tsRecogido = now;
       await ghPut('pedidos.json', fpd.sha, peds, 'recogido ' + id);
-      try { await pushATel(o.cliente.tel, { title: '🛺 ¡Tu piloto te recogió!', body: 'Vamos a tu destino. Abrí la app: la ruta y el tiempo en vivo ya están en el mapa.', tag: 'dx-' + id, url: 'https://dragoexpres.vercel.app/pedir.html' }); } catch (e) { }
-      await avisoPedido(`🚀 DRAGOEXPRES — VIAJE ${id}\n🧍 ${o.piloto.nombre} RECOGIÓ a ${o.cliente.nombre}. Fase de DESTINO.`);
+      const esViaje = o.tipo === 'viaje';
+      try {
+        await pushATel(o.cliente.tel, esViaje
+          ? { title: '🛺 ¡Tu piloto te recogió!', body: 'Vamos a tu destino. Abrí la app: la ruta y el tiempo en vivo ya están en el mapa.', tag: 'dx-' + id, url: 'https://dragoexpres.vercel.app/pedir.html' }
+          : { title: '📦 ¡Tu pedido ya va en camino!', body: 'El piloto recogió tu pedido y va hacia vos. Seguí la ruta en vivo en la app.', tag: 'dx-' + id, url: 'https://dragoexpres.vercel.app/pedir.html' });
+      } catch (e) { }
+      await avisoPedido(esViaje
+        ? `🚀 DRAGOEXPRES — VIAJE ${id}\n🧍 ${o.piloto.nombre} RECOGIÓ a ${o.cliente.nombre}. Fase de DESTINO.`
+        : `🚀 DRAGOEXPRES — ${id}\n📦 ${o.piloto.nombre} RECOGIÓ el pedido de ${o.cliente.nombre}. Va rumbo al cliente.`);
       return res.status(200).json({ ok: true, pedido: o });
     }
     if (action === 'avanzar') {

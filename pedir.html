@@ -622,7 +622,7 @@ function abrirNotif(){
   fetch(api('orders'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'misp',tel:u.tel||''})}).then(function(r){return r.json()}).then(function(j){
     var act=(j.pedidos||[]).find(function(o){return ['buscando','asignado','aceptado','en_camino','recogido'].indexOf(o.estado)>=0});
     var b=document.getElementById('shNot-body');
-    b.innerHTML=act?('<div style="background:#fff;border:1px solid #eee;border-radius:12px;padding:12px"><b>Pedido '+act.id+' en camino</b><div class="mini" style="margin-top:4px">Estado: '+({buscando:'Buscando piloto',asignado:'Piloto asignado',aceptado:'Piloto va por tu pedido',en_camino:'¡En camino a vos!'}[act.estado]||act.estado)+' · Tocá 🛒 para seguirlo en vivo.</div></div>'):(j.pedidos&&j.pedidos.length?'Tu último pedido: '+j.pedidos[0].id+' — revisá la pestaña Pedidos.':'Sin notificaciones nuevas. Cuando pidas, te avisamos acá.');
+    b.innerHTML=act?('<div style="background:#fff;border:1px solid #eee;border-radius:12px;padding:12px"><b>Pedido '+act.id+' en camino</b><div class="mini" style="margin-top:4px">Estado: '+({buscando:'Buscando piloto',asignado:'Piloto asignado',aceptado:'Piloto va por tu pedido',en_camino:'¡En camino a vos!',recogido:'📦 Ya recogieron tu pedido, van hacia vos'}[act.estado]||act.estado)+' · Tocá 🛒 para seguirlo en vivo.</div></div>'):(j.pedidos&&j.pedidos.length?'Tu último pedido: '+j.pedidos[0].id+' — revisá la pestaña Pedidos.':'Sin notificaciones nuevas. Cuando pidas, te avisamos acá.');
     var nb=document.getElementById('nBadge');if(nb)nb.style.display=act?'inline-block':'none';
     FIEL(j);
   }).catch(function(){});
