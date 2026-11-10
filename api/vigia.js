@@ -5,7 +5,7 @@
 // estado cambia (ok→falla y falla→ok, máximo 1 recordatorio cada 6h si
 // sigue fallando) para no gastar ni spamear.
 const wrap = require('./_cors');
-const { usaDb, dbGet, dbPut } = require('./_db');
+const { usaDb, dbGet, dbPut, respaldoGithub } = require('./_db');
 const { REPO, BRANCH, H, ensureBranch } = require('./_dx');
 
 const CICLO_MS = 72 * 3600 * 1000;
@@ -46,8 +46,36 @@ async function aviso(texto) {
   } catch (e) { }
 }
 
+/* RESPALDO AUTOMATICO DE LA BODEGA (2026-11-10). Hoy todo vive en Supabase: si esa
+   base falla, no hay copia de pedidos, pilotos, locales ni direcciones. Una vez al
+   dia (el vigia ya se llama cada 5 min) copiamos todos los archivos a la rama
+   'respaldo' del repo de datos, que es gratis y queda fuera de Supabase. */
+const ARCHIVOS_RESPALDO = ['pedidos.json', 'pilots.json', 'registros.json', 'locales.json', 'menus.json', 'pozo.json', 'direcciones.json', 'pushsubs.json', 'flotas.json', 'sugerencias.json'];
+const CADA_RESPALDO = 20 * 3600 * 1000;
+async function respaldoBodega(forzar) {
+  const fs2 = await ghGet('salud.json');
+  const sal = fs2 ? fs2.data : {};
+  if (!forzar && sal.tsRespaldo && Date.now() - sal.tsRespaldo < CADA_RESPALDO) return { ok: true, skip: true, ultimo: sal.tsRespaldo };
+  const copiados = [], fallos = [];
+  for (const f of ARCHIVOS_RESPALDO) {
+    try {
+      const r = await ghGet(f);
+      if (!r || !Array.isArray(r.data) && typeof r.data !== 'object') continue;
+      await respaldoGithub(f, r.data, 'respaldo ' + f);
+      copiados.push(f);
+    } catch (e) { fallos.push(f); }
+  }
+  sal.tsRespaldo = Date.now(); sal.respaldo = { copiados: copiados.length, fallos: fallos };
+  try { await ghPut('salud.json', fs2 ? fs2.sha : null, sal, 'marca de respaldo'); } catch (e) { }
+  return { ok: fallos.length === 0, copiados, fallos, ts: sal.tsRespaldo };
+}
 module.exports = wrap(async (req, res) => {
   const now = Date.now();
+  // RESPALDO: manual con /api/vigia?respaldo=1  |  automatico 1 vez al dia (20h)
+  let _rsp = null;
+  try { _rsp = await respaldoBodega(String((req.query || {}).respaldo || '') === '1'); }
+  catch (e) { _rsp = { ok: false, error: String(e.message || e).slice(0, 80) }; }
+  if (String((req.query || {}).respaldo || '') === '1') return res.status(200).json({ ok: !!(_rsp && _rsp.ok), respaldo: _rsp });
   // PRUEBA de la cadena completa (Juan la abre en su navegador): despierta al agente sin marcar falla
   if ((req.query || {}).test === '1') {
     const problemas = ['PRUEBA de la cadena de alertas: verificá que DragoExpres responda y avisale a Juan que todo funciona.'];
