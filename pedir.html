@@ -1680,7 +1680,48 @@ async function actualizar(){
       fetch(api('orders'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'cliGps',id:PID,tel:(uC.tel||''),lat:uC.gps.lat,lng:uC.gps.lng})}).catch(function(){window.CG_OK=null});
     }
   }catch(e){}
-  var mapa=document.getElementById('mapa');
+/* MAPA DESDE EL PRIMER SEGUNDO (2026-11-12): antes el mapa solo aparecia cuando el
+   piloto ya mandaba GPS (por eso tardaba y parpadeaba). Ahora se dibuja apenas se
+   pide, con el punto del cliente y las motos disponibles alrededor, y la pildora
+   "Buscando piloto" con cronometro, igual que inDrive. */
+function _mkUserIco(){return L.divIcon({className:'',html:'<div style="width:16px;height:16px;border-radius:50%;background:#1a73e8;border:3px solid #fff;box-shadow:0 0 0 7px rgba(26,115,232,.22)"></div>',iconSize:[22,22],iconAnchor:[11,11]})}
+function pintarBuscando(mapa,uC){
+  if(!mapa) return;
+  var cen=(uC&&uC.gps&&uC.gps.lat)?[uC.gps.lat,uC.gps.lng]:[14.6349,-90.5069];
+  mapa.style.display='block';
+  if(!document.getElementById('busqCss')){var st=document.createElement('style');st.id='busqCss';st.textContent='@keyframes lbPulse{0%{opacity:.25}50%{opacity:1}100%{opacity:.25}}';document.head.appendChild(st)}
+  if(!window.LMAP){
+    window.LMAP=L.map('mapa',{preferCanvas:true,zoomControl:false}).setView(cen,15);
+    _capaSat(window.LMAP);
+    try{L.control.zoom({position:'bottomright'}).addTo(window.LMAP)}catch(e){}
+    window.LMU=L.marker(cen,{icon:_mkUserIco()}).addTo(window.LMAP);
+    setTimeout(function(){try{window.LMAP.invalidateSize()}catch(e){}},250);
+  } else if(window.LMU){ window.LMU.setLatLng(cen); }
+  var p=document.getElementById('busqPill');
+  if(!p){
+    var host=mapa.parentNode; try{if(getComputedStyle(host).position==='static')host.style.position='relative'}catch(e){}
+    p=document.createElement('div'); p.id='busqPill';
+    p.style.cssText='position:absolute;left:50%;transform:translateX(-50%);top:10px;z-index:900;background:#111;color:#fff;border-radius:22px;padding:9px 16px;font-weight:800;font-size:13px;box-shadow:0 6px 18px rgba(0,0,0,.3);display:flex;align-items:center;gap:8px;white-space:nowrap';
+    host.appendChild(p);
+    try{window.LMAP.invalidateSize()}catch(e){}
+  }
+  var seg=window.BUSQ_T0?Math.floor((Date.now()-window.BUSQ_T0)/1000):0;
+  p.innerHTML='<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#39d353;animation:lbPulse 1.1s infinite"></span> Buscando piloto… '+(Math.floor(seg/60))+':'+('0'+(seg%60)).slice(-2)+(window.PC_N?' · '+window.PC_N+' cerca':'');
+  if(!window.PC_T||Date.now()-window.PC_T>6000){
+    window.PC_T=Date.now();
+    fetch(api('orders'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'pilotosCerca',lat:cen[0],lng:cen[1]})})
+      .then(function(r){return r.json()}).then(function(jj){
+        if(!jj||!jj.ok||!window.LMAP) return;
+        var ls=(jj.pilotos||[]); window.PC_N=ls.length;
+        (window.PCMK||[]).forEach(function(m){try{m.remove()}catch(e){}}); window.PCMK=[];
+        ls.slice(0,12).forEach(function(x){
+          var ic=L.divIcon({className:'',html:'<div style="font-size:20px;filter:drop-shadow(0 1px 2px rgba(0,0,0,.4))">🏍️</div>',iconSize:[24,24],iconAnchor:[12,12]});
+          window.PCMK.push(L.marker([x.lat,x.lng],{icon:ic}).addTo(window.LMAP));
+        });
+      }).catch(function(){});
+  }
+}
+var mapa=document.getElementById('mapa');
   var eta=document.getElementById('etaVivo');if(!eta){eta=document.createElement('div');eta.id='etaVivo';eta.style.cssText='background:#fdeeee;border:2px solid #c1121f;border-radius:12px;padding:10px;margin:8px 0;font-weight:900;color:#7a0c15';mapa.parentNode.insertBefore(eta,mapa.nextSibling)}
   function distKm(a,b){var R=6371,d=Math.PI/180,dl=(b.lat-a.lat)*d,dg=(b.lng-a.lng)*d,x=Math.sin(dl/2)*Math.sin(dl/2)+Math.cos(a.lat*d)*Math.cos(b.lat*d)*Math.sin(dg/2)*Math.sin(dg/2);return R*2*Math.atan2(Math.sqrt(x),Math.sqrt(1-x))}
   var vic=(o.piloto&&o.piloto.vehiculo==='carro')?'🚗':(o.piloto&&o.piloto.vehiculo==='bicicleta')?'🚲':'🏍️';
@@ -1688,11 +1729,18 @@ async function actualizar(){
     if(!PID||!navigator.geolocation)return;
     navigator.geolocation.getCurrentPosition(function(p){var u2=LS();u2.gps={lat:p.coords.latitude,lng:p.coords.longitude};SS(u2);if(window.LMC){window.LMC.setLatLng([p.coords.latitude,p.coords.longitude])}},function(){},{enableHighAccuracy:true,timeout:8000,maximumAge:20000})
   },30000)}
+  if((!j.gps||!j.gps.lat)&&o&&['buscando','asignado','aceptado'].includes(o.estado)){
+    if(!window.BUSQ_T0) window.BUSQ_T0=Date.now();
+    try{ pintarBuscando(mapa,uC); }catch(e){}
+  }
   if(j.gps&&j.gps.lat){
+    window.BUSQ_T0=null;
+    var _bp=document.getElementById('busqPill'); if(_bp)_bp.remove();
     mapa.style.display='block';
+    try{if(window.LMAP)window.LMAP.invalidateSize()}catch(e){}
     var mkIcon=L.divIcon({className:'',html:'<div style="font-size:26px;filter:drop-shadow(0 2px 3px rgba(0,0,0,.45))">'+vic+'</div>',iconSize:[30,30],iconAnchor:[15,15]});
     if(!window.LMAP){window.LMAP=L.map('mapa').setView([j.gps.lat,j.gps.lng],15);_capaSat(window.LMAP);window.LMK=L.marker([j.gps.lat,j.gps.lng],{icon:mkIcon}).addTo(window.LMAP).bindPopup('Tu piloto DragoExpres viene en '+vic)}
-    else{window.LMK.setLatLng([j.gps.lat,j.gps.lng]);try{window.LMAP.panTo([j.gps.lat,j.gps.lng],{animate:true,duration:0.6})}catch(e){window.LMAP.setView([j.gps.lat,j.gps.lng])}}
+    else{window.LMK.setLatLng([j.gps.lat,j.gps.lng]);try{window.LMAP.panTo([j.gps.lat,j.gps.lng],{animate:false})}catch(e){window.LMAP.setView([j.gps.lat,j.gps.lng])}}
     /* RUTA REAL POR CALLES (OSRM, gratis): se recalcula cuando el piloto se mueve */
     function _rutaReal(o,from,to){
       if(!from||!to||!window.LMAP) return;

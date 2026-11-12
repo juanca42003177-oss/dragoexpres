@@ -1548,6 +1548,16 @@ module.exports = wrap(async (req, res) => {
   }
 
   // ---- PILOTO: publica su GPS (para el mapa vivo del cliente) ----
+  /* PILOTOS DISPONIBLES CERCA (2026-11-12): para que el cliente vea las motos en el
+     mapa mientras busca, como en las apps grandes. Solo posicion y vehiculo, sin datos. */
+  if (action === 'pilotosCerca') {
+    const lat = +b.lat, lng = +b.lng;
+    const fp = await ghGet('pilots.json'); const arr = fp ? fp.data : [];
+    const out = arr.filter(x => x && x.disponible && isFinite(+x.lat) && isFinite(+x.lng) && (Date.now() - (+(x.tsGPS || 0)) < 15 * 60000))
+      .map(x => ({ lat: +x.lat, lng: +x.lng, v: x.vehiculo || 'moto' }))
+      .filter(x => !isFinite(lat) || Math.hypot((x.lat - lat) * 111, (x.lng - lng) * 105) < 15);
+    return res.status(200).json({ ok: true, pilotos: out.slice(0, 15) });
+  }
   if (action === 'gps') {
     const tel = String(b.tel || '').trim();
     const lat = +b.lat, lng = +b.lng;
