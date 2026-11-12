@@ -369,6 +369,7 @@ function pintarMapaPiloto(o){
   var _v2=vehiculoP(o); var vel=_v2==='bicicleta'?10:(_v2==='carro'?20:22);
   var dk=distKmP(yo,dest),min=Math.max(1,Math.round(dk/vel*60+1));
   mp.style.display='block';
+  try{if(window.PMP)window.PMP.invalidateSize()}catch(e){}
   if(window.PMM){window.PMM.remove();window.PMM=null}
   window.PMM=L.map('pmMap').setView([(yo.lat+dest.lat)/2,(yo.lng+dest.lng)/2],13);
   _capaSat(window.PMM);
